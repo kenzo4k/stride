@@ -1,0 +1,422 @@
+[
+  {
+    "_id": "1",
+    "title": "Modern React with Redux",
+    "short_description": "Master React and Redux to build modern, scalable web applications.",
+    "category": "Web Development",
+    "level": "Intermediate",
+    "price": 199.99,
+    "discount_price": 149.99,
+    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "8 weeks",
+    "seats": 50,
+    "enrollmentCount": 1250,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Sarah Johnson"
+    },
+    "createdAt": "2024-01-15T10:00:00Z"
+  },
+  {
+    "_id": "2",
+    "title": "Python for Data Science",
+    "short_description": "Learn Python fundamentals and apply them to data science projects.",
+    "category": "Data Science",
+    "level": "Beginner",
+    "price": 149.99,
+    "discount_price": 99.99,
+    "image": "https://images.unsplash.com/photo-1571171637578-3089c0a94f6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "6 weeks",
+    "seats": 75,
+    "enrollmentCount": 2100,
+    "rating": 4.9,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Michael Chen"
+    },
+    "createdAt": "2024-02-01T09:30:00Z"
+  },
+  {
+    "_id": "3",
+    "title": "Advanced JavaScript",
+    "short_description": "Deep dive into JavaScript ES6+ features and modern patterns.",
+    "category": "Web Development",
+    "level": "Advanced",
+    "price": 249.99,
+    "discount_price": 199.99,
+    "image": "https://images.unsplash.com/photo-1587620962725-abab7fe55159?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "10 weeks",
+    "seats": 30,
+    "enrollmentCount": 850,
+    "rating": 4.7,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "David Wilson"
+    },
+    "createdAt": "2024-01-20T14:15:00Z"
+  },
+  {
+    "_id": "4",
+    "title": "Machine Learning Fundamentals",
+    "short_description": "Introduction to machine learning algorithms and practical applications.",
+    "category": "Data Science",
+    "level": "Intermediate",
+    "price": 299.99,
+    "discount_price": 249.99,
+    "image": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "12 weeks",
+    "seats": 40,
+    "enrollmentCount": 1500,
+    "rating": 4.9,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Emily Rodriguez"
+    },
+    "createdAt": "2024-02-10T11:00:00Z"
+  },
+  {
+    "_id": "5",
+    "title": "UI/UX Design Mastery",
+    "short_description": "Learn the principles of user interface and user experience design.",
+    "category": "Design",
+    "level": "Beginner",
+    "price": 179.99,
+    "discount_price": 129.99,
+    "image": "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "8 weeks",
+    "seats": 60,
+    "enrollmentCount": 1800,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Jessica Lee"
+    },
+    "createdAt": "2024-01-25T16:30:00Z"
+  },
+  {
+    "_id": "6",
+    "title": "Full Stack Development with Node.js",
+    "short_description": "Build complete web applications using Node.js, Express, and MongoDB.",
+    "category": "Web Development",
+    "level": "Intermediate",
+    "price": 279.99,
+    "discount_price": 229.99,
+    "image": "https://images.unsplash.com/photo-1599266855493-a939342a64a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "10 weeks",
+    "seats": 35,
+    "enrollmentCount": 950,
+    "rating": 4.7,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Robert Taylor"
+    },
+    "createdAt": "2024-02-05T13:45:00Z"
+  },
+  {
+    "_id": "7",
+    "title": "Cloud Computing with AWS",
+    "short_description": "Learn AWS services and deploy scalable cloud applications.",
+    "category": "Cloud Computing",
+    "level": "Advanced",
+    "price": 349.99,
+    "discount_price": 299.99,
+    "image": "https://images.unsplash.com/photo-1664330041246-766a4a4e9753?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "12 weeks",
+    "seats": 25,
+    "enrollmentCount": 750,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Thomas Anderson"
+    },
+    "createdAt": "2024-01-18T09:00:00Z"
+  },
+  {
+    "_id": "8",
+    "title": "Digital Marketing Strategies",
+    "short_description": "Master digital marketing techniques for business growth.",
+    "category": "Marketing",
+    "level": "Beginner",
+    "price": 129.99,
+    "discount_price": 89.99,
+    "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "6 weeks",
+    "seats": 80,
+    "enrollmentCount": 2300,
+    "rating": 4.6,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Laura Martinez"
+    },
+    "createdAt": "2024-02-15T10:30:00Z"
+  },
+  {
+    "_id": "9",
+    "title": "Cybersecurity Essentials",
+    "short_description": "Learn the fundamentals of cybersecurity and protection strategies.",
+    "category": "Security",
+    "level": "Beginner",
+    "price": 199.99,
+    "discount_price": 149.99,
+    "image": "https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "8 weeks",
+    "seats": 45,
+    "enrollmentCount": 1100,
+    "rating": 4.7,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Daniel Brown"
+    },
+    "createdAt": "2024-01-30T15:20:00Z"
+  },
+  {
+    "_id": "10",
+    "title": "Mobile App Development with Flutter",
+    "short_description": "Build cross-platform mobile apps using Flutter and Dart.",
+    "category": "Mobile Development",
+    "level": "Intermediate",
+    "price": 229.99,
+    "discount_price": 179.99,
+    "image": "https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "10 weeks",
+    "seats": 30,
+    "enrollmentCount": 800,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Sophia Davis"
+    },
+    "createdAt": "2024-02-08T12:10:00Z"
+  },
+  {
+    "_id": "11",
+    "title": "Introduction to Artificial Intelligence",
+    "short_description": "Explore the basics of AI and its real-world applications.",
+    "category": "Artificial Intelligence",
+    "level": "Beginner",
+    "price": 159.99,
+    "discount_price": 109.99,
+    "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "6 weeks",
+    "seats": 70,
+    "enrollmentCount": 1900,
+    "rating": 4.9,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Olivia Wilson"
+    },
+    "createdAt": "2024-02-20T14:40:00Z"
+  },
+  {
+    "_id": "12",
+    "title": "Blockchain Development",
+    "short_description": "Learn to build decentralized applications on blockchain platforms.",
+    "category": "Blockchain",
+    "level": "Advanced",
+    "price": 399.99,
+    "discount_price": 349.99,
+    "image": "https://images.unsplash.com/photo-1640340434855-6084b1f4901c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "12 weeks",
+    "seats": 20,
+    "enrollmentCount": 600,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Ethan Moore"
+    },
+    "createdAt": "2024-01-22T11:15:00Z"
+  },
+  {
+    "_id": "13",
+    "title": "DevOps Fundamentals",
+    "short_description": "Learn DevOps practices and tools for continuous integration and delivery.",
+    "category": "DevOps",
+    "level": "Intermediate",
+    "price": 269.99,
+    "discount_price": 219.99,
+    "image": "https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "10 weeks",
+    "seats": 30,
+    "enrollmentCount": 700,
+    "rating": 4.7,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Noah Thompson"
+    },
+    "createdAt": "2024-02-12T09:30:00Z"
+  },
+  {
+    "_id": "14",
+    "title": "Game Development with Unity",
+    "short_description": "Create 2D and 3D games using Unity game engine.",
+    "category": "Game Development",
+    "level": "Beginner",
+    "price": 189.99,
+    "discount_price": 139.99,
+    "image": "https://images.unsplash.com/photo-1593433389946-145c6a629832?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "8 weeks",
+    "seats": 50,
+    "enrollmentCount": 1300,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Liam Johnson"
+    },
+    "createdAt": "2024-01-28T13:20:00Z"
+  },
+  {
+    "_id": "15",
+    "title": "Data Visualization with Python",
+    "short_description": "Learn to create compelling data visualizations using Python libraries.",
+    "category": "Data Science",
+    "level": "Intermediate",
+    "price": 169.99,
+    "discount_price": 119.99,
+    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "6 weeks",
+    "seats": 60,
+    "enrollmentCount": 1600,
+    "rating": 4.9,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Ava Martinez"
+    },
+    "createdAt": "2024-02-18T16:10:00Z"
+  },
+  {
+    "_id": "16",
+    "title": "Web Design Fundamentals",
+    "short_description": "Learn HTML, CSS, and responsive design principles.",
+    "category": "Web Development",
+    "level": "Beginner",
+    "price": 99.99,
+    "discount_price": 79.99,
+    "image": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "4 weeks",
+    "seats": 100,
+    "enrollmentCount": 2500,
+    "rating": 4.8,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Mia Wilson"
+    },
+    "createdAt": "2024-02-25T10:00:00Z"
+  },
+  {
+    "_id": "17",
+    "title": "Advanced Python Programming",
+    "short_description": "Master advanced Python concepts and design patterns.",
+    "category": "Python",
+    "level": "Advanced",
+    "price": 239.99,
+    "discount_price": 189.99,
+    "image": "https://images.unsplash.com/photo-1571171637578-3089c0a94f6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "10 weeks",
+    "seats": 25,
+    "enrollmentCount": 650,
+    "rating": 4.7,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "James Brown"
+    },
+    "createdAt": "2024-01-12T14:30:00Z"
+  },
+  {
+    "_id": "18",
+    "title": "Social Media Marketing",
+    "short_description": "Master social media strategies for business growth.",
+    "category": "Marketing",
+    "level": "Beginner",
+    "price": 119.99,
+    "discount_price": 89.99,
+    "image": "https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "6 weeks",
+    "seats": 85,
+    "enrollmentCount": 2100,
+    "rating": 4.6,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Emma Davis"
+    },
+    "createdAt": "2024-02-03T11:45:00Z"
+  },
+  {
+    "_id": "19",
+    "title": "Ethical Hacking and Penetration Testing",
+    "short_description": "Learn ethical hacking techniques and security testing.",
+    "category": "Security",
+    "level": "Advanced",
+    "price": 329.99,
+    "discount_price": 279.99,
+    "image": "https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "12 weeks",
+    "seats": 20,
+    "enrollmentCount": 500,
+    "rating": 4.9,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": true,
+    "instructor": {
+      "name": "Benjamin Lee"
+    },
+    "createdAt": "2024-01-10T09:15:00Z"
+  },
+  {
+    "_id": "20",
+    "title": "Content Marketing Mastery",
+    "short_description": "Learn to create compelling content that drives engagement.",
+    "category": "Marketing",
+    "level": "Intermediate",
+    "price": 149.99,
+    "discount_price": 99.99,
+    "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    "duration": "8 weeks",
+    "seats": 55,
+    "enrollmentCount": 1400,
+    "rating": 4.7,
+    "language": "English",
+    "completion_certificate": true,
+    "featured": false,
+    "instructor": {
+      "name": "Charlotte Wilson"
+    },
+    "createdAt": "2024-02-22T15:30:00Z"
+  }
+]

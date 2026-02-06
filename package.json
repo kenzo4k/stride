@@ -1,0 +1,63 @@
+{
+  "name": "course-management-system-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/vite": "^4.1.7",
+    "axios": "^1.9.0",
+    "firebase": "^11.10.0",
+    "framer-motion": "^12.18.1",
+    "lottie-react": "^2.4.1",
+    "lucide-react": "^0.511.0",
+    "react": "^18.3.1",
+    "react-awesome-reveal": "^4.3.1",
+    "react-dom": "^18.3.1",
+    "react-helmet-async": "^2.0.5",
+    "react-hook-form": "^7.57.0",
+    "react-hot-toast": "^2.5.2",
+    "react-icons": "^5.5.0",
+    "react-pdf": "^10.2.0",
+    "react-player": "^3.4.0",
+    "react-router": "^7.6.0",
+    "react-router-dom": "^7.6.2",
+    "react-simple-typewriter": "^5.0.1",
+    "react-slick": "^0.31.0",
+    "react-tooltip": "^5.28.1",
+    "slick-carousel": "^1.8.1",
+    "sweetalert2": "^11.22.0",
+    "tailwindcss": "^4.1.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.5.2",
+    "daisyui": "^5.0.35",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "vite": "^6.3.5"
+  },
+  "description": "Stride is a modern, full-stack web application designed to provide a seamless experience for students and instructors. Users can browse a wide range of courses, enroll with a single click, and manage their learning journey. Instructors can add, update, and manage their own courses through a secure dashboard.",
+  "main": "eslint.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/3mad18/Stride.git"
+  },
+  "bugs": {
+    "url": "https://github.com/3mad18/Stride/issues"
+  },
+  "homepage": "https://github.com/3mad18/Stride#readme"
+}
