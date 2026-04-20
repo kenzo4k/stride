@@ -1,9 +1,15 @@
+/* global process */
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import axios from "axios";
+import User from "./models/User.js";
+import Course from "./models/Course.js";
+import CourseContent from "./models/CourseContent.js";
+import Enrollment from "./models/Enrollment.js";
+import Assessment from "./models/Assessment.js";
 
 dotenv.config();
 
@@ -26,21 +32,6 @@ mongoose
   )
   .then(() => console.log("MongoDB connected ✔️"))
   .catch((err) => console.error("MongoDB connection error ❌:", err));
-
-// === Models ===
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  photoURL: String,
-  role: String,
-});
-const User = mongoose.model("User", userSchema);
-
-const courseSchema = new mongoose.Schema({
-  title: String,
-  price: Number,
-});
-const Course = mongoose.model("Course", courseSchema);
 
 // === PISTON: Code Execution Route ===
 // This route replaces the Judge0 logic for a credit-card-free alternative.
@@ -77,7 +68,7 @@ app.post("/api/execute", async (req, res) => {
 
 // === STRIPE: Create Payment Intent ===
 app.post("/create-payment-intent", async (req, res) => {
-  const { amount, courseId } = req.body;
+  const { amount } = req.body;
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
