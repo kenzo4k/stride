@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import auth from '../firebase/firebase.config';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/constants';
 
 export const AuthContext = createContext(null);
 const googleProvider = new GoogleAuthProvider();
@@ -50,15 +51,6 @@ const AuthProvider = ({ children }) => {
             }));
 
             // Here you would typically save the user data to your backend
-            // For example:
-            // await axios.post('/api/users', {
-            //     uid: auth.currentUser.uid,
-            //     email: auth.currentUser.email,
-            //     displayName: data.displayName,
-            //     photoURL: data.photoURL,
-            //     role: data.role || 'student'
-            // });
-
             return Promise.resolve();
         } catch (error) {
             console.error('Error updating profile:', error);
@@ -86,7 +78,7 @@ const AuthProvider = ({ children }) => {
                     };
                     setUser(userWithRole);
                     // Get JWT token
-                    const tokenResponse = await axios.post('https://course-management-system-server-woad.vercel.app/api/jwt', {
+                    const tokenResponse = await axios.post(`${API_BASE_URL}/jwt`, {
                         email: currentUser.email,
                         role: userWithRole.role
                     });
@@ -118,7 +110,7 @@ const AuthProvider = ({ children }) => {
             }
         }
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const authInfo = { user, loading, createUser, signIn, googleSignIn, updateUserProfile, logOut };
 

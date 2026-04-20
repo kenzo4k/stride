@@ -27,6 +27,8 @@ import {
 import AtRiskStudents from '../../components/instructor/AtRiskStudents';
 import AnalyticsChart from '../../components/instructor/AnalyticsChart';
 
+import { API_BASE_URL } from '../../utils/constants';
+
 // Sample data for tabs - ADD THIS
 const sampleInstructorData = {
   // Overview Tab
@@ -114,9 +116,9 @@ const sampleInstructorData = {
       status: "At Risk"
     }
   ]
-};
+  };
 
-const Instructor = () => {
+  const Instructor = () => {
   const { user } = React.useContext(AuthContext);
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -183,17 +185,17 @@ const Instructor = () => {
       setLoading(true);
 
       // Fetch instructor statistics
-      const statsResponse = await fetch(`https://course-management-system-server-woad.vercel.app/api/instructor/stats?email=${user.email}`);
+      const statsResponse = await fetch(`${API_BASE_URL}/instructor/stats?email=${user.email}`);
       const statsData = await statsResponse.json();
       setStats(statsData);
 
       // Fetch instructor courses
-      const coursesResponse = await fetch(`https://course-management-system-server-woad.vercel.app/api/instructor/courses?email=${user.email}`);
+      const coursesResponse = await fetch(`${API_BASE_URL}/instructor/courses?email=${user.email}`);
       const coursesData = await coursesResponse.json();
       setCourses(coursesData);
 
       // Fetch instructor students
-      const studentsResponse = await fetch(`https://course-management-system-server-woad.vercel.app/api/instructor/students?email=${user.email}`);
+      const studentsResponse = await fetch(`${API_BASE_URL}/instructor/students?email=${user.email}`);
       const studentsData = await studentsResponse.json();
       setStudents(studentsData);
 
@@ -207,7 +209,7 @@ const Instructor = () => {
 
   const handleCourseAction = async (courseId, action) => {
     try {
-      const response = await fetch(`https://course-management-system-server-woad.vercel.app/api/instructor/courses/${courseId}/${action}`, {
+      const response = await fetch(`${API_BASE_URL}/instructor/courses/${courseId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

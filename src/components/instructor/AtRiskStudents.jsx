@@ -5,29 +5,25 @@ import toast from 'react-hot-toast';
 import { instructorService } from '../../services/instructorService';
 
 const AtRiskStudents = () => {
-    const [atRiskStudents, _setAtRiskStudents] = useState([
-        // Sample data - replace with actual API call
-        {
-            id: 1,
-            name: 'John Doe',
-            course: 'Mathematics 101',
-            grade: 45,
-            status: 'Failing',
-            lastLogin: '2023-01-01',
-            email: 'john@example.com'
-        },
-        {
-            id: 2,
-            name: 'Jane Smith',
-            course: 'Physics 201',
-            grade: 58,
-            status: 'At Risk',
-            lastLogin: '2023-01-05',
-            email: 'jane@example.com'
-        }
-    ]);
-    const [loading, _setLoading] = useState(false);
-    const [selectedStudents, _setSelectedStudents] = useState([]);
+    const [atRiskStudents, setAtRiskStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAtRiskStudents = async () => {
+            try {
+                setLoading(true);
+                const data = await instructorService.getAtRiskStudents();
+                setAtRiskStudents(data);
+            } catch (error) {
+                console.error('Error fetching at-risk students:', error);
+                toast.error('Failed to load at-risk students');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAtRiskStudents();
+    }, []);
 
     const handleSendReminder = async (studentId) => {
         try {
@@ -50,7 +46,11 @@ const AtRiskStudents = () => {
                 </p>
             </div>
 
-            {atRiskStudents.length === 0 ? (
+            {loading ? (
+                <div className="flex justify-center py-12">
+                    <div className="w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full animate-spin"></div>
+                </div>
+            ) : atRiskStudents.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                     <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-green-400" />
                     <p className="text-lg">No at-risk students found</p>

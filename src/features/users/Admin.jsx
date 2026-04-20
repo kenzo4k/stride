@@ -21,6 +21,8 @@ import {
   Plus
 } from 'lucide-react';
 
+import { API_BASE_URL } from '../../utils/constants';
+
 // Sample data for when API fails
 const sampleStats = {
   totalUsers: 45,
@@ -80,16 +82,16 @@ const Admin = () => {
       setLoading(true);
 
       // Fetch statistics
-      const statsResponse = await fetch('https://course-management-system-server-woad.vercel.app/api/admin/stats');
+      const statsResponse = await fetch('${API_BASE_URL}/admin/stats');
       
       // Fetch recent users
-      const usersResponse = await fetch('https://course-management-system-server-woad.vercel.app/api/admin/recent-users');
+      const usersResponse = await fetch('${API_BASE_URL}/admin/recent-users');
       
       // Fetch recent courses
-      const coursesResponse = await fetch('https://course-management-system-server-woad.vercel.app/api/admin/recent-courses');
+      const coursesResponse = await fetch('${API_BASE_URL}/admin/recent-courses');
       
       // Fetch instructors
-      const instructorsResponse = await fetch('https://course-management-system-server-woad.vercel.app/api/admin/instructors');
+      const instructorsResponse = await fetch('${API_BASE_URL}/admin/instructors');
 
       // Check if all API responses are OK
       if (statsResponse.ok && usersResponse.ok && coursesResponse.ok && instructorsResponse.ok) {
@@ -127,7 +129,7 @@ const Admin = () => {
 
   const handleUserAction = async (userId, action) => {
     try {
-      const response = await fetch(`https://course-management-system-server-woad.vercel.app/api/admin/users/${userId}/${action}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +149,7 @@ const Admin = () => {
 
   const handleCourseAction = async (courseId, action) => {
     try {
-      const response = await fetch(`https://course-management-system-server-woad.vercel.app/api/admin/courses/${courseId}/${action}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/courses/${courseId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +169,7 @@ const Admin = () => {
 
   const handleInstructorAction = async (instructorId, action) => {
     try {
-      const response = await fetch(`https://course-management-system-server-woad.vercel.app/api/admin/instructors/${instructorId}/${action}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/instructors/${instructorId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

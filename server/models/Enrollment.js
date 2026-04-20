@@ -21,6 +21,12 @@ const enrollmentSchema = new mongoose.Schema({
     min: 0,
     max: 100,
   },
+  grade: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100,
+  },
   completedLessons: [String], // IDs of completed lessons
   status: {
     type: String,

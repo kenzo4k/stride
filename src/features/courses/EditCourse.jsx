@@ -5,6 +5,8 @@ import CourseContentEditor from './CourseContentEditor';
 import { FileText, Video, List, BookOpen, Settings } from 'lucide-react';
 import coursesData from '../../../public/courses.json';
 
+import { API_BASE_URL } from '../../utils/constants';
+
 const EditCourse = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -101,7 +103,7 @@ const EditCourse = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('access-token');
-            const response = await fetch(`https://course-management-system-server-woad.vercel.app/api/courses/${id || ''}`, {
+            const response = await fetch(`${API_BASE_URL}/courses/${id || ''}`, {
                 method: id ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
