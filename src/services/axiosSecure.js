@@ -4,7 +4,7 @@ import auth from '../firebase/firebase.config';
 
 // Create a new axios instance with a base URL
 const axiosSecure = axios.create({
-    baseURL: 'https://course-management-system-server-woad.vercel.app/api', // Your server's base URL
+    baseURL: 'http://localhost:5000/api', // Your server's base URL
     withCredentials: true,
 });
 

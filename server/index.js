@@ -5,11 +5,18 @@ import mongoose from "mongoose";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import axios from "axios";
-import User from "./models/User.js";
-import Course from "./models/Course.js";
-import CourseContent from "./models/CourseContent.js";
-import Enrollment from "./models/Enrollment.js";
-import Assessment from "./models/Assessment.js";
+import jwt from "jsonwebtoken";
+
+// Routes
+import userRoutes from "./routes/userRoutes.js";
+import courseRoutes from "./routes/courseRoutes.js";
+import enrollmentRoutes from "./routes/enrollmentRoutes.js";
+import instructorRoutes from "./routes/instructorRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+
+// Controllers (for some top-level routes)
+import { getMyEnrollments } from "./controllers/enrollmentController.js";
+import { registerUser } from "./controllers/userController.js";
 
 dotenv.config();
 
@@ -28,25 +35,38 @@ app.use(express.json());
 // === MongoDB Connect ===
 mongoose
   .connect(
-    "mongodb+srv://karimsh:123@cluster0.str1gjq.mongodb.net/registrationDB"
+    process.env.MONGODB_URI || "mongodb+srv://karimsh:123@cluster0.str1gjq.mongodb.net/registrationDB"
   )
   .then(() => console.log("MongoDB connected ✔️"))
   .catch((err) => console.error("MongoDB connection error ❌:", err));
 
+// === API Routes ===
+app.use("/api/users", userRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/instructor", instructorRoutes);
+app.use("/api/admin", adminRoutes);
+
+// Compatibility with frontend services
+app.post("/api/register-user", registerUser);
+app.get("/api/my-enrollments", getMyEnrollments);
+
+// JWT endpoint
+app.post("/api/jwt", async (req, res) => {
+  const user = req.body;
+  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET || 'secret', {
+    expiresIn: "1h",
+  });
+  res.send({ token });
+});
+
 // === PISTON: Code Execution Route ===
-// This route replaces the Judge0 logic for a credit-card-free alternative.
 app.post("/api/execute", async (req, res) => {
   const { code, language, version } = req.body;
-
-  // Piston v2 Request Body Format
   const executionData = {
     language: language,
     version: version,
-    files: [
-      {
-        content: code,
-      },
-    ],
+    files: [{ content: code }],
   };
 
   try {
@@ -54,53 +74,35 @@ app.post("/api/execute", async (req, res) => {
       "https://emkc.org/api/v2/piston/execute",
       executionData
     );
-
-    // Piston returns an object containing 'stdout', 'stderr', and 'output' (combined)
-    // We send back the 'run' object which contains these fields.
     res.json(response.data.run);
   } catch (error) {
     console.error("Piston API Error:", error.response?.data || error.message);
-    res
-      .status(500)
-      .json({ error: "Execution engine failed. Please try again." });
+    res.status(500).json({ error: "Execution engine failed. Please try again." });
   }
 });
 
 // === STRIPE: Create Payment Intent ===
-app.post("/create-payment-intent", async (req, res) => {
+app.post("/api/create-payment-intent", async (req, res) => {
   const { amount } = req.body;
-
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount || 4900,
       currency: "usd",
-      automatic_payment_methods: {
-        enabled: true,
-      },
+      automatic_payment_methods: { enabled: true },
     });
-
-    res.send({
-      clientSecret: paymentIntent.client_secret,
-    });
+    res.send({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error("Stripe Error:", error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// === POST: Register User ===
-app.post("/api/register-user", async (req, res) => {
-  try {
-    const { name, email, photoURL, role } = req.body;
-    if (!name || !email || !photoURL || !role) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-    const newUser = new User({ name, email, photoURL, role });
-    const saved = await newUser.save();
-    res.json({ message: "User saved successfully", user: saved });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err });
-  }
+// Error handling middleware
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!", error: err.message });
 });
 
-app.listen(5000, () => console.log("Backend running on port 5000 🚀"));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Backend running on port ${PORT} 🚀`));

@@ -2,8 +2,9 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
-import coursesData from '../../../public/courses.json';
 import { RecommendedCourses } from '../../components/common';
+
+import { API_BASE_URL } from '../../utils/constants';
 
 const CourseDetails = () => {
     // Hooks
@@ -26,12 +27,12 @@ const CourseDetails = () => {
             document.title = "Course Details | Stride";
 
             try {
-                // Load course from local JSON data
-                const foundCourse = coursesData.find(c => c._id === id);
-                
-                if (!foundCourse) {
+                // Fetch course from API
+                const response = await fetch(`${API_BASE_URL}/courses/${id}`);
+                if (!response.ok) {
                     throw new Error('Course not found.');
                 }
+                const foundCourse = await response.json();
 
                 // Map _id to id for consistency
                 const mappedCourse = {
