@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import axios from "axios";
-import jwt from "jsonwebtoken";
 
 // Routes
 import userRoutes from "./routes/userRoutes.js";
@@ -13,6 +12,7 @@ import courseRoutes from "./routes/courseRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import instructorRoutes from "./routes/instructorRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 // Controllers (for some top-level routes)
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
@@ -63,19 +63,11 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/instructor", instructorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/auth", authRoutes);
 
 // Compatibility with frontend services
 app.post("/api/register-user", registerUser);
 app.get("/api/my-enrollments", getMyEnrollments);
-
-// JWT endpoint
-app.post("/api/jwt", async (req, res) => {
-  const user = req.body;
-  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET || 'secret', {
-    expiresIn: "1h",
-  });
-  res.send({ token });
-});
 
 // === PISTON: Code Execution Route ===
 app.post("/api/execute", async (req, res) => {

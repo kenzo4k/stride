@@ -11,7 +11,7 @@ const Register = () => {
             role: 'student' // Default role
         }
     });
-    const { createUser, updateUserProfile } = useAuth();
+    const { createUser } = useAuth();
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -22,28 +22,27 @@ const Register = () => {
     const onSubmit = async (data) => {
         setIsLoading(true);
         try {
-            // Create user with email and password
-            await createUser(data.email, data.password);
-
-            // Update user profile with name and role
-            await updateUserProfile({
-                displayName: data.name,
-                photoURL: data.photoURL,
-                role: data.role // Save role in user profile
+            // Create user with all fields
+            await createUser({
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                role: data.role,
+                photoURL: data.photoURL
             });
 
             toast.success("Registration successful!");
 
             // Redirect based on role
             if (data.role === 'instructor') {
-                navigate('/instructor/dashboard');
+                navigate('/instructor');
             } else if (data.role === 'admin') {
-                navigate('/admin/dashboard');
+                navigate('/admin');
             } else {
-                navigate('/student/dashboard');
+                navigate('/student');
             }
         } catch (error) {
-            toast.error(error.message || "An unexpected error occurred.");
+            toast.error(error.response?.data?.message || error.message || "An unexpected error occurred.");
         } finally {
             setIsLoading(false);
         }
@@ -227,7 +226,7 @@ const Register = () => {
                             <p className="text-gray-400 text-sm">
                                 Already have an account?{' '}
                                 <Link
-                                    to="/login"
+                                    to="/Auth/login"
                                     className="text-blue-400 hover:text-blue-300 font-semibold hover:underline transition-colors"
                                 >
                                     Sign in here

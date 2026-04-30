@@ -1,6 +1,4 @@
 import axios from 'axios';
-import { signOut } from 'firebase/auth';
-import auth from '../firebase/firebase.config';
 
 // Create a new axios instance with a base URL
 const axiosSecure = axios.create({
@@ -33,9 +31,10 @@ axiosSecure.interceptors.response.use(
         const status = error.response?.status;
         // For 401 or 403 errors, log out the user
         if (status === 401 || status === 403) {
-            await signOut(auth); // Log out from Firebase
+            localStorage.removeItem('access-token');
+            localStorage.removeItem('user');
             // Optionally redirect to login page
-            window.location.replace('/login');
+            window.location.replace('/Auth/login');
         }
         return Promise.reject(error);
     }

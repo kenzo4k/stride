@@ -1,6 +1,7 @@
 /* global process */
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -39,10 +40,13 @@ async function seed() {
     // === CREATE TEST ACCOUNTS ===
     console.log('Creating test accounts...');
     
+    const hashedPassword = await bcrypt.hash('123456', 10);
+    
     // Admin account
     const _admin = await User.create({
       name: 'Platform Admin',
       email: 'admin@stride.com',
+      password: hashedPassword,
       role: 'admin',
       xp: 5000,
       level: 10,
@@ -53,6 +57,7 @@ async function seed() {
     const instructor = await User.create({
       name: 'Sarah Johnson',
       email: 'instructor@stride.com',
+      password: hashedPassword,
       role: 'instructor',
       xp: 3500,
       level: 8,
@@ -65,6 +70,7 @@ async function seed() {
     const student = await User.create({
       name: 'Student User',
       email: 'student@stride.com',
+      password: hashedPassword,
       role: 'student',
       xp: 500,
       level: 3,
@@ -76,6 +82,7 @@ async function seed() {
     const instructor2 = await User.create({
       name: 'Michael Chen',
       email: 'michael@stride.com',
+      password: hashedPassword,
       role: 'instructor',
       xp: 2800,
       level: 7,
@@ -84,10 +91,11 @@ async function seed() {
     });
 
     // Additional students for variety
-    const additionalStudents = await User.create([
+    const additionalStudentsData = [
       {
         name: 'Alice Williams',
         email: 'alice@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 4500,
         level: 12,
@@ -96,6 +104,7 @@ async function seed() {
       {
         name: 'Bob Martinez',
         email: 'bob@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 3200,
         level: 9,
@@ -104,6 +113,7 @@ async function seed() {
       {
         name: 'Carol Davis',
         email: 'carol@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 2800,
         level: 8,
@@ -112,6 +122,7 @@ async function seed() {
       {
         name: 'David Brown',
         email: 'david@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 1500,
         level: 5,
@@ -120,6 +131,7 @@ async function seed() {
       {
         name: 'Emma Wilson',
         email: 'emma@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 1200,
         level: 4,
@@ -129,6 +141,7 @@ async function seed() {
       {
         name: 'Frank Lee',
         email: 'frank@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 200,
         level: 2,
@@ -137,6 +150,7 @@ async function seed() {
       {
         name: 'Grace Taylor',
         email: 'grace@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 150,
         level: 1,
@@ -145,12 +159,14 @@ async function seed() {
       {
         name: 'Henry Anderson',
         email: 'henry@student.com',
+        password: hashedPassword,
         role: 'student',
         xp: 100,
         level: 1,
         bio: 'Balancing work and studies.',
       },
-    ]);
+    ];
+    const additionalStudents = await User.create(additionalStudentsData);
 
     const allStudents = [student, ...additionalStudents];
 
