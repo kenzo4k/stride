@@ -2,52 +2,22 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
-
-// Hardcoded credentials for each role
-const HARDCODED_CREDENTIALS = [
-  {
-    email: "admin@example.com",
-    password: "admin123",
-    role: "admin",
-  },
-  {
-    email: "student@example.com",
-    password: "student123",
-    role: "student",
-  },
-  {
-    email: "instructor@example.com",
-    password: "instructor123",
-    role: "instructor",
-  },
-];
+import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
   const { register, handleSubmit } = useForm();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const { signIn } = useAuth();
 
-  const handleLogin = (data) => {
+  const handleLogin = async (data) => {
     const { email, password } = data;
 
-    // Find matching credentials
-    const user = HARDCODED_CREDENTIALS.find(
-      (cred) => cred.email === email && cred.password === password
-    );
+    try {
+      const response = await signIn(email, password);
+      const user = response.data.user;
 
-    if (user) {
-      // Store user data in localStorage
-      const userData = {
-        email: user.email,
-        role: user.role,
-        isAuthenticated: true,
-      };
-
-      localStorage.setItem("user", JSON.stringify(userData));
       toast.success(`Welcome back, ${user.role}!`);
-
-      // Update auth state
-      window.dispatchEvent(new Event("storage"));
 
       // Redirect based on role
       switch (user.role) {
@@ -61,9 +31,10 @@ const Login = () => {
         default:
           navigate("/student");
       }
-    } else {
-      setError("Invalid email or password");
-      toast.error("Invalid credentials");
+    } catch (err) {
+      const message = err.response?.data?.message || "Invalid email or password";
+      setError(message);
+      toast.error(message);
     }
   };
 
@@ -126,41 +97,9 @@ const Login = () => {
               Sign In
             </button>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-gray-800 text-gray-400">OR</span>
-              </div>
+            <div className="text-center text-gray-400 text-sm mt-4">
+              Don't have an account? <Link to="/Auth/register" className="text-indigo-400 hover:underline">Register</Link>
             </div>
-
-            {/* Google Login Button */}
-            <button
-              type="button"
-              className="btn bg-gray-700 hover:bg-gray-600 text-white border-none w-full shadow-lg transition-all duration-200 flex items-center justify-center space-x-3"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
           </form>
         </div>
       </div>
