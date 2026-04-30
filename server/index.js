@@ -21,7 +21,24 @@ import { registerUser } from "./controllers/userController.js";
 dotenv.config();
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Stripe with fallback for missing key
+let stripe;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey);
+} else {
+  console.warn('⚠️ STRIPE_SECRET_KEY not found. Payment features will return mock responses.');
+  stripe = {
+    paymentIntents: {
+      create: async () => ({
+        client_secret: 'mock_client_secret_' + Date.now(),
+        id: 'mock_pi_' + Date.now(),
+      }),
+    },
+  };
+}
 
 // === LOG MIDDLEWARE ===
 app.use((req, res, next) => {
