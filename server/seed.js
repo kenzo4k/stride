@@ -1,3 +1,4 @@
+/* global process */
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
@@ -35,30 +36,43 @@ async function seed() {
     ]);
     console.log('All collections cleared');
 
-    // === CREATE USERS ===
-    console.log('Creating users...');
+    // === CREATE TEST ACCOUNTS ===
+    console.log('Creating test accounts...');
     
-    // Admin user
-    const admin = await User.create({
+    // Admin account
+    const _admin = await User.create({
       name: 'Platform Admin',
       email: 'admin@stride.com',
       role: 'admin',
       xp: 5000,
       level: 10,
     });
+    console.log('✓ Admin account: admin@stride.com');
 
-    // Instructor user
+    // Instructor account
     const instructor = await User.create({
       name: 'Sarah Johnson',
-      email: 'sarah@stride.com',
+      email: 'instructor@stride.com',
       role: 'instructor',
       xp: 3500,
       level: 8,
       bio: 'Full-stack developer with 10+ years of experience teaching programming.',
       title: 'Senior Software Engineer',
     });
+    console.log('✓ Instructor account: instructor@stride.com');
 
-    // Second instructor
+    // Student account
+    const student = await User.create({
+      name: 'Student User',
+      email: 'student@stride.com',
+      role: 'student',
+      xp: 500,
+      level: 3,
+      bio: 'Eager to learn new technologies.',
+    });
+    console.log('✓ Student account: student@stride.com');
+
+    // Additional instructor
     const instructor2 = await User.create({
       name: 'Michael Chen',
       email: 'michael@stride.com',
@@ -69,9 +83,8 @@ async function seed() {
       title: 'ML Engineer',
     });
 
-    // Student users
-    const students = await User.create([
-      // High-performing students
+    // Additional students for variety
+    const additionalStudents = await User.create([
       {
         name: 'Alice Williams',
         email: 'alice@student.com',
@@ -96,7 +109,6 @@ async function seed() {
         level: 8,
         bio: 'Recent grad exploring web development.',
       },
-      // Average-performing students
       {
         name: 'David Brown',
         email: 'david@student.com',
@@ -113,7 +125,7 @@ async function seed() {
         level: 4,
         bio: 'Curious about data science.',
       },
-      // Struggling students (at-risk for ML detection)
+      // At-risk students
       {
         name: 'Frank Lee',
         email: 'frank@student.com',
@@ -140,7 +152,9 @@ async function seed() {
       },
     ]);
 
-    console.log(`Created ${1 + 1 + 1 + students.length} users`);
+    const allStudents = [student, ...additionalStudents];
+
+    console.log(`Created ${1 + 2 + additionalStudents.length + 1} total users`);
 
     // === CREATE COURSES ===
     console.log('Creating courses...');
@@ -278,9 +292,9 @@ async function seed() {
     const enrollmentData = [];
     
     // Enroll all students in Web Development course
-    for (const student of students) {
+    for (const s of allStudents) {
       enrollmentData.push({
-        userId: student._id,
+        userId: s._id,
         courseId: courses[0]._id,
         progress: randomBetween(20, 95),
         grade: 0,
@@ -291,7 +305,7 @@ async function seed() {
     // Enroll some students in Data Science course
     for (let i = 0; i < 5; i++) {
       enrollmentData.push({
-        userId: students[i]._id,
+        userId: allStudents[i]._id,
         courseId: courses[1]._id,
         progress: randomBetween(10, 80),
         grade: 0,
@@ -301,14 +315,14 @@ async function seed() {
     
     // Enroll advanced students in Advanced JavaScript
     enrollmentData.push({
-      userId: students[0]._id,
+      userId: allStudents[0]._id,
       courseId: courses[2]._id,
       progress: randomBetween(50, 100),
       grade: 0,
       status: 'active',
     });
     enrollmentData.push({
-      userId: students[1]._id,
+      userId: allStudents[1]._id,
       courseId: courses[2]._id,
       progress: randomBetween(30, 70),
       grade: 0,
@@ -318,7 +332,7 @@ async function seed() {
     // Enroll some in ML course
     for (let i = 2; i < 6; i++) {
       enrollmentData.push({
-        userId: students[i]._id,
+        userId: allStudents[i]._id,
         courseId: courses[3]._id,
         progress: randomBetween(5, 60),
         grade: 0,
@@ -394,44 +408,46 @@ async function seed() {
     await Assessment.create(assessmentData);
     console.log(`Created ${courses.length} assessments`);
 
-    // === CREATE STUDENT METRICS ===
-    console.log('Creating student metrics for ML features...');
+    // === CREATE STUDENT METRICS (ML Features) ===
+    console.log('Creating student metrics with ML features...');
     
+    const totalLessonsPerCourse = 9;
+    const windowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Last 7 days
+
     // Define performance patterns for ML data variety
     const performancePatterns = [
-      // High performers (indices 0-2)
-      { loginRange: [40, 60], sessionRange: [120, 240], lessonsRange: [15, 20], quizRange: [85, 98], assignmentRange: [80, 95], risk: 'low' },
-      // Average performers (indices 3-4)
-      { loginRange: [15, 30], sessionRange: [45, 90], lessonsRange: [8, 15], quizRange: [60, 80], assignmentRange: [55, 75], risk: 'medium' },
-      // Struggling students (indices 5-7)
-      { loginRange: [3, 10], sessionRange: [10, 40], lessonsRange: [2, 7], quizRange: [25, 55], assignmentRange: [30, 50], risk: 'high' },
+      // High performers (indices 0-3)
+      { loginRange: [40, 60], sessionRange: [120, 240], lessonsRange: [15, 20], quizRange: [85, 98], assignmentRange: [80, 95], risk: 'low', dropout: false },
+      // Average performers (indices 4-5)
+      { loginRange: [15, 30], sessionRange: [45, 90], lessonsRange: [8, 15], quizRange: [60, 80], assignmentRange: [55, 75], risk: 'medium', dropout: false },
+      // Struggling students (indices 6-8)
+      { loginRange: [3, 10], sessionRange: [10, 40], lessonsRange: [2, 7], quizRange: [25, 55], assignmentRange: [30, 50], risk: 'high', dropout: true },
     ];
 
     const metricsData = [];
-    const totalLessonsPerCourse = 9; // Based on course content created
 
-    for (let i = 0; i < students.length; i++) {
-      const student = students[i];
-      const studentEnrollments = enrollments.filter(e => e.userId.toString() === student._id.toString());
+    for (let i = 0; i < allStudents.length; i++) {
+      const s = allStudents[i];
+      const studentEnrollments = enrollments.filter(e => e.userId.toString() === s._id.toString());
       
       // Determine performance pattern
       let pattern;
-      if (i < 3) pattern = performancePatterns[0];
-      else if (i < 5) pattern = performancePatterns[1];
+      if (i < 4) pattern = performancePatterns[0];
+      else if (i < 6) pattern = performancePatterns[1];
       else pattern = performancePatterns[2];
 
       for (const enrollment of studentEnrollments) {
         // Generate quiz scores
         const quizScores = Array.from({ length: 3 }, () => randomBetween(pattern.quizRange[0], pattern.quizRange[1]));
-        const averageQuizScore = Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length);
+        const quizAvgScore = Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length);
 
         // Generate assignment scores
         const assignmentScores = Array.from({ length: 2 }, () => randomBetween(pattern.assignmentRange[0], pattern.assignmentRange[1]));
-        const averageAssignmentScore = Math.round(assignmentScores.reduce((a, b) => a + b, 0) / assignmentScores.length);
+        const assignmentAvgScore = Math.round(assignmentScores.reduce((a, b) => a + b, 0) / assignmentScores.length);
 
-        // Calculate engagement score components
+        // Calculate metrics
         const loginCount = randomBetween(pattern.loginRange[0], pattern.loginRange[1]);
-        const sessionTime = randomBetween(pattern.sessionRange[0], pattern.sessionRange[1]);
+        const sessionTimeAvg = randomBetween(pattern.sessionRange[0], pattern.sessionRange[1]);
         const lessonsCompleted = randomBetween(pattern.lessonsRange[0], pattern.lessonsRange[1]);
         const videoWatchTime = Math.round(lessonsCompleted * randomFloat(15, 30));
         const articlesRead = randomBetween(Math.floor(lessonsCompleted / 2), lessonsCompleted);
@@ -439,8 +455,8 @@ async function seed() {
 
         // Calculate engagement score
         const lessonScore = (lessonsCompleted / totalLessonsPerCourse) * 30;
-        const quizScoreContribution = averageQuizScore * 0.25;
-        const assignmentScoreContribution = averageAssignmentScore * 0.25;
+        const quizScoreContribution = quizAvgScore * 0.25;
+        const assignmentScoreContribution = assignmentAvgScore * 0.25;
         const activityScore = Math.min(loginCount / 10, 1) * 20;
         const engagementScore = Math.round(lessonScore + quizScoreContribution + assignmentScoreContribution + activityScore);
 
@@ -449,31 +465,27 @@ async function seed() {
         const streakDays = pattern.risk === 'high' ? randomBetween(0, 3) : randomBetween(5, 15);
 
         // Generate last active date (recent for active, older for at-risk)
-        const daysAgo = pattern.risk === 'high' ? randomBetween(7, 30) : randomBetween(0, 3);
-        const lastActive = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+        const lastActiveDaysAgo = pattern.risk === 'high' ? randomBetween(7, 30) : randomBetween(0, 3);
 
         metricsData.push({
-          studentId: student._id,
+          studentId: s._id,
           courseId: enrollment.courseId,
-          loginCount,
-          sessionTime,
-          lessonsCompleted,
-          totalLessons: totalLessonsPerCourse,
-          quizScores,
-          averageQuizScore,
-          assignmentsCompleted: assignmentScores.length,
-          totalAssignments: 2,
-          assignmentScores,
-          averageAssignmentScore,
-          videoWatchTime,
-          articlesRead,
-          codingExercisesCompleted,
-          totalCodingExercises: Math.floor(totalLessonsPerCourse / 3),
-          lastActive,
-          streakDays,
-          totalDaysActive,
-          engagementScore,
-          riskFlag: pattern.risk,
+          window_start: windowStart,
+          dropout_next_7_days: pattern.dropout,
+          login_count: loginCount,
+          session_time_avg: sessionTimeAvg,
+          lessons_completed: lessonsCompleted,
+          total_lessons: totalLessonsPerCourse,
+          quiz_avg_score: quizAvgScore,
+          assignment_avg_score: assignmentAvgScore,
+          video_watch_time: videoWatchTime,
+          articles_read: articlesRead,
+          coding_exercises_completed: codingExercisesCompleted,
+          last_active_days_ago: lastActiveDaysAgo,
+          streak_days: streakDays,
+          total_days_active: totalDaysActive,
+          engagement_score: engagementScore,
+          risk_flag: pattern.risk,
         });
       }
     }
@@ -483,12 +495,14 @@ async function seed() {
 
     // === SUMMARY ===
     console.log('\n========== SEED SUMMARY ==========');
-    console.log(`Users: 1 Admin, 2 Instructors, ${students.length} Students`);
-    console.log(`Courses: ${courses.length}`);
-    console.log(`Enrollments: ${enrollments.length}`);
-    console.log(`Course Content: ${courses.length}`);
-    console.log(`Assessments: ${courses.length}`);
-    console.log(`Student Metrics: ${studentMetrics.length}`);
+    console.log('📋 Test Accounts:');
+    console.log('   • Admin:     admin@stride.com');
+    console.log('   • Instructor: instructor@stride.com');
+    console.log('   • Student:   student@stride.com');
+    console.log(`\n👥 Users: 1 Admin, 2 Instructors, ${allStudents.length} Students`);
+    console.log(`📚 Courses: ${courses.length}`);
+    console.log(`📝 Enrollments: ${enrollments.length}`);
+    console.log(`📊 Student Metrics: ${studentMetrics.length}`);
     console.log('===================================\n');
 
     console.log('Seed completed successfully!');

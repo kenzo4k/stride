@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Clock, Users, Star, Award, BookOpen, User, ArrowRight, Filter, Search, Grid, List } from 'lucide-react';
 import { RecommendedCourses } from '../../components/common';
+import { courseService } from '../../services/courseService';
 
 // LoadingSpinner component
 const LoadingSpinner = () => (
@@ -23,7 +24,7 @@ const AllCourses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(category || 'all');
   const [viewMode, setViewMode] = useState('grid');
-  const [sortOption, setSortOption] = useState('default'); // New state for sorting
+  const [sortOption, setSortOption] = useState('default');
   const [filteredCourses, setFilteredCourses] = useState([]);
 
   useEffect(() => {
@@ -31,12 +32,11 @@ const AllCourses = () => {
       setLoading(true);
       setError(null);
       try {
-        // Import the local JSON file
-        const data = await import('../../../public/courses.json');
+        const data = await courseService.getAllCourses();
 
         // Filter out courses that were "deleted" in this session
         const deletedCourseIds = JSON.parse(localStorage.getItem('deletedCourses') || '[]');
-        const filteredData = data.default.filter(course => !deletedCourseIds.includes(course._id));
+        const filteredData = data.filter(course => !deletedCourseIds.includes(course._id));
 
         setCourses(filteredData);
       } catch (error) {
@@ -50,24 +50,24 @@ const AllCourses = () => {
   }, []);
 
   useEffect(() => {
-    let filtered = [...courses]; // Create a mutable copy
+    let filtered = [...courses];
     if (searchTerm) {
       filtered = filtered.filter(course =>
         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.short_description.toLowerCase().includes(searchTerm.toLowerCase())
+        course.short_description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(course =>
-        course.category.toLowerCase() === selectedCategory.toLowerCase()
+        course.category?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
     // Apply sorting
     if (sortOption === 'price-asc') {
-      filtered.sort((a, b) => a.price - b.price);
+      filtered.sort((a, b) => (a.discount_price || a.price) - (b.discount_price || b.price));
     } else if (sortOption === 'price-desc') {
-      filtered.sort((a, b) => b.price - a.price);
+      filtered.sort((a, b) => (b.discount_price || b.price) - (a.discount_price || a.price));
     } else if (sortOption === 'title-asc') {
       filtered.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortOption === 'title-desc') {
@@ -85,7 +85,7 @@ const AllCourses = () => {
     }
   }, [category]);
 
-  const categories = ['all', ...new Set(courses.map(course => course.category))];
+  const categories = ['all', ...new Set(courses.map(course => course.category).filter(Boolean))];
 
   if (loading) {
     return <LoadingSpinner />;
@@ -171,18 +171,18 @@ const AllCourses = () => {
           </div>
           <div className="flex items-center gap-1">
             <User className="w-4 h-4" />
-            <span>{course.enrollmentCount} enrolled</span>
+            <span>{course.enrollmentCount || 0} enrolled</span>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-          <div className="flex items-center gap-2 mb-2 sm:mb-0">
+          <div className="flex items-center gap-1 mb-2 sm:mb-0">
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 text-yellow-400 fill-current" />
               <span className="text-gray-300 text-sm">{course.rating || 'New'}</span>
             </div>
             {course.completion_certificate && (
-              <div className="flex items-center gap-1 text-green-400">
+              <div className="flex items-center gap-1 text-green-400 ml-2">
                 <Award className="w-4 h-4" />
                 <span className="text-xs">Certificate</span>
               </div>
@@ -203,7 +203,9 @@ const AllCourses = () => {
         <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between">
           <div className="text-sm text-gray-400 mb-2 sm:mb-0">
             <span>by </span>
-            <span className="text-gray-300 font-medium">{course.instructor.name}</span>
+            <span className="text-gray-300 font-medium">
+              {course.instructor?.name || 'Unknown Instructor'}
+            </span>
           </div>
           <Link
             to={`/course/${course._id}`}
@@ -239,7 +241,7 @@ const AllCourses = () => {
               <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-green-400" />
-                <span>{courses.reduce((sum, course) => sum + course.enrollmentCount, 0)} Students Enrolled</span>
+                <span>{courses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0)} Students Enrolled</span>
               </div>
             </div>
           </div>
@@ -269,9 +271,9 @@ const AllCourses = () => {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="pl-10 pr-8 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer"
                 >
-                  {categories.map(category => (
-                    <option key={category} value={category} className="bg-gray-800">
-                      {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                  {categories.map(cat => (
+                    <option key={cat} value={cat} className="bg-gray-800">
+                      {cat === 'all' ? 'All Categories' : cat.charAt(0).toUpperCase() + cat.slice(1)}
                     </option>
                   ))}
                 </select>
