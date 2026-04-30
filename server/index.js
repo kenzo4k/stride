@@ -52,7 +52,7 @@ app.use(express.json());
 // === MongoDB Connect ===
 mongoose
   .connect(
-    process.env.MONGODB_URI || "mongodb://localhost:27017/registrationDB"
+    process.env.MONGODB_URI || "mongodb://localhost:27017/stride"
   )
   .then(() => console.log("MongoDB connected ✔️"))
   .catch((err) => console.error("MongoDB connection error ❌:", err));
