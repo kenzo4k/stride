@@ -9,8 +9,12 @@ import {
     getInstructorCourses,
     getInstructorStudents
 } from '../controllers/instructorController.js';
+import { verifyToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All instructor routes require instructor role
+router.use(verifyToken, requireRole('instructor'));
 
 router.get('/at-risk-students', getAtRiskStudents);
 router.get('/course-stats', getCourseStats);

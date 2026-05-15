@@ -18,63 +18,43 @@ const CourseCardSkeleton = () => (
     </div>
 );
 
-// Sample enrolled courses data
-const sampleEnrolledCourses = [
-    {
-        _id: '1',
-        title: 'Web Development Fundamentals',
-        description: 'Learn the basics of web development with HTML, CSS, and JavaScript',
-        image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80',
-        instructor: { name: 'John Doe', photoURL: 'https://randomuser.me/api/portraits/men/1.jpg' },
-        level: 'Beginner',
-        category: 'Web Development',
-        rating: 4.5,
-        enrollmentCount: 1245,
-        duration: '8 weeks',
-        price: 49.99,
-        discount_price: 29.99,
-        progress: 42,
-        lessons: "5/12 lessons completed",
-        lastAccessed: '2 hours ago'
-    },
-    {
-        _id: '2',
-        title: 'Python for Data Science',
-        description: 'Master Python for data analysis and visualization',
-        image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
-        instructor: { name: 'Jane Smith', photoURL: 'https://randomuser.me/api/portraits/women/1.jpg' },
-        level: 'Intermediate',
-        category: 'Data Science',
-        rating: 4.8,
-        enrollmentCount: 890,
-        duration: '10 weeks',
-        price: 59.99,
-        progress: 75,
-        lessons: "12/16 lessons completed",
-        lastAccessed: '1 day ago'
-    },
-    {
-        _id: '3',
-        title: 'React Native Mobile Development',
-        description: 'Build cross-platform mobile apps with React Native',
-        image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=600&q=80',
-        instructor: { name: 'Mike Johnson', photoURL: 'https://randomuser.me/api/portraits/men/2.jpg' },
-        level: 'Advanced',
-        category: 'Mobile Development',
-        rating: 4.7,
-        enrollmentCount: 567,
-        duration: '12 weeks',
-        price: 69.99,
-        progress: 15,
-        lessons: "3/20 lessons completed",
-        lastAccessed: '3 days ago'
-    }
-];
+import { AuthContext } from '../../context/AuthProvider';
+import api from '../../services/api';
 
 const MyEnrolledCourses = () => {
     const navigate = useNavigate();
-    const [enrolledCourses, setEnrolledCourses] = useState(sampleEnrolledCourses);
-    const [loading] = useState(false);
+    const { user } = React.useContext(AuthContext);
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        if (!user?.email) return;
+        
+        api.get(`/my-enrollments?email=${user.email}`)
+            .then(res => {
+                // Map the backend data to the format expected by the UI
+                const mappedCourses = res.data.map(enrollment => {
+                    const course = enrollment.courseId || {};
+                    return {
+                        _id: course._id,
+                        title: course.title,
+                        description: course.description,
+                        image: course.image,
+                        level: course.level,
+                        category: course.category,
+                        progress: enrollment.progress || 0,
+                        lessons: `${enrollment.completedLessons?.length || 0} lessons completed`,
+                        lastAccessed: new Date(enrollment.updatedAt).toLocaleDateString()
+                    };
+                });
+                setEnrolledCourses(mappedCourses);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch enrollments", err);
+                setLoading(false);
+            });
+    }, [user]);
 
     const handleRemoveEnrollment = (courseId, courseTitle) => {
         Swal.fire({
@@ -89,6 +69,7 @@ const MyEnrolledCourses = () => {
             color: '#f3f4f6'
         }).then((result) => {
             if (result.isConfirmed) {
+                // Future: call API to actually remove enrollment
                 Swal.fire({
                     title: 'Removed!',
                     text: 'Your enrollment has been removed.',

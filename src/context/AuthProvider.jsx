@@ -66,6 +66,22 @@ const AuthProvider = ({ children }) => {
         return Promise.reject(new Error('Google Sign-In not implemented.'));
     };
 
+    const refreshUser = async () => {
+        try {
+            const token = localStorage.getItem('access-token');
+            if (!token) return;
+            
+            const response = await axios.get(`${API_BASE_URL}/users/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const updatedUser = response.data;
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+        } catch (error) {
+            console.error("Failed to refresh user", error);
+        }
+    };
+
     const updateUserProfile = async () => {
         // This should probably call a backend endpoint now
         // For now, let's just update local state if needed
@@ -73,7 +89,7 @@ const AuthProvider = ({ children }) => {
         return Promise.resolve();
     };
 
-    const authInfo = { user, loading, createUser, signIn, googleSignIn, updateUserProfile, logOut };
+    const authInfo = { user, loading, createUser, signIn, googleSignIn, updateUserProfile, logOut, refreshUser };
 
     return (
         <AuthContext.Provider value={authInfo}>

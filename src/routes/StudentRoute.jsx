@@ -1,24 +1,14 @@
-// src/routes/StudentRoute.jsx
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthProvider';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const StudentRoute = ({ children }) => {
-  // Temporary bypass for testing - remove this in production
-  return children;
+  const { user, loading } = useContext(AuthContext);
 
-  const { user } = useContext(AuthContext);
-
-  // Check if user is logged in and is a student (not admin or instructor)
-  const isStudent = user &&
-    user.email !== 'admin@learnify.com' &&
-    user.email !== 'emad@gmail.com' &&
-    user.role !== 'admin' &&
-    user.role !== 'instructor';
-
-  if (!isStudent) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/Auth/login" replace />;
+  if (user.role !== 'student') return <Navigate to="/" replace />;
 
   return children;
 };

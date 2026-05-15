@@ -13,6 +13,12 @@ import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import instructorRoutes from "./routes/instructorRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import contentRoutes from "./routes/contentRoutes.js";
+import assessmentRoutes from "./routes/assessmentRoutes.js";
+import gamificationRoutes from "./routes/gamificationRoutes.js";
+import metricRoutes from "./routes/metricRoutes.js";
+import recommenderRoutes from "./routes/recommenderRoutes.js";
+import { verifyToken } from "./middleware/auth.js";
 
 // Controllers (for some top-level routes)
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
@@ -59,18 +65,23 @@ mongoose
 
 // === API Routes ===
 app.use("/api/users", userRoutes);
-app.use("/api/courses", courseRoutes);
+app.use("/api/courses", contentRoutes);    // /api/courses/:id/content
+app.use("/api/courses", assessmentRoutes); // /api/courses/:id/assessment
+app.use("/api/courses", courseRoutes);      // /api/courses (CRUD)
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/instructor", instructorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api", gamificationRoutes);        // /api/leaderboard, /api/student/badges, /api/users/award-xp
+app.use("/api/metrics", metricRoutes);      // /api/metrics/*
+app.use("/api/recommendations", recommenderRoutes);
 
 // Compatibility with frontend services
 app.post("/api/register-user", registerUser);
-app.get("/api/my-enrollments", getMyEnrollments);
+app.get("/api/my-enrollments", verifyToken, getMyEnrollments);
 
 // === PISTON: Code Execution Route ===
-app.post("/api/execute", async (req, res) => {
+app.post("/api/execute", verifyToken, async (req, res) => {
   const { code, language, version } = req.body;
   const executionData = {
     language: language,
@@ -91,7 +102,7 @@ app.post("/api/execute", async (req, res) => {
 });
 
 // === STRIPE: Create Payment Intent ===
-app.post("/api/create-payment-intent", async (req, res) => {
+app.post("/api/create-payment-intent", verifyToken, async (req, res) => {
   const { amount } = req.body;
   try {
     const paymentIntent = await stripe.paymentIntents.create({

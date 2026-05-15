@@ -1,0 +1,56 @@
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional
+import pymongo
+from bson import ObjectId
+
+from recommender import RecommenderSystem
+
+app = FastAPI(title="Stride Recommender Service")
+
+# CORS setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# MongoDB connection
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/stride")
+client = pymongo.MongoClient(MONGO_URI)
+db = client.get_database()
+
+# Initialize recommender
+recommender = RecommenderSystem(db)
+
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy"}
+
+@app.get("/api/recommendations/{user_id}")
+async def get_recommendations(user_id: str):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    
+    try:
+        recommendations = recommender.get_recommendations(user_id)
+        # Convert ObjectIds to string for JSON serialization
+        for rec in recommendations:
+            if "_id" in rec:
+                rec["_id"] = str(rec["_id"])
+            if "instructor" in rec:
+                rec["instructor"] = str(rec["instructor"])
+            if "prerequisites" in rec:
+                rec["prerequisites"] = [str(p) for p in rec["prerequisites"]]
+        return {"recommendations": recommendations}
+    except Exception as e:
+        print(f"Error generating recommendations: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

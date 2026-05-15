@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
 
+import { API_BASE_URL } from '../../utils/constants';
+
 const Badges = ({ userEmail }) => {
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userEmail) return;
-    // Replace with your actual API endpoint
-    fetch(`https://course-management-system-server-woad.vercel.app/api/student/badges?email=${userEmail}`)
+    const token = localStorage.getItem('access-token');
+    fetch(`${API_BASE_URL}/student/badges?email=${userEmail}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
       .then(res => res.json())
       .then(data => {
         setBadges(data);

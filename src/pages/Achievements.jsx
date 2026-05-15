@@ -1,9 +1,10 @@
 import React from 'react';
 import XPCounter from '../components/common/XPCounter';
 import Achievements from '../components/common/Achievements';
+import useAuth from '../hooks/useAuth';
 
 const AchievementsPage = () => {
-  const [xp] = React.useState(450);
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 py-8">
@@ -15,31 +16,17 @@ const AchievementsPage = () => {
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-1">
-            <XPCounter xp={xp} />
+            <XPCounter xp={user?.xp || 0} />
           </div>
-          <div className="lg:col-span-2 bg-gray-800 rounded-lg border border-gray-700 p-6 hover:border-cyan-600 transition">
-            <h2 className="text-2xl font-bold text-white mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border border-gray-600">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">📚</span>
-                  <div>
-                    <p className="text-white font-medium">Completed "Introduction to React"</p>
-                    <p className="text-gray-400 text-sm">2 hours ago</p>
-                  </div>
-                </div>
-                <span className="text-green-400 font-bold">+25 XP</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">🏆</span>
-                  <div>
-                    <p className="text-white font-medium">Achieved "Quiz Master"</p>
-                    <p className="text-gray-400 text-sm">1 day ago</p>
-                  </div>
-                </div>
-                <span className="text-yellow-400 font-bold">🏅</span>
-              </div>
+          <div className="lg:col-span-2 bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <h2 className="text-2xl font-bold text-white mb-4">Your Gamification Stats</h2>
+            <div className="space-y-4">
+              <p className="text-gray-300">
+                You are currently Level <span className="font-bold text-cyan-400">{user?.level || 1}</span> with <span className="font-bold text-cyan-400">{user?.xp || 0} XP</span>.
+              </p>
+              <p className="text-gray-300">
+                You're on a <span className="font-bold text-purple-400">{user?.streakDays || 1} Day</span> learning streak! Keep logging in daily to maintain it.
+              </p>
             </div>
           </div>
         </div>

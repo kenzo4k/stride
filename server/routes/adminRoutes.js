@@ -8,8 +8,12 @@ import {
     handleCourseAction,
     handleInstructorAction
 } from '../controllers/adminController.js';
+import { verifyToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All admin routes require admin role
+router.use(verifyToken, requireRole('admin'));
 
 router.get('/stats', getAdminStats);
 router.get('/recent-users', getRecentUsers);

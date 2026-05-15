@@ -41,6 +41,19 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  status: {
+    type: String,
+    enum: ['active', 'banned', 'suspended'],
+    default: 'active',
+  },
+  isPublic: {
+    type: Boolean,
+    default: true,
+  },
+  streakDays: {
+    type: Number,
+    default: 0,
+  },
   enrolledCourses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
