@@ -1,19 +1,14 @@
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthProvider';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const InstructorRoute = ({ children }) => {
-  // Temporary bypass for testing - remove this in production
-  return children;
+  const { user, loading } = useContext(AuthContext);
 
-  const { user } = useContext(AuthContext);
-
-  // Check if user is logged in (not admin)
-  const isInstructor = user && user.email !== 'admin@learnify.com' && user.email !== 'emad@gmail.com';
-
-  if (!isInstructor) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/Auth/login" replace />;
+  if (user.role !== 'instructor') return <Navigate to="/" replace />;
 
   return children;
 };

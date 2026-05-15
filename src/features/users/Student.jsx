@@ -120,16 +120,63 @@ const sampleDashboard = {
   ]
 };
 
+import api from '../../services/api';
+
 const Student = () => {
   const { user } = React.useContext(AuthContext);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [stats] = useState(sampleDashboard.stats);
-  const [courses] = useState(sampleDashboard.courses);
+  const [stats, setStats] = useState({
+    enrolledCourses: 0,
+    inProgress: 0,
+    completed: 0,
+    currentLevel: user?.level || 1,
+    totalXP: user?.xp || 0
+  });
+  const [courses, setCourses] = useState([]);
   const [deadlines] = useState(sampleDashboard.deadlines);
   const [recommended] = useState(sampleDashboard.recommended);
   const [recentActivity] = useState(sampleDashboard.recentActivity);
   const [categoryProgress] = useState(sampleDashboard.categoryProgress);
+
+  React.useEffect(() => {
+    if (!user?.email) return;
+
+    api.get(`/my-enrollments?email=${user.email}`)
+      .then(res => {
+        const enrollments = res.data;
+        const mappedCourses = enrollments.map(e => {
+            const course = e.courseId || {};
+            return {
+                id: course._id,
+                title: course.title,
+                progress: e.progress || 0,
+                lessons: `${e.completedLessons?.length || 0} lessons completed`,
+                image: course.image,
+                lastAccessed: new Date(e.updatedAt).toLocaleDateString(),
+                category: course.category
+            };
+        });
+        setCourses(mappedCourses.slice(0, 4)); // Show first 4 in dashboard
+        
+        let completed = 0;
+        let inProgress = 0;
+        enrollments.forEach(e => {
+            if (e.progress === 100) completed++;
+            else inProgress++;
+        });
+
+        setStats(prev => ({
+            ...prev,
+            enrolledCourses: enrollments.length,
+            inProgress,
+            completed,
+            currentLevel: user?.level || prev.currentLevel,
+            totalXP: user?.xp || prev.totalXP
+        }));
+      })
+      .catch(console.error);
+  }, [user]);
 
   const handleCourseClick = (courseId) => {
     navigate(`/course/${courseId}/learn`);
@@ -165,7 +212,7 @@ const Student = () => {
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <div className="hidden sm:flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full shadow-lg">
                 <Flame className="w-5 h-5" />
-                <span className="font-semibold">{stats.currentLevel} Day Streak!</span>
+                <span className="font-semibold">{user?.streakDays || 1} Day Streak!</span>
               </div>
               <button 
                 onClick={() => navigate('/achievements')}

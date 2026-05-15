@@ -216,7 +216,7 @@ async function seed() {
         duration: '35 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: ['Basic programming knowledge'],
+        prerequisites: [],
         learning_outcomes: [
           'Master Python fundamentals',
           'Analyze data with Pandas',
@@ -240,7 +240,7 @@ async function seed() {
         duration: '20 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: ['JavaScript basics'],
+        prerequisites: [],
         learning_outcomes: [
           'Master async programming',
           'Understand prototypes and inheritance',
@@ -264,7 +264,7 @@ async function seed() {
         duration: '30 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: ['Basic Python', 'Statistics basics'],
+        prerequisites: [],
         learning_outcomes: [
           'Understand ML fundamentals',
           'Build regression models',
@@ -288,7 +288,7 @@ async function seed() {
         duration: '25 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: ['JavaScript', 'React basics'],
+        prerequisites: [],
         learning_outcomes: [
           'Build iOS and Android apps',
           'Use React Native components',
@@ -299,6 +299,12 @@ async function seed() {
         status: 'active',
       },
     ]);
+
+    // Update prerequisites with actual ObjectIds
+    await Course.findByIdAndUpdate(courses[1]._id, { prerequisites: [courses[0]._id] }); // Python for DS -> Web Dev (as basic programming)
+    await Course.findByIdAndUpdate(courses[2]._id, { prerequisites: [courses[0]._id] }); // Adv JS -> Web Dev
+    await Course.findByIdAndUpdate(courses[3]._id, { prerequisites: [courses[1]._id] }); // Intro to ML -> Python for DS
+    await Course.findByIdAndUpdate(courses[4]._id, { prerequisites: [courses[0]._id] }); // React Native -> Web Dev
 
     console.log(`Created ${courses.length} courses`);
 
@@ -358,6 +364,44 @@ async function seed() {
 
     const enrollments = await Enrollment.create(enrollmentData);
     console.log(`Created ${enrollments.length} enrollments`);
+
+    // === UPDATE COURSE ENROLLMENT COUNTS ===
+    console.log('Updating course enrollment counts...');
+    for (const course of courses) {
+      const count = enrollments.filter(e => e.courseId.toString() === course._id.toString()).length;
+      await Course.findByIdAndUpdate(course._id, { enrollmentCount: count });
+    }
+    console.log('✓ Course enrollmentCount updated');
+
+    // === UPDATE USER ENROLLED COURSES ===
+    console.log('Updating user enrolledCourses...');
+    for (const s of allStudents) {
+      const courseIds = enrollments
+        .filter(e => e.userId.toString() === s._id.toString())
+        .map(e => e.courseId);
+      await User.findByIdAndUpdate(s._id, { enrolledCourses: courseIds });
+    }
+    console.log('✓ User enrolledCourses updated');
+
+    // === SET REALISTIC GRADES ===
+    console.log('Setting realistic grades...');
+    for (let i = 0; i < enrollments.length; i++) {
+      const enrollment = enrollments[i];
+      const studentIndex = allStudents.findIndex(s => s._id.toString() === enrollment.userId.toString());
+      let grade;
+      if (studentIndex < 4) {
+        // High performers
+        grade = randomBetween(75, 98);
+      } else if (studentIndex < 6) {
+        // Average performers
+        grade = randomBetween(50, 74);
+      } else {
+        // Struggling students
+        grade = randomBetween(20, 49);
+      }
+      await Enrollment.findByIdAndUpdate(enrollment._id, { grade });
+    }
+    console.log('✓ Enrollment grades updated');
 
     // === CREATE COURSE CONTENT ===
     console.log('Creating course content...');
@@ -474,7 +518,7 @@ async function seed() {
         const quizScoreContribution = quizAvgScore * 0.25;
         const assignmentScoreContribution = assignmentAvgScore * 0.25;
         const activityScore = Math.min(loginCount / 10, 1) * 20;
-        const engagementScore = Math.round(lessonScore + quizScoreContribution + assignmentScoreContribution + activityScore);
+        const engagementScore = Math.min(100, Math.round(lessonScore + quizScoreContribution + assignmentScoreContribution + activityScore));
 
         // Calculate streak and active days
         const totalDaysActive = randomBetween(Math.floor(loginCount / 2), loginCount);

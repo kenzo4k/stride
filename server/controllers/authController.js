@@ -55,6 +55,31 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Streak logic
+    const now = new Date();
+    const lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
+    
+    const todayStr = now.toISOString().split('T')[0];
+    const lastLoginStr = lastLogin ? lastLogin.toISOString().split('T')[0] : '';
+
+    if (todayStr !== lastLoginStr) {
+      if (lastLoginStr) {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastLoginStr === yesterdayStr) {
+          user.streakDays = (user.streakDays || 0) + 1;
+        } else {
+          user.streakDays = 1;
+        }
+      } else {
+        user.streakDays = 1; // First login ever
+      }
+      user.lastLogin = now;
+      await user.save();
+    }
+
     // Generate JWT
     const token = jwt.sign(
       { email: user.email, id: user._id, role: user.role },

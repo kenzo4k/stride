@@ -145,7 +145,7 @@ studentMetricSchema.methods.calculateEngagementScore = function() {
   const assignmentContribution = this.assignment_avg_score * 0.25;
   const activityScore = Math.min(this.login_count / 10, 1) * 20;
   
-  this.engagement_score = Math.round(lessonProgress + quizContribution + assignmentContribution + activityScore);
+  this.engagement_score = Math.min(100, Math.round(lessonProgress + quizContribution + assignmentContribution + activityScore));
   return this.engagement_score;
 };
 
@@ -165,13 +165,12 @@ studentMetricSchema.methods.updateRiskFlag = function() {
 };
 
 // Pre-save hook to auto-calculate metrics
-studentMetricSchema.pre('save', function(next) {
+studentMetricSchema.pre('save', function() {
   if (this.isModified('login_count') || this.isModified('lessons_completed') || 
       this.isModified('quiz_avg_score') || this.isModified('assignment_avg_score')) {
     this.calculateEngagementScore();
     this.updateRiskFlag();
   }
-  next();
 });
 
 const StudentMetric = mongoose.model('StudentMetric', studentMetricSchema);

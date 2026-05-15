@@ -23,11 +23,13 @@ import XPCounter from '../../components/common/XPCounter';
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
+import api from '../../services/api';
+
 const CourseContent = () => {
     const { id: courseId } = useParams();
     const navigate = useNavigate();
     // eslint-disable-next-line no-unused-vars
-    const { user } = useContext(AuthContext);
+    const { user, refreshUser } = useContext(AuthContext);
 
     // State
     const [course, setCourse] = useState(null);
@@ -44,461 +46,9 @@ const CourseContent = () => {
     const [expandedSections, setExpandedSections] = useState(new Set([1])); // First section expanded by default
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Sample data for testing
-    const sampleCourse = {
-        id: courseId,
-        title: "Complete Web Development Bootcamp",
-        sections: [
-            {
-                id: 1,
-                title: "Web Development Fundamentals",
-                lessons: [
-                    {
-                        id: '1-1',
-                        title: "Introduction to HTML",
-                        type: "article",
-                        content: `
-                            <h2>What is HTML?</h2>
-                            <p>HTML (HyperText Markup Language) is the backbone of any website. It allows you to create the structure and organize the content of web pages.</p>
-                            <h3>Common HTML Elements:</h3>
-                            <ul>
-                                <li>Headings: &lt;h1&gt; to &lt;h6&gt;</li>
-                                <li>Paragraphs: &lt;p&gt;</li>
-                                <li>Links: &lt;a href="..."&gt;</li>
-                                <li>Images: &lt;img src="..."&gt;</li>
-                                <li>Lists: &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;</li>
-                                <li>Containers: &lt;div&gt;, &lt;section&gt;, &lt;article&gt;</li>
-                            </ul>
-                            <h3>Basic HTML Structure:</h3>
-                            <pre><code>&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-&lt;head&gt;
-    &lt;title&gt;Page Title&lt;/title&gt;
-&lt;/head&gt;
-&lt;body&gt;
-    &lt;h1&gt;My First Heading&lt;/h1&gt;
-    &lt;p&gt;My first paragraph.&lt;/p&gt;
-&lt;/body&gt;
-&lt;/html&gt;</code></pre>
-                        `,
-                        xp: 10
-                    },
-                    {
-                        id: '1-2',
-                        title: "CSS Styling Basics",
-                        type: "video",
-                        content: "https://www.youtube.com/watch?v=1Rs2ND1ryYc",
-                        xp: 15
-                    },
-                    {
-                        id: '1-3',
-                        title: "JavaScript Fundamentals",
-                        type: "pdf",
-                        content: "https://www.tutorialspoint.com/javascript/javascript_tutorial.pdf",
-                        xp: 20
-                    }
-                ]
-            },
-            {
-                id: 2,
-                title: "Frontend Frameworks",
-                lessons: [
-                    {
-                        id: '2-1',
-                        title: "Introduction to React",
-                        type: "article",
-                        content: `
-                            <h2>What is React?</h2>
-                            <p>React is an open-source JavaScript library for building user interfaces, particularly single-page applications.</p>
-                            
-                            <h3>Key Features of React:</h3>
-                            <ul>
-                                <li><strong>Component-Based:</strong> Build encapsulated components that manage their own state</li>
-                                <li><strong>Declarative:</strong> Design simple views for each state in your application</li>
-                                <li><strong>Virtual DOM:</strong> Efficiently update and render components</li>
-                                <li><strong>Rich Ecosystem:</strong> Large community and extensive package ecosystem</li>
-                            </ul>
+    const [enrollmentId, setEnrollmentId] = useState(null);
 
-                            <h3>Basic React Component Example:</h3>
-                            <pre><code>import React from 'react';
-
-function Welcome() {
-  return <h1>Hello, World!</h1>;
-}
-
-export default Welcome;</code></pre>
-                        `,
-                        xp: 10
-                    },
-                    {
-                        id: '2-2',
-                        title: "React Quiz",
-                        type: "quiz",
-                        questions: [
-                            {
-                                id: 1,
-                                type: 'mcq',
-                                question: 'What does HTML stand for?',
-                                options: [
-                                    'Hyper Text Markup Language',
-                                    'High Tech Modern Language',
-                                    'Home Tool Markup Language',
-                                    'Hyperlinks and Text Markup Language'
-                                ],
-                                correctAnswer: 0,
-                                points: 1
-                            },
-                            {
-                                id: 2,
-                                type: 'fillInBlank',
-                                question: 'CSS stands for _____ _____ _____',
-                                correctAnswer: 'Cascading Style Sheets',
-                                points: 1
-                            },
-                            {
-                                id: 3,
-                                type: 'trueFalse',
-                                question: 'JavaScript can only run in web browsers.',
-                                correctAnswer: false,
-                                points: 1
-                            },
-                            {
-                                id: 4,
-                                type: 'matching',
-                                question: 'Match programming languages to their use:',
-                                pairs: [
-                                    { left: 'React', right: 'Web Frontend', correct: true },
-                                    { left: 'Django', right: 'Web Backend', correct: true },
-                                    { left: 'SQL', right: 'Database', correct: true }
-                                ],
-                                points: 1
-                            }
-                        ],
-                        xp: 25
-                    },
-                    {
-                        id: '2-3',
-                        title: "React Coding Exercise",
-                        type: "coding",
-                        exercise: {
-                            description: "Create a React component that displays a greeting message.",
-                            starterCode: `function Greeting() {\n  // Your code here\n  return null;\n}`,
-                            solution: `function Greeting() {\n  return <h1>Hello, World!</h1>;\n}`
-                        },
-                        xp: 30
-                    }
-                ]
-            },
-            {
-                id: 3,
-                title: "Backend Development",
-                lessons: [
-                    {
-                        id: '3-1',
-                        title: "Introduction to Node.js",
-                        type: "article",
-                        content: `
-                            <h2>Getting Started with Node.js</h2>
-                            <p>Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine. It allows developers to run JavaScript on the server side, enabling full-stack JavaScript development.</p>
-                            
-                            <h3>Why Node.js?</h3>
-                            <ul>
-                                <li><strong>Non-blocking I/O:</strong> Asynchronous architecture makes it perfect for real-time applications</li>
-                                <li><strong>NPM Ecosystem:</strong> Access to over a million packages through npm</li>
-                                <li><strong>JavaScript Everywhere:</strong> Use the same language on both frontend and backend</li>
-                                <li><strong>High Performance:</strong> V8 engine compiles JavaScript to native machine code</li>
-                                <li><strong>Scalability:</strong> Built-in support for handling concurrent connections</li>
-                            </ul>
-
-                            <h3>Basic Node.js Server Example:</h3>
-                            <pre><code>const http = require('http');
-
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Hello from Node.js!');
-});
-
-server.listen(3000, () => {
-  console.log('Server running on port 3000');
-});</code></pre>
-
-                            <h3>Core Modules:</h3>
-                            <ul>
-                                <li><code>http</code> - Create web servers</li>
-                                <li><code>fs</code> - File system operations</li>
-                                <li><code>path</code> - Handle file paths</li>
-                                <li><code>events</code> - Event-driven programming</li>
-                            </ul>
-                        `,
-                        xp: 15
-                    },
-                    {
-                        id: '3-2',
-                        title: "Node.js Video Tutorial",
-                        type: "video",
-                        content: "https://www.youtube.com/watch?v=TlB_eWDSMt4",
-                        xp: 20
-                    },
-                    {
-                        id: '3-3',
-                        title: "Backend Quiz",
-                        type: "quiz",
-                        questions: [
-                            {
-                                id: 1,
-                                type: 'mcq',
-                                question: 'What is Node.js built on?',
-                                options: [
-                                    'Chrome V8 Engine',
-                                    'SpiderMonkey Engine',
-                                    'JavaScriptCore',
-                                    'Rhino Engine'
-                                ],
-                                correctAnswer: 0,
-                                points: 1
-                            },
-                            {
-                                id: 2,
-                                type: 'fillInBlank',
-                                question: 'NPM stands for Node _____ _____',
-                                correctAnswer: 'Package Manager',
-                                points: 1
-                            },
-                            {
-                                id: 3,
-                                type: 'trueFalse',
-                                question: 'Node.js uses a blocking I/O model.',
-                                correctAnswer: false,
-                                points: 1
-                            },
-                            {
-                                id: 4,
-                                type: 'matching',
-                                question: 'Match Node.js concepts with their descriptions:',
-                                pairs: [
-                                    { left: 'Express', right: 'Web Framework', correct: true },
-                                    { left: 'npm', right: 'Package Manager', correct: true },
-                                    { left: 'middleware', right: 'Request Handler', correct: true }
-                                ],
-                                points: 1
-                            }
-                        ],
-                        xp: 25
-                    },
-                    {
-                        id: '3-4',
-                        title: "Express.js Exercise",
-                        type: "coding",
-                        exercise: {
-                            description: "Create an Express.js server with a GET endpoint that returns a JSON response with user data.",
-                            starterCode: `const express = require('express');
-const app = express();
-
-// TODO: Create a GET route at '/api/user' that returns
-// { name: 'John Doe', email: 'john@example.com' }
-
-// TODO: Start the server on port 3000
-
-app.listen(3000, () => {
-  console.log('Server started on port 3000');
-});`,
-                            solution: `const express = require('express');
-const app = express();
-
-app.get('/api/user', (req, res) => {
-  res.json({ 
-    name: 'John Doe', 
-    email: 'john@example.com' 
-  });
-});
-
-app.listen(3000, () => {
-  console.log('Server started on port 3000');
-});`
-                        },
-                        xp: 30
-                    }
-                ]
-            },
-            {
-                id: 4,
-                title: "Database Management",
-                lessons: [
-                    {
-                        id: '4-1',
-                        title: "SQL Basics",
-                        type: "article",
-                        content: `
-                            <h2>Introduction to SQL</h2>
-                            <p>SQL (Structured Query Language) is the standard language for managing and manipulating relational databases. It's essential for any backend developer working with data.</p>
-                            
-                            <h3>Core SQL Operations (CRUD):</h3>
-                            <ul>
-                                <li><strong>CREATE:</strong> Insert new data into tables</li>
-                                <li><strong>READ:</strong> Query and retrieve data using SELECT</li>
-                                <li><strong>UPDATE:</strong> Modify existing data</li>
-                                <li><strong>DELETE:</strong> Remove data from tables</li>
-                            </ul>
-
-                            <h3>Basic SQL Commands:</h3>
-                            <pre><code>-- Create a table
-CREATE TABLE users (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(100),
-  email VARCHAR(100) UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert data
-INSERT INTO users (name, email) 
-VALUES ('John Doe', 'john@example.com');
-
--- Query data
-SELECT * FROM users WHERE email = 'john@example.com';
-
--- Update data
-UPDATE users SET name = 'Jane Doe' WHERE id = 1;
-
--- Delete data
-DELETE FROM users WHERE id = 1;</code></pre>
-
-                            <h3>Key SQL Concepts:</h3>
-                            <ul>
-                                <li><strong>Primary Key:</strong> Unique identifier for each row</li>
-                                <li><strong>Foreign Key:</strong> Link between tables</li>
-                                <li><strong>JOIN:</strong> Combine data from multiple tables</li>
-                                <li><strong>INDEX:</strong> Improve query performance</li>
-                            </ul>
-                        `,
-                        xp: 15
-                    },
-                    {
-                        id: '4-2',
-                        title: "Database Design Video",
-                        type: "video",
-                        content: "https://www.youtube.com/watch?v=ztHopE5Wnpc",
-                        xp: 20
-                    },
-                    {
-                        id: '4-3',
-                        title: "Database Quiz",
-                        type: "quiz",
-                        questions: [
-                            {
-                                id: 1,
-                                type: 'mcq',
-                                question: 'Which SQL command is used to retrieve data from a database?',
-                                options: [
-                                    'SELECT',
-                                    'GET',
-                                    'FETCH',
-                                    'RETRIEVE'
-                                ],
-                                correctAnswer: 0,
-                                points: 1
-                            },
-                            {
-                                id: 2,
-                                type: 'fillInBlank',
-                                question: 'A _____ key uniquely identifies each record in a database table',
-                                correctAnswer: 'primary',
-                                points: 1
-                            },
-                            {
-                                id: 3,
-                                type: 'trueFalse',
-                                question: 'NoSQL databases use structured tables like SQL databases.',
-                                correctAnswer: false,
-                                points: 1
-                            },
-                            {
-                                id: 4,
-                                type: 'matching',
-                                question: 'Match database types with their characteristics:',
-                                pairs: [
-                                    { left: 'MongoDB', right: 'Document Store', correct: true },
-                                    { left: 'PostgreSQL', right: 'Relational DB', correct: true },
-                                    { left: 'Redis', right: 'Key-Value Store', correct: true }
-                                ],
-                                points: 1
-                            }
-                        ],
-                        xp: 25
-                    },
-                    {
-                        id: '4-4',
-                        title: "MongoDB Exercise",
-                        type: "coding",
-                        exercise: {
-                            description: "Write MongoDB queries to create a collection, insert documents, and query data from a users collection.",
-                            starterCode: `// Connect to MongoDB
-const { MongoClient } = require('mongodb');
-
-async function run() {
-  const client = new MongoClient('mongodb://localhost:27017');
-  
-  try {
-    await client.connect();
-    const db = client.db('myapp');
-    const users = db.collection('users');
-    
-    // TODO: Insert a new user document with name and email
-    
-    // TODO: Find all users
-    
-    // TODO: Update a user's email
-    
-    // TODO: Delete a user
-    
-  } finally {
-    await client.close();
-  }
-}
-
-run();`,
-                            solution: `// Connect to MongoDB
-const { MongoClient } = require('mongodb');
-
-async function run() {
-  const client = new MongoClient('mongodb://localhost:27017');
-  
-  try {
-    await client.connect();
-    const db = client.db('myapp');
-    const users = db.collection('users');
-    
-    // Insert a new user
-    await users.insertOne({ 
-      name: 'John Doe', 
-      email: 'john@example.com' 
-    });
-    
-    // Find all users
-    const allUsers = await users.find().toArray();
-    console.log(allUsers);
-    
-    // Update user's email
-    await users.updateOne(
-      { name: 'John Doe' },
-      { $set: { email: 'newemail@example.com' } }
-    );
-    
-    // Delete user
-    await users.deleteOne({ name: 'John Doe' });
-    
-  } finally {
-    await client.close();
-  }
-}
-
-run();`
-                        },
-                        xp: 30
-                    }
-                ]
-            }
-        ]
-    };
+    // Fetch course data and check enrollment status
 
     // State for expanded sections
     const toggleSection = (sectionId) => {
@@ -532,29 +82,59 @@ run();`
         );
     }, [course, activeLesson]);
 
-    // Fetch course data and check enrollment status
     useEffect(() => {
+        if (!user?.email) return;
         setLoading(true);
         document.title = "Course Details | Stride";
 
-        try {
-            // Use sample data for testing
-            setCourse(sampleCourse);
-            setIsEnrolled(true); // Simulate being enrolled
+        const fetchContent = async () => {
+            try {
+                // Fetch course details, content, and user enrollment in parallel
+                const [courseRes, contentRes, enrollmentsRes] = await Promise.all([
+                    api.get(`/courses/${courseId}`),
+                    api.get(`/courses/${courseId}/content`),
+                    api.get(`/my-enrollments?email=${user.email}`)
+                ]);
 
-            // Set first lesson as active by default
-            if (sampleCourse?.sections?.[0]?.lessons?.[0]) {
-            setActiveLesson(sampleCourse.sections[0].lessons[0]);
-            }
+                const fetchedCourse = courseRes.data;
+                const fetchedContent = contentRes.data;
+                
+                // Merge content sections into course object for UI compatibility
+                const combinedCourse = {
+                    ...fetchedCourse,
+                    sections: fetchedContent.sections || []
+                };
+                
+                setCourse(combinedCourse);
 
-            } catch {
-            setError('An error occurred while loading the course content');
-            toast.error('Failed to load course content');
+                const enrollment = enrollmentsRes.data.find(e => {
+                    // Handle both populated course and unpopulated course ID
+                    const eCourseId = e.courseId._id || e.courseId;
+                    return eCourseId === courseId;
+                });
+
+                if (enrollment) {
+                    setIsEnrolled(true);
+                    setEnrollmentId(enrollment._id);
+                    if (enrollment.completedLessons) {
+                        setCompletedLessons(new Set(enrollment.completedLessons));
+                    }
+                }
+
+                // Set first lesson as active by default
+                if (combinedCourse?.sections?.[0]?.lessons?.[0]) {
+                    setActiveLesson(combinedCourse.sections[0].lessons[0]);
+                }
+            } catch (err) {
+                console.error("Failed to load content", err);
+                setError('An error occurred while loading the course content');
+                toast.error('Failed to load course content');
             } finally {
-            setLoading(false);
+                setLoading(false);
             }
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            }, [courseId]);
+        };
+        fetchContent();
+    }, [courseId, user]);
 
     // Reset quiz state when lesson changes
     useEffect(() => {
@@ -563,17 +143,37 @@ run();`
     }, [activeLesson?.id]);
 
     // Handle lesson completion
-    const markLessonComplete = (lessonId) => {
+    const markLessonComplete = async (lessonId) => {
         setCompletedLessons(prev => {
             const newSet = new Set(prev);
             newSet.add(lessonId);
-            // In a real app, you would also update this on the server
+            
+            // Calculate new progress
+            const totalLessons = course.sections.reduce(
+                (total, section) => total + (section.lessons?.length || 0), 0
+            );
+            const newProgress = totalLessons === 0 ? 0 : Math.round((newSet.size / totalLessons) * 100);
+
+            // Save to backend
+            if (enrollmentId) {
+                api.patch(`/enrollments/${enrollmentId}/progress`, {
+                    completedLessons: Array.from(newSet),
+                    progress: newProgress
+                }).catch(console.error);
+            }
+
             return newSet;
         });
+
         // Add XP for completed lesson
         const lesson = course?.sections?.flatMap(s => s.lessons)?.find(l => l.id === lessonId);
         if (lesson && lesson.xp) {
             setEarnedXP(prevXP => prevXP + lesson.xp);
+            api.post('/users/award-xp', { amount: lesson.xp, reason: `Completed lesson: ${lesson.title}` })
+                .then(() => {
+                    if (refreshUser) refreshUser();
+                })
+                .catch(console.error);
         }
     };
 

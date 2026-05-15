@@ -62,7 +62,10 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  prerequisites: [String],
+  prerequisites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
   learning_outcomes: [String],
   tags: [String],
   status: {

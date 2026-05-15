@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 
+import { API_BASE_URL } from '../../utils/constants';
+
 const Leaderboard = () => {
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Replace with your actual API endpoint
-    fetch('https://course-management-system-server-woad.vercel.app/api/leaderboard')
+    fetch(`${API_BASE_URL}/leaderboard`)
       .then(res => res.json())
       .then(data => {
         setLeaders(data);

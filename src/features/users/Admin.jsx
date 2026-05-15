@@ -22,7 +22,24 @@ import {
 } from 'lucide-react';
 
 import { API_BASE_URL } from '../../utils/constants';
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
+const userGrowthData = [
+  { month: 'Jan', users: 15 },
+  { month: 'Feb', users: 28 },
+  { month: 'Mar', users: 34 },
+  { month: 'Apr', users: 45 },
+  { month: 'May', users: 45 }
+];
+
+const enrollmentData = [
+  { course: 'Web Dev', enrollments: 45 },
+  { course: 'Python', enrollments: 32 },
+  { course: 'React', enrollments: 38 },
+  { course: 'Data Sci', enrollments: 28 }
+];
 // Sample data for when API fails
 const sampleStats = {
   totalUsers: 45,
@@ -80,18 +97,20 @@ const Admin = () => {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
 
       // Fetch statistics
-      const statsResponse = await fetch('${API_BASE_URL}/admin/stats');
+      const statsResponse = await fetch(`${API_BASE_URL}/admin/stats`, { headers });
       
       // Fetch recent users
-      const usersResponse = await fetch('${API_BASE_URL}/admin/recent-users');
+      const usersResponse = await fetch(`${API_BASE_URL}/admin/recent-users`, { headers });
       
       // Fetch recent courses
-      const coursesResponse = await fetch('${API_BASE_URL}/admin/recent-courses');
+      const coursesResponse = await fetch(`${API_BASE_URL}/admin/recent-courses`, { headers });
       
       // Fetch instructors
-      const instructorsResponse = await fetch('${API_BASE_URL}/admin/instructors');
+      const instructorsResponse = await fetch(`${API_BASE_URL}/admin/instructors`, { headers });
 
       // Check if all API responses are OK
       if (statsResponse.ok && usersResponse.ok && coursesResponse.ok && instructorsResponse.ok) {
@@ -129,10 +148,12 @@ const Admin = () => {
 
   const handleUserAction = async (userId, action) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -149,10 +170,12 @@ const Admin = () => {
 
   const handleCourseAction = async (courseId, action) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/courses/${courseId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -169,10 +192,12 @@ const Admin = () => {
 
   const handleInstructorAction = async (instructorId, action) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/instructors/${instructorId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -547,14 +572,30 @@ const Admin = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-gray-700 p-4 rounded">
                 <h3 className="text-lg font-medium mb-4">User Growth</h3>
-                <div className="h-48 flex items-center justify-center text-gray-400">
-                  Analytics chart would go here
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={userGrowthData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+                      <XAxis dataKey="month" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '0.5rem' }} />
+                      <Line type="monotone" dataKey="users" stroke="#06b6d4" strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
               <div className="bg-gray-700 p-4 rounded">
                 <h3 className="text-lg font-medium mb-4">Course Enrollment Trends</h3>
-                <div className="h-48 flex items-center justify-center text-gray-400">
-                  Analytics chart would go here
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={enrollmentData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+                      <XAxis dataKey="course" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '0.5rem' }} cursor={{fill: '#374151'}} />
+                      <Bar dataKey="enrollments" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             </div>

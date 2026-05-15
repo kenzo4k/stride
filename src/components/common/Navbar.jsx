@@ -197,9 +197,9 @@ const Navbar = () => {
                         </p>
                         {user?.role === 'student' && (
                           <div className="mt-1 flex items-center justify-center space-x-1 bg-gradient-to-r from-blue-600 to-purple-600 px-2 py-0.5 rounded">
-                            <span className="text-white text-xs font-bold">450 XP</span>
+                            <span className="text-white text-xs font-bold">{user?.xp || 0} XP</span>
                             <span className="text-white text-xs">|</span>
-                            <span className="text-white text-xs">Level 4</span>
+                            <span className="text-white text-xs">Level {user?.level || 1}</span>
                           </div>
                         )}
                       </div>
@@ -399,59 +399,92 @@ const Navbar = () => {
 
           {user && (
             <>
-              <NavLink
-                to="/add-course"
-                onClick={closeMobileMenu}
-                className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                  }`
-                }
-              >
-                Add Course
-              </NavLink>
+              {/* Student mobile links */}
+              {user?.role === 'student' && (
+                <>
+                  <NavLink
+                    to="/student"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
+                        ? 'bg-purple-600 text-white'
+                        : 'text-purple-400 hover:text-white hover:bg-purple-900'
+                      }`
+                    }
+                  >
+                    Student Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/achievements"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                      }`
+                    }
+                  >
+                    Achievements
+                  </NavLink>
+                  <NavLink
+                    to="/my-courses"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                      }`
+                    }
+                  >
+                    My Courses
+                  </NavLink>
+                </>
+              )}
 
-              <NavLink
-                to="/manage-courses"
-                onClick={closeMobileMenu}
-                className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                  }`
-                }
-              >
-                Manage Courses
-              </NavLink>
+              {/* Instructor mobile links */}
+              {user?.role === 'instructor' && (
+                <>
+                  <NavLink
+                    to="/instructor"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
+                        ? 'bg-green-600 text-white'
+                        : 'text-green-400 hover:text-white hover:bg-green-900'
+                      }`
+                    }
+                  >
+                    Instructor Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/add-course"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                      }`
+                    }
+                  >
+                    Add Course
+                  </NavLink>
+                  <NavLink
+                    to="/manage-courses"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                      }`
+                    }
+                  >
+                    Manage Courses
+                  </NavLink>
+                </>
+              )}
 
-              <NavLink
-                to="/my-courses"
-                onClick={closeMobileMenu}
-                className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                  }`
-                }
-              >
-                My Courses
-              </NavLink>
-
-              <NavLink
-                to="/dashboard"
-                onClick={closeMobileMenu}
-                className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                  }`
-                }
-              >
-                Dashboard
-              </NavLink>
-
-              {(user?.email === 'admin@learnify.com' || user?.role === 'admin') && (
+              {/* Admin mobile links */}
+              {user?.role === 'admin' && (
                 <NavLink
                   to="/admin"
                   onClick={closeMobileMenu}
@@ -462,39 +495,34 @@ const Navbar = () => {
                     }`
                   }
                 >
-                  Admin
+                  Admin Dashboard
                 </NavLink>
               )}
 
-              {user && user.email !== 'admin@learnify.com' && user.email !== 'emad@gmail.com' && (
+              {/* General User Mobile Links */}
+              <div className="pt-4 border-t border-gray-700 mt-4">
                 <NavLink
-                  to="/instructor"
+                  to="/settings"
                   onClick={closeMobileMenu}
                   className={({ isActive }) =>
                     `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
-                      ? 'bg-green-600 text-white'
-                      : 'text-green-400 hover:text-white hover:bg-green-900'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
                     }`
                   }
                 >
-                  Instructor
+                  Settings
                 </NavLink>
-              )}
-
-              {user && user.email !== 'admin@learnify.com' && user.email !== 'emad@gmail.com' && user.role !== 'instructor' && (
-                <NavLink
-                  to="/student"
-                  onClick={closeMobileMenu}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${isActive
-                      ? 'bg-purple-600 text-white'
-                      : 'text-purple-400 hover:text-white hover:bg-purple-900'
-                    }`
-                  }
+                <button
+                  onClick={() => {
+                    closeMobileMenu();
+                    logout();
+                  }}
+                  className="w-full text-left block px-3 py-2 rounded-lg text-base font-medium text-red-400 hover:text-white hover:bg-red-900 transition-colors duration-200 mt-2"
                 >
-                  Student
-                </NavLink>
-              )}
+                  Logout
+                </button>
+              </div>
             </>
           )}
 

@@ -85,16 +85,76 @@ export const getInstructors = async (req, res) => {
 };
 
 export const handleUserAction = async (req, res) => {
-    // Stub
-    res.json({ message: `User ${req.params.action}ed successfully` });
+    try {
+        const { id, action } = req.params;
+        let update;
+        switch (action) {
+            case 'ban':
+                update = { status: 'banned' };
+                break;
+            case 'activate':
+                update = { status: 'active' };
+                break;
+            case 'suspend':
+                update = { status: 'suspended' };
+                break;
+            case 'delete':
+                await User.findByIdAndDelete(id);
+                return res.json({ message: 'User deleted successfully' });
+            default:
+                return res.status(400).json({ message: `Unknown action: ${action}` });
+        }
+        const user = await User.findByIdAndUpdate(id, update, { new: true });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json({ message: `User ${action}ed successfully`, user });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
 };
 
 export const handleCourseAction = async (req, res) => {
-    // Stub
-    res.json({ message: `Course ${req.params.action}ed successfully` });
+    try {
+        const { id, action } = req.params;
+        let update;
+        switch (action) {
+            case 'approve':
+                update = { status: 'active' };
+                break;
+            case 'reject':
+                update = { status: 'rejected' };
+                break;
+            case 'suspend':
+                update = { status: 'suspended' };
+                break;
+            default:
+                return res.status(400).json({ message: `Unknown action: ${action}` });
+        }
+        const course = await Course.findByIdAndUpdate(id, update, { new: true });
+        if (!course) return res.status(404).json({ message: 'Course not found' });
+        res.json({ message: `Course ${action}ed successfully`, course });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
 };
 
 export const handleInstructorAction = async (req, res) => {
-    // Stub
-    res.json({ message: `Instructor ${req.params.action}ed successfully` });
+    try {
+        const { id, action } = req.params;
+        let update;
+        switch (action) {
+            case 'approve':
+                update = { status: 'active' };
+                break;
+            case 'suspend':
+                update = { status: 'suspended' };
+                break;
+            default:
+                return res.status(400).json({ message: `Unknown action: ${action}` });
+        }
+        const instructor = await User.findByIdAndUpdate(id, update, { new: true });
+        if (!instructor) return res.status(404).json({ message: 'Instructor not found' });
+        res.json({ message: `Instructor ${action}ed successfully`, instructor });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
 };

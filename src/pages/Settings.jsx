@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import useAuth from '../hooks/useAuth';
+import api from '../services/api';
 
 const defaultSettings = {
   theme: 'dark',
@@ -110,14 +111,33 @@ const Settings = () => {
     }));
   };
 
-  const handlePrivacyToggle = (key) => {
+  const handlePrivacyToggle = async (key) => {
+    const newValue = !settings.privacy[key];
     setSettings(prev => ({
       ...prev,
       privacy: {
         ...prev.privacy,
-        [key]: !prev.privacy[key],
+        [key]: newValue,
       },
     }));
+    
+    if (key === 'profileVisible') {
+        try {
+            await api.patch('/users/settings', { isPublic: newValue });
+            // Optionally refresh user context here
+        } catch (error) {
+            console.error("Failed to update privacy settings", error);
+            toast.error("Failed to sync privacy setting with server.");
+            // Revert on failure
+            setSettings(prev => ({
+              ...prev,
+              privacy: {
+                ...prev.privacy,
+                [key]: !newValue,
+              },
+            }));
+        }
+    }
   };
 
   const handleLanguageChange = (event) => {
@@ -150,10 +170,7 @@ const Settings = () => {
 
   const summaryItems = useMemo(
     () => [
-      {
-        label: 'Theme',
-        value: settings.theme === 'dark' ? 'Dark Mode' : 'Light Mode',
-      },
+
       {
         label: 'Email Notifications',
         value: settings.notifications.email ? 'Enabled' : 'Disabled',
@@ -201,19 +218,6 @@ const Settings = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 hover:border-blue-500/60 transition-all duration-200">
-              <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                Theme Preference
-              </h2>
-              <div className="flex items-center justify-between mt-4">
-                <div>
-                  <p className="text-white font-medium">Dark Mode</p>
-                  <p className="text-sm text-gray-400">Toggle between dark and light themes.</p>
-                </div>
-                <ToggleSwitch enabled={settings.theme === 'dark'} onToggle={handleThemeToggle} />
-              </div>
-            </div>
-
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 hover:border-blue-500/60 transition-all duration-200">
               <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
                 Notification Preferences
