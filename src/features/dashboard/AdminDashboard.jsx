@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosSecure from '../../services/axiosSecure';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -105,8 +105,8 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [coursesRes, usersRes] = await Promise.all([
-        axios.get('https://course-management-system-server-woad.vercel.app/api/courses'),
-        axios.get('https://course-management-system-server-woad.vercel.app/api/users')
+        axiosSecure.get('/courses'),
+        axiosSecure.get('/users')
       ]);
       
       setCourses(coursesRes.data || []);
@@ -121,7 +121,7 @@ const Dashboard = () => {
   const handleDeleteCourse = async (courseId) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
       try {
-        await axios.delete(`https://course-management-system-server-woad.vercel.app/api/courses/${courseId}`);
+        await axiosSecure.delete(`/courses/${courseId}`);
         setCourses(courses.filter(course => course._id !== courseId));
         toast.success('Course deleted successfully');
       } catch (error) {

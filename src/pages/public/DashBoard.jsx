@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthProvider';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import axiosSecure from '../../services/axiosSecure';
 import { FaArrowRight } from 'react-icons/fa';
 import { FiBook, FiAward, FiBarChart2 } from 'react-icons/fi';
 import { CourseCard, RecommendedCourses } from '../../components/common';
@@ -16,10 +16,7 @@ const Dashboard = () => {
             const fetchEnrolledCourses = async () => {
                 setLoading(true);
                 try {
-                    const token = localStorage.getItem('access-token');
-                    const response = await axios.get('https://course-management-system-server-woad.vercel.app/api/my-enrollments', {
-                        headers: { 'authorization': `Bearer ${token}` }
-                    });
+                    const response = await axiosSecure.get('/my-enrollments');
                     setEnrolledCourses(response.data);
                 } catch (error) {
                     console.error("Failed to fetch enrolled courses for dashboard.", error);
