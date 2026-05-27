@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../utils/constants';
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  withCredentials: true,
 });
 
 // Request interceptor
@@ -26,9 +27,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
       localStorage.removeItem('access-token');
-      window.location.href = '/Auth/login';
+      localStorage.removeItem('user');
+      window.location.replace('/Auth/login');
     }
     return Promise.reject(error);
   }

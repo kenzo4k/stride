@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthProvider';
 import { Link } from 'react-router-dom';
-import axiosSecure from '../../services/axiosSecure';
+import api from '../../services/api';
 import { FaArrowRight } from 'react-icons/fa';
 import { FiBook, FiAward, FiBarChart2 } from 'react-icons/fi';
 import { CourseCard, RecommendedCourses } from '../../components/common';
@@ -16,7 +16,7 @@ const Dashboard = () => {
             const fetchEnrolledCourses = async () => {
                 setLoading(true);
                 try {
-                    const response = await axiosSecure.get('/my-enrollments');
+                    const response = await api.get('/my-enrollments');
                     setEnrolledCourses(response.data);
                 } catch (error) {
                     console.error("Failed to fetch enrolled courses for dashboard.", error);

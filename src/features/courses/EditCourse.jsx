@@ -116,28 +116,26 @@ const EditCourse = () => {
         }));
     };
 
-    const handleUpdateCourse = async (e) => {
-        e.preventDefault();
-        try {
-            const token = localStorage.getItem('access-token');
-            const response = await fetch(`${API_BASE_URL}/courses/${id || ''}`, {
-                method: id ? 'PUT' : 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(courseData)
-            });
+    const saveCourse = async (statusOverride) => {
+        const payload = {
+            ...courseData,
+            ...(statusOverride ? { status: statusOverride } : {})
+        };
+        if (id) {
+            return await courseService.updateCourse(id, payload);
+        } else {
+            return await courseService.createCourse(payload);
+        }
+    };
 
-            if (response.ok) {
-                toast.success(`Course ${id ? 'updated' : 'created'} successfully!`);
-                navigate('/manage-courses');
-            } else {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save course');
-            }
+    const handleUpdateCourse = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        try {
+            await saveCourse();
+            toast.success(`Course ${id ? 'updated' : 'created'} successfully!`);
+            navigate('/manage-courses');
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.response?.data?.message || error.message);
         }
     };
 
@@ -435,25 +433,47 @@ const EditCourse = () => {
                                 <button
                                     type="button"
                                     className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                                    onClick={() => {
-                                        setCourseData(prev => ({
-                                            ...prev,
-                                            status: 'draft'
-                                        }));
-                                        handleUpdateCourse({ preventDefault: () => {} });
+                                    onClick={async () => {
+                                        try {
+                                            await saveCourse('draft');
+                                            toast.success('Course saved as draft successfully!');
+                                            navigate('/manage-courses');
+                                        } catch (error) {
+                                            toast.error(error.response?.data?.message || error.message);
+                                        }
                                     }}
                                 >
                                     Save as Draft
                                 </button>
                                 <button
                                     type="button"
+                                    className="px-6 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
+                                    onClick={async () => {
+                                        try {
+                                            const data = await saveCourse();
+                                            toast.success('Course changes saved!');
+                                            const courseId = id || data?._id || data?.id;
+                                            if (courseId) {
+                                                navigate(`/course/${courseId}`);
+                                            }
+                                        } catch (error) {
+                                            toast.error(error.response?.data?.message || error.message);
+                                        }
+                                    }}
+                                >
+                                    Preview Course
+                                </button>
+                                <button
+                                    type="button"
                                     className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors"
-                                    onClick={() => {
-                                        setCourseData(prev => ({
-                                            ...prev,
-                                            status: 'published'
-                                        }));
-                                        handleUpdateCourse({ preventDefault: () => {} });
+                                    onClick={async () => {
+                                        try {
+                                            await saveCourse('published');
+                                            toast.success('Course published successfully!');
+                                            navigate('/manage-courses');
+                                        } catch (error) {
+                                            toast.error(error.response?.data?.message || error.message);
+                                        }
                                     }}
                                 >
                                     Publish Course

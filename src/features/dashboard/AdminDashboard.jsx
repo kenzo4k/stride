@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axiosSecure from '../../services/axiosSecure';
+import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -23,7 +23,7 @@ import {
   Eye
 } from 'lucide-react';
 
-const USE_ADMIN_SAMPLE_DATA = true;
+const USE_ADMIN_SAMPLE_DATA = false;
 
 const adminSampleData = {
   stats: {
@@ -105,8 +105,8 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [coursesRes, usersRes] = await Promise.all([
-        axiosSecure.get('/courses'),
-        axiosSecure.get('/users')
+        api.get('/courses'),
+        api.get('/users')
       ]);
       
       setCourses(coursesRes.data || []);
@@ -121,7 +121,7 @@ const Dashboard = () => {
   const handleDeleteCourse = async (courseId) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
       try {
-        await axiosSecure.delete(`/courses/${courseId}`);
+        await api.delete(`/courses/${courseId}`);
         setCourses(courses.filter(course => course._id !== courseId));
         toast.success('Course deleted successfully');
       } catch (error) {

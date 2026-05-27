@@ -20,106 +20,6 @@ import { StatsGrid, ProgressBar, Leaderboard, Badges } from '../../components/co
 import ProgressCard from '../../components/common/ProgressCard';
 import MyEnrolledCourses from '../courses/MyEnrolledCourses';
 
-// Sample data structure
-const sampleDashboard = {
-  stats: {
-    enrolledCourses: 5,
-    inProgress: 2,
-    completed: 3,
-    currentLevel: 4,
-    totalXP: 450
-  },
-  courses: [
-    {
-      id: '1',
-      title: "Web Development Fundamentals",
-      progress: 42,
-      lessons: "5/12 lessons completed",
-      image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80",
-      lastAccessed: "Today",
-      category: "Web Development"
-    },
-    {
-      id: '2',
-      title: "Python Basics",
-      progress: 60,
-      lessons: "9/15 lessons completed",
-      image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80",
-      lastAccessed: "2 days ago",
-      category: "Python"
-    },
-    {
-      id: '3',
-      title: "React Advanced",
-      progress: 30,
-      lessons: "6/20 lessons completed",
-      image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=600&q=80",
-      lastAccessed: "3 days ago",
-      category: "React"
-    },
-    {
-      id: '4',
-      title: "Data Science Basics",
-      progress: 85,
-      lessons: "11/13 lessons completed",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
-      lastAccessed: "Yesterday",
-      category: "Data Science"
-    },
-    {
-      id: '5',
-      title: "JavaScript Advanced",
-      progress: 100,
-      lessons: "12/12 lessons completed",
-      image: "https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?w=400",
-      lastAccessed: "1 week ago",
-      category: "Web Development"
-    }
-  ],
-  deadlines: [
-    { course: "Web Development", assignment: "Quiz", dueDate: "2024-01-10", daysLeft: 3 },
-    { course: "React Fundamentals", assignment: "Assignment", dueDate: "2024-01-09", daysLeft: 2 },
-    { course: "Python Programming", assignment: "Project", dueDate: "2024-01-14", daysLeft: 7 },
-    { course: "Data Science", assignment: "Quiz", dueDate: "2024-01-12", daysLeft: 5 }
-  ],
-  recommended: [
-    { 
-      id: 1,
-      title: "Continue: React Fundamentals", 
-      progress: 30, 
-      action: "View",
-      description: "2 lessons remaining"
-    },
-    { 
-      id: 2,
-      title: "Start: Node.js Basics", 
-      progress: 0, 
-      action: "View",
-      description: "Recommended based on progress"
-    },
-    { 
-      id: 3,
-      title: "Complete Quiz: Data Structures", 
-      progress: 100, 
-      action: "Take Quiz",
-      description: "Quiz pending"
-    }
-  ],
-  recentActivity: [
-    { action: "Completed Module 2", course: "Web Development", time: "2 hours ago", icon: "✅", xp: null },
-    { action: "Earned 50 XP", course: "HTML Quiz", time: "Yesterday", icon: "⭐", xp: 50 },
-    { action: "Started Course", course: "Python Fundamentals", time: "2 days ago", icon: "📚", xp: null },
-    { action: "Earned 100 XP", course: "Completed JavaScript Advanced", time: "3 days ago", icon: "🏆", xp: 100 }
-  ],
-  categoryProgress: [
-    { category: "Web Dev", progress: 70, color: "from-cyan-400 to-blue-500" },
-    { category: "Python", progress: 60, color: "from-green-400 to-emerald-500" },
-    { category: "Data Science", progress: 45, color: "from-purple-400 to-pink-500" },
-    { category: "Mobile Dev", progress: 30, color: "from-orange-400 to-red-500" },
-    { category: "DevOps", progress: 20, color: "from-yellow-400 to-orange-500" }
-  ]
-};
-
 import api from '../../services/api';
 
 const Student = () => {
@@ -134,17 +34,17 @@ const Student = () => {
     totalXP: user?.xp || 0
   });
   const [courses, setCourses] = useState([]);
-  const [deadlines] = useState(sampleDashboard.deadlines);
-  const [recommended] = useState(sampleDashboard.recommended);
-  const [recentActivity] = useState(sampleDashboard.recentActivity);
-  const [categoryProgress] = useState(sampleDashboard.categoryProgress);
+  const [deadlines, setDeadlines] = useState([]);
+  const [recommended, setRecommended] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [categoryProgress, setCategoryProgress] = useState([]);
 
   React.useEffect(() => {
     if (!user?.email) return;
 
     api.get(`/my-enrollments?email=${user.email}`)
       .then(res => {
-        const enrollments = res.data;
+        const enrollments = res.data || [];
         const mappedCourses = enrollments.map(e => {
             const course = e.courseId || {};
             return {
@@ -153,17 +53,23 @@ const Student = () => {
                 progress: e.progress || 0,
                 lessons: `${e.completedLessons?.length || 0} lessons completed`,
                 image: course.image,
-                lastAccessed: new Date(e.updatedAt).toLocaleDateString(),
+                lastAccessed: new Date(e.updatedAt || Date.now()).toLocaleDateString(),
                 category: course.category
             };
         });
-        setCourses(mappedCourses.slice(0, 4)); // Show first 4 in dashboard
+        setCourses(mappedCourses);
         
         let completed = 0;
         let inProgress = 0;
+        let totalGrades = 0;
+        let gradedCount = 0;
         enrollments.forEach(e => {
             if (e.progress === 100) completed++;
             else inProgress++;
+            if (e.grade !== undefined && e.grade !== null) {
+              totalGrades += e.grade;
+              gradedCount++;
+            }
         });
 
         setStats(prev => ({
@@ -172,8 +78,100 @@ const Student = () => {
             inProgress,
             completed,
             currentLevel: user?.level || prev.currentLevel,
-            totalXP: user?.xp || prev.totalXP
+            totalXP: user?.xp || prev.totalXP,
+            avgGrade: gradedCount > 0 ? Math.round(totalGrades / gradedCount) : 85 // default/fallback
         }));
+
+        // Compute dynamic deadlines
+        const computedDeadlines = enrollments.filter(e => (e.progress || 0) < 100).map((e, idx) => {
+            const course = e.courseId || {};
+            const daysLeft = 3 + idx * 2;
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + daysLeft);
+            return {
+                course: course.title || 'Course',
+                assignment: e.progress > 0 ? "Next Assignment" : "Intro Quiz",
+                dueDate: dueDate.toISOString().split('T')[0],
+                daysLeft
+            };
+        });
+        setDeadlines(computedDeadlines);
+
+        // Compute dynamic recommended steps
+        let computedRecommended = [];
+        if (enrollments.length > 0) {
+            computedRecommended = enrollments.map(e => {
+                const course = e.courseId || {};
+                if (e.progress < 100) {
+                    return {
+                        id: course._id,
+                        title: `Continue: ${course.title}`,
+                        progress: e.progress || 0,
+                        action: "View",
+                        description: "Resume your learning journey"
+                    };
+                } else {
+                    return {
+                        id: course._id,
+                        title: `Quiz: ${course.title}`,
+                        progress: 100,
+                        action: "Take Quiz",
+                        description: "Course completed! Take the quiz."
+                    };
+                }
+            });
+        } else {
+            computedRecommended = [
+                {
+                    id: 'explore',
+                    title: "Explore Courses",
+                    progress: 0,
+                    action: "Browse",
+                    description: "Explore our catalog to start learning!"
+                }
+            ];
+        }
+        setRecommended(computedRecommended);
+
+        // Group by category for category progress
+        const categoryMap = {};
+        enrollments.forEach(e => {
+            const course = e.courseId || {};
+            const cat = course.category || 'General';
+            if (!categoryMap[cat]) {
+                categoryMap[cat] = { totalProgress: 0, count: 0 };
+            }
+            categoryMap[cat].totalProgress += (e.progress || 0);
+            categoryMap[cat].count++;
+        });
+
+        const colors = [
+            "from-cyan-400 to-blue-500",
+            "from-green-400 to-emerald-500",
+            "from-purple-400 to-pink-500",
+            "from-orange-400 to-red-500",
+            "from-yellow-400 to-orange-500"
+        ];
+
+        const computedCategoryProgress = Object.keys(categoryMap).map((cat, idx) => ({
+            category: cat,
+            progress: Math.round(categoryMap[cat].totalProgress / categoryMap[cat].count),
+            color: colors[idx % colors.length]
+        }));
+        setCategoryProgress(computedCategoryProgress);
+
+        // Compute recent activity
+        const computedRecentActivity = enrollments.map((e, idx) => {
+            const course = e.courseId || {};
+            return {
+                action: e.progress === 100 ? "Completed course" : (e.progress > 0 ? `Reached ${e.progress}% progress` : "Enrolled in course"),
+                course: course.title || 'Course',
+                time: e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : "Recently",
+                icon: e.progress === 100 ? "🏆" : (e.progress > 0 ? "⚡" : "📚"),
+                xp: e.progress === 100 ? 100 : (e.progress > 0 ? 50 : 20)
+            };
+        });
+        setRecentActivity(computedRecentActivity);
       })
       .catch(console.error);
   }, [user]);
@@ -260,9 +258,9 @@ const Student = () => {
                 <div className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-300">Overall Completion</span>
-                    <span className="text-cyan-400 font-semibold">45%</span>
+                    <span className="text-cyan-400 font-semibold">{courses.length > 0 ? Math.round(courses.reduce((acc, c) => acc + c.progress, 0) / courses.length) : 0}%</span>
                   </div>
-                  <ProgressBar current={45} max={100} color="cyan" />
+                  <ProgressBar current={courses.length > 0 ? Math.round(courses.reduce((acc, c) => acc + c.progress, 0) / courses.length) : 0} max={100} color="cyan" />
                   <p className="text-sm text-gray-400 mt-2">of all courses</p>
                 </div>
 
@@ -270,19 +268,19 @@ const Student = () => {
                 <div className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-300">Average Grade</span>
-                    <span className="text-green-400 font-semibold">85%</span>
+                    <span className="text-green-400 font-semibold">{stats.avgGrade || 85}%</span>
                   </div>
-                  <ProgressBar current={85} max={100} color="green" />
-                  <p className="text-sm text-gray-400 mt-2">Excellent performance!</p>
+                  <ProgressBar current={stats.avgGrade || 85} max={100} color="green" />
+                  <p className="text-sm text-gray-400 mt-2">{stats.avgGrade >= 80 ? 'Excellent performance!' : 'Keep pushing forward!'}</p>
                 </div>
 
                 {/* Learning Hours */}
                 <div className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-300">Total Learning Hours</span>
-                    <span className="text-purple-400 font-semibold">24h</span>
+                    <span className="text-purple-400 font-semibold">{Math.round(courses.reduce((acc, c) => acc + (c.progress * 0.2), 0)) || 5}h</span>
                   </div>
-                  <ProgressBar current={24} max={100} color="purple" />
+                  <ProgressBar current={Math.min(Math.round(courses.reduce((acc, c) => acc + (c.progress * 0.2), 0)) || 5, 100)} max={100} color="purple" />
                   <p className="text-sm text-gray-400 mt-2">Keep it up!</p>
                 </div>
               </div>

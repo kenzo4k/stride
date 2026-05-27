@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 
+const renderBadgeIcon = (icon) => {
+  if (!icon) return null;
+  const isPath = icon.includes('/') || icon.includes('.') || icon.startsWith('http') || icon.includes('\\');
+  if (isPath) {
+    return <img src={icon} alt="badge icon" className="w-10 h-10 object-contain rounded-lg" />;
+  }
+  return icon;
+};
+
 const Badges = () => {
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +59,7 @@ const Badges = () => {
             title={badge.description}
           >
             <div className="w-14 h-14 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-3xl mb-3 shadow-inner group-hover:scale-110 transition-transform duration-300">
-              {badge.iconUrl}
+              {renderBadgeIcon(badge.iconUrl)}
             </div>
             <span className="text-sm font-semibold text-gray-200 text-center line-clamp-1 mb-1">{badge.name}</span>
             <span className="text-[10px] text-gray-500 text-center line-clamp-2 leading-tight">{badge.description}</span>

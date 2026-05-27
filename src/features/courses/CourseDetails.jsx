@@ -29,11 +29,8 @@ const CourseDetails = () => {
 
             try {
                 // Fetch course from API
-                const response = await fetch(`${API_BASE_URL}/courses/${id}`);
-                if (!response.ok) {
-                    throw new Error('Course not found.');
-                }
-                const foundCourse = await response.json();
+                const response = await api.get(`/courses/${id}`);
+                const foundCourse = response.data;
 
                 // Map _id to id for consistency
                 const mappedCourse = {

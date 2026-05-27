@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "./CheckoutForm";
-import axiosSecure from "../../services/axiosSecure";
+import api from "../../services/api";
 
 // Initialize Stripe with your Publishable Key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -17,7 +17,7 @@ export default function StripeContainer({ amount, courseId }) {
 
     // Ensure we only fetch if amount exists
     if (amount > 0) {
-      axiosSecure.post("/create-payment-intent", { amount, courseId })
+      api.post("/create-payment-intent", { amount, courseId })
         .then((res) => setClientSecret(res.data.clientSecret))
         .catch((err) => {
           console.error("Stripe Initialization Error:", err);

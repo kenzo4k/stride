@@ -10,14 +10,7 @@ export const registerUser = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (user) {
-      // Update existing user's lastLogin and other info if needed
-      user.lastLogin = new Date();
-      if (name) user.name = name;
-      if (photoURL) user.photoURL = photoURL;
-      // We don't necessarily want to override the role if it's already set, 
-      // unless it's a new user or specifically requested.
-      await user.save();
-      return res.json({ message: "User updated successfully", user });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     user = new User({ name, email, photoURL, role: role || 'student', lastLogin: new Date() });

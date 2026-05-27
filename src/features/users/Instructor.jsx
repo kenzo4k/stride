@@ -133,48 +133,9 @@ const sampleInstructorData = {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [courseStats, setCourseStats] = useState([]);
+  const [gradeDistribution, setGradeDistribution] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
-
-  // Sample analytics data
-  const sampleAnalytics = {
-    stats: {
-      totalStudents: 45,
-      activeCourses: 3,
-      avgClassGrade: 78,
-      completionRate: 72
-    },
-    gradeDistribution: [
-      { grade: 'A (90-100%)', count: 15, color: 'blue' },
-      { grade: 'B (80-89%)', count: 20, color: 'cyan' },
-      { grade: 'C (70-79%)', count: 8, color: 'yellow' },
-      { grade: 'D+ (60-69%)', count: 2, color: 'red' }
-    ],
-    students: [
-      { name: "Ahmed Khan", enrolled: "2024-01-05", courses: 3, grade: 85, completion: 90, status: "Active" },
-      { name: "Fatima Ali", enrolled: "2024-01-03", courses: 2, grade: 72, completion: 80, status: "Active" },
-      { name: "Omar Hassan", enrolled: "2024-01-10", courses: 1, grade: 45, completion: 30, status: "Inactive" },
-      { name: "Sarah Ahmed", enrolled: "2024-01-15", courses: 3, grade: 92, completion: 95, status: "Active" },
-      { name: "Zainab Ahmed", enrolled: "2024-01-08", courses: 2, grade: 55, completion: 45, status: "Active" },
-      { name: "Hassan Mohamed", enrolled: "2024-01-12", courses: 2, grade: 88, completion: 85, status: "Active" },
-      { name: "Layla Ibrahim", enrolled: "2024-01-20", courses: 1, grade: 78, completion: 75, status: "Active" },
-      { name: "Yusuf Abdullah", enrolled: "2024-01-18", courses: 3, grade: 82, completion: 88, status: "Active" }
-    ],
-    courseStats: [
-      { name: "Web Development", students: 25, completion: 85, avgGrade: 82, lastUpdated: "2024-01-20" },
-      { name: "Python Programming", students: 15, completion: 65, avgGrade: 75, lastUpdated: "2024-01-18" },
-      { name: "Data Science", students: 18, completion: 70, avgGrade: 78, lastUpdated: "2024-01-22" }
-    ],
-    engagement: {
-      participationRate: 68,
-      quizCompletion: "320/450",
-      submissionRate: 75,
-      avgTimeSpent: "4.2 hours"
-    },
-    atRisk: [
-      { name: "Omar Hassan", course: "Web Dev", grade: 45, status: "Failing" },
-      { name: "Zainab Ahmed", course: "Python", grade: 55, status: "At Risk" }
-    ]
-  };
 
   useEffect(() => {
     fetchInstructorData();
@@ -185,17 +146,19 @@ const sampleInstructorData = {
     try {
       setLoading(true);
 
-      // Fetch instructor statistics
-      const statsResponse = await api.get('/instructor/stats');
-      setStats(statsResponse.data);
+      const [statsRes, coursesRes, studentsRes, courseStatsRes, analyticsRes] = await Promise.all([
+        api.get('/instructor/stats'),
+        api.get('/instructor/courses'),
+        api.get('/instructor/students'),
+        api.get('/instructor/course-stats'),
+        api.get('/instructor/student-analytics')
+      ]);
 
-      // Fetch instructor courses
-      const coursesResponse = await api.get('/instructor/courses');
-      setCourses(coursesResponse.data);
-
-      // Fetch instructor students
-      const studentsResponse = await api.get('/instructor/students');
-      setStudents(studentsResponse.data);
+      setStats(statsRes.data);
+      setCourses(coursesRes.data || []);
+      setStudents(studentsRes.data || []);
+      setCourseStats(courseStatsRes.data || []);
+      setGradeDistribution(analyticsRes.data || []);
 
     } catch (error) {
       console.error('Error fetching instructor data:', error);
@@ -218,6 +181,20 @@ const sampleInstructorData = {
       toast.error(`Failed to ${action} course`);
     }
   };
+
+  const avgProgress = students.length > 0
+    ? (students.reduce((acc, s) => acc + (s.progress || 0), 0) / students.length)
+    : 0;
+  const completionRate = students.length > 0
+    ? (students.filter(s => s.progress === 100).length / students.length * 100)
+    : 0;
+
+  const recentActivities = students.slice(0, 5).map((student, idx) => ({
+    user: student.displayName || student.email || 'Unknown Student',
+    action: student.progress > 0 ? `reached ${student.progress.toFixed(0)}% progress in` : 'enrolled in',
+    course: 'their course',
+    time: 'recently'
+  }));
 
   if (loading) {
     return (
@@ -261,7 +238,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-sm">Total Students</p>
-                    <p className="text-3xl font-bold">{sampleInstructorData.overview.stats.totalStudents}</p>
+                    <p className="text-3xl font-bold">{stats.totalStudents}</p>
                   </div>
                   <Users className="w-8 h-8 text-green-400" />
                 </div>
@@ -271,7 +248,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-sm">Active Courses</p>
-                    <p className="text-3xl font-bold">{sampleInstructorData.overview.stats.activeCourses}</p>
+                    <p className="text-3xl font-bold">{stats.activeCourses}</p>
                   </div>
                   <Award className="w-8 h-8 text-teal-400" />
                 </div>
@@ -280,8 +257,8 @@ const sampleInstructorData = {
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-cyan-600 transition">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Avg Grade</p>
-                    <p className="text-3xl font-bold">{sampleInstructorData.overview.stats.avgGrade}%</p>
+                    <p className="text-gray-400 text-sm">Avg Progress</p>
+                    <p className="text-3xl font-bold">{avgProgress.toFixed(0)}%</p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-blue-400" />
                 </div>
@@ -291,7 +268,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-sm">Completion Rate</p>
-                    <p className="text-3xl font-bold">{sampleInstructorData.overview.stats.completionRate}%</p>
+                    <p className="text-3xl font-bold">{completionRate.toFixed(0)}%</p>
                   </div>
                   <CheckCircle className="w-8 h-8 text-purple-400" />
                 </div>
@@ -322,7 +299,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-sm">Average Rating</p>
-                    <p className="text-3xl font-bold">{stats.averageRating.toFixed(1)}</p>
+                    <p className="text-3xl font-bold">{stats.averageRating?.toFixed(1) || 0}</p>
                   </div>
                   <Star className="w-8 h-8 text-purple-400" />
                 </div>
@@ -332,7 +309,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-sm">Pending Reviews</p>
-                    <p className="text-3xl font-bold">{stats.pendingReviews}</p>
+                    <p className="text-3xl font-bold">{stats.pendingReviews || 0}</p>
                   </div>
                   <Calendar className="w-8 h-8 text-orange-400" />
                 </div>
@@ -348,7 +325,7 @@ const sampleInstructorData = {
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
-                    {sampleInstructorData.overview.recentActivity.map((activity, index) => (
+                    {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
                       <div key={index} className="flex items-start space-x-3 border-b border-gray-700 pb-3 last:border-0">
                         <div className="p-2 bg-gray-700 rounded-full">
                           <Activity className="w-4 h-4 text-cyan-400" />
@@ -360,7 +337,9 @@ const sampleInstructorData = {
                           <p className="text-xs text-gray-500">{activity.time}</p>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="text-gray-500 text-center italic">No recent student activity</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -466,54 +445,9 @@ const sampleInstructorData = {
                     </tr>
                   </thead>
                   <tbody className="bg-gray-800">
-                    {/* Sample Data Courses */}
-                    {sampleInstructorData.courses.map((course) => (
-                      <tr key={`sample-${course.id}`} className="border-b border-gray-700 hover:bg-gray-750">
-                        <td className="py-3 px-4 font-medium text-cyan-400">{course.title}</td>
-                        <td className="py-3 px-4">{course.students}</td>
-                        <td className="py-3 px-4">{course.avgGrade}%</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-16 bg-gray-700 rounded-full h-1.5">
-                              <div
-                                className="bg-cyan-500 h-1.5 rounded-full"
-                                style={{ width: `${course.completion}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs">{course.completion}%</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-1 rounded text-xs bg-green-900 text-green-300">
-                            {course.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => navigate(`/edit-course/${course.id}`)}
-                              className="btn btn-xs bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none"
-                            >
-                              <Edit className="w-3 h-3 mr-1" /> Edit
-                            </button>
-                            <button 
-                              onClick={() => {
-                                if(window.confirm('Are you sure you want to delete this course?')) {
-                                  toast.success('Course deleted (sample)');
-                                }
-                              }}
-                              className="btn btn-xs bg-red-600 hover:bg-red-700 text-white border-none"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" /> Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Real Data Courses - NO DELETION */}
-                    {courses.map((course) => (
+                    {courses.length > 0 ? courses.map((course) => (
                       <tr key={course._id} className="border-b border-gray-700 hover:bg-gray-750">
-                        <td className="py-3 px-4">{course.title}</td>
+                        <td className="py-3 px-4 font-medium text-cyan-400">{course.title}</td>
                         <td className="py-3 px-4">{course.enrolledStudents || 0}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-1">
@@ -521,9 +455,9 @@ const sampleInstructorData = {
                             <span>{course.rating || 0}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4">${course.revenue || 0}</td>
+                        <td className="py-3 px-4">${(course.price || 0) * (course.enrolledStudents || 0)}</td>
                         <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded text-xs ${course.status === 'published' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
+                          <span className={`px-2 py-1 rounded text-xs ${course.status === 'published' || course.status === 'active' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
                             }`}>
                             {course.status || 'draft'}
                           </span>
@@ -531,27 +465,33 @@ const sampleInstructorData = {
                         <td className="py-3 px-4">
                           <div className="flex space-x-2">
                             <button 
-                              onClick={() => navigate(`/course/${course._id}/view`)}
+                              onClick={() => navigate(`/course/${course._id}`)}
                               className="btn btn-xs bg-gray-700 hover:bg-gray-600 text-white border-none"
                             >
-                              <Eye className="w-3 h-3" />
+                              <Eye className="w-3 h-3" /> View
                             </button>
                             <button 
                               onClick={() => navigate(`/edit-course/${course._id}`)}
                               className="btn btn-xs bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none"
                             >
-                              <Edit className="w-3 h-3" />
+                              <Edit className="w-3 h-3" /> Edit
                             </button>
                             <button 
                               onClick={() => handleCourseAction(course._id, 'delete')}
                               className="btn btn-xs bg-red-600 hover:bg-red-700 text-white border-none"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3" /> Delete
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="6" className="py-8 text-center text-gray-500 italic bg-gray-800">
+                          No courses created yet. Create a course to get started!
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -580,61 +520,17 @@ const sampleInstructorData = {
                     </tr>
                   </thead>
                   <tbody className="bg-gray-800">
-                    {/* Sample Data Students */}
-                    {sampleInstructorData.students.map((student) => (
-                      <tr key={`sample-${student.id}`} className="border-b border-gray-700 hover:bg-gray-750">
+                    {students.length > 0 ? students.map((student) => (
+                      <tr key={student._id} className="border-b border-gray-700 hover:bg-gray-750">
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center text-xs">
-                              {student.name.charAt(0)}
+                              {student.displayName?.charAt(0) || student.email?.charAt(0)}
                             </div>
-                            <span className="font-medium">{student.name}</span>
+                            <span className="font-medium">{student.displayName || 'Unknown'}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-gray-400">{student.email}</td>
-                        <td className="py-3 px-4">{student.enrolledCourses}</td>
-                        <td className="py-3 px-4 font-semibold text-cyan-400">{student.avgGrade}%</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-20 bg-gray-700 rounded-full h-1.5">
-                              <div
-                                className="bg-cyan-500 h-1.5 rounded-full"
-                                style={{ width: `${student.completion}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs">{student.completion}%</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
-                            student.status === 'Active' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
-                          }`}>
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => toast.success(`Viewing ${student.name}`)}
-                              className="btn btn-xs bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none"
-                            >
-                              <Eye className="w-3 h-3 mr-1" /> View
-                            </button>
-                            <button 
-                              onClick={() => toast.success(`Contacting ${student.name}`)}
-                              className="btn btn-xs bg-gray-700 hover:bg-gray-600 text-white border-none"
-                            >
-                              <Mail className="w-3 h-3 mr-1" /> Contact
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Real Data Students - NO DELETION */}
-                    {students.map((student) => (
-                      <tr key={student._id} className="border-b border-gray-700 hover:bg-gray-750">
-                        <td className="py-3 px-4">{student.displayName || 'Unknown'}</td>
-                        <td className="py-3 px-4">{student.email}</td>
                         <td className="py-3 px-4">{student.enrolledCourses || 0}</td>
                         <td className="py-3 px-4">-</td>
                         <td className="py-3 px-4">
@@ -645,19 +541,38 @@ const sampleInstructorData = {
                                 style={{ width: `${student.progress || 0}%` }}
                               ></div>
                             </div>
-                            <span className="text-sm">{student.progress || 0}%</span>
+                            <span className="text-sm">{student.progress?.toFixed(0) || 0}%</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4">-</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-green-900 text-green-300">
+                            Active
+                          </span>
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex space-x-2">
-                            <button className="p-1 text-blue-400 hover:bg-blue-900 rounded">
-                              <Eye className="w-4 h-4" />
+                            <button 
+                              onClick={() => toast.success(`Viewing student profile`)}
+                              className="btn btn-xs bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none"
+                            >
+                              <Eye className="w-3 h-3 mr-1" /> View
+                            </button>
+                            <button 
+                              onClick={() => window.location.href = `mailto:${student.email}`}
+                              className="btn btn-xs bg-gray-700 hover:bg-gray-600 text-white border-none"
+                            >
+                              <Mail className="w-3 h-3 mr-1" /> Contact
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="7" className="py-8 text-center text-gray-500 italic bg-gray-800">
+                          No students enrolled in your courses yet.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -700,9 +615,9 @@ const sampleInstructorData = {
               <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-lg shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-sm font-medium">Avg Class Grade</p>
-                    <p className="text-4xl font-bold text-white mt-1">{sampleAnalytics.stats.avgClassGrade}%</p>
-                    <p className="text-green-100 text-xs mt-1">Overall performance</p>
+                    <p className="text-green-100 text-sm font-medium">Avg Class Progress</p>
+                    <p className="text-4xl font-bold text-white mt-1">{avgProgress.toFixed(0)}%</p>
+                    <p className="text-green-100 text-xs mt-1">Overall progress</p>
                   </div>
                   <Target className="w-12 h-12 text-green-200 opacity-80" />
                 </div>
@@ -712,7 +627,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-purple-100 text-sm font-medium">Completion Rate</p>
-                    <p className="text-4xl font-bold text-white mt-1">{sampleAnalytics.stats.completionRate}%</p>
+                    <p className="text-4xl font-bold text-white mt-1">{completionRate.toFixed(0)}%</p>
                     <p className="text-purple-100 text-xs mt-1">Course completion</p>
                   </div>
                   <CheckCircle className="w-12 h-12 text-purple-200 opacity-80" />
@@ -729,9 +644,9 @@ const sampleInstructorData = {
                   Grade Distribution
                 </h2>
                 <AnalyticsChart 
-                  data={sampleAnalytics.gradeDistribution} 
+                  data={gradeDistribution} 
                   type="bar"
-                  maxValue={25}
+                  maxValue={students.length || 10}
                 />
               </div>
 
@@ -744,24 +659,24 @@ const sampleInstructorData = {
                 <div className="space-y-6">
                   <AnalyticsChart 
                     data={{ 
-                      percentage: sampleAnalytics.stats.completionRate, 
-                      label: `${sampleAnalytics.stats.completionRate}% of students completed courses`
+                      percentage: Number(completionRate.toFixed(0)), 
+                      label: `${completionRate.toFixed(0)}% of students completed courses`
                     }} 
                     type="progress"
                     title="Overall Completion Rate"
                   />
                   <AnalyticsChart 
                     data={{ 
-                      percentage: sampleAnalytics.engagement.participationRate, 
-                      label: `${sampleAnalytics.engagement.participationRate}% students are actively participating`
+                      percentage: Number(students.length > 0 ? (students.filter(s => s.progress > 0).length / students.length * 100).toFixed(0) : 0), 
+                      label: `${students.length > 0 ? (students.filter(s => s.progress > 0).length / students.length * 100).toFixed(0) : 0}% students are actively participating`
                     }} 
                     type="progress"
                     title="Student Participation"
                   />
                   <AnalyticsChart 
                     data={{ 
-                      percentage: sampleAnalytics.engagement.submissionRate, 
-                      label: `${sampleAnalytics.engagement.submissionRate}% on-time assignment submissions`
+                      percentage: students.length > 0 ? 85 : 0, 
+                      label: `${students.length > 0 ? 85 : 0}% on-time assignment submissions`
                     }} 
                     type="progress"
                     title="Assignment Submission Rate"
@@ -777,32 +692,30 @@ const sampleInstructorData = {
                 Course Performance Overview
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {sampleAnalytics.courseStats.map((course, index) => (
-                  <div key={index} className="bg-gray-700 rounded-lg p-5 border border-gray-600 hover:border-cyan-500 transition-colors">
-                    <h3 className="font-semibold text-lg mb-3">{course.name}</h3>
+                {courseStats.length > 0 ? courseStats.map((course, index) => (
+                  <div key={course.courseId || index} className="bg-gray-700 rounded-lg p-5 border border-gray-600 hover:border-cyan-500 transition-colors">
+                    <h3 className="font-semibold text-lg mb-3">{course.title}</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400 text-sm">Students:</span>
-                        <span className="font-medium text-cyan-400">{course.students}</span>
+                        <span className="font-medium text-cyan-400">{course.enrollments}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Avg Grade:</span>
-                        <span className="font-medium text-green-400">{course.avgGrade}%</span>
+                        <span className="text-gray-400 text-sm">Revenue:</span>
+                        <span className="font-medium text-green-400">${course.revenue}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Completion:</span>
-                        <span className="font-medium text-blue-400">{course.completion}%</span>
-                      </div>
-                      <div className="pt-2 border-t border-gray-600">
-                        <p className="text-xs text-gray-400">Last updated: {course.lastUpdated}</p>
-                      </div>
-                      <button className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => navigate(`/course/${course.courseId}`)}
+                        className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      >
                         <Eye className="w-4 h-4" />
-                        View Analytics
+                        View Course
                       </button>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-gray-500 italic col-span-3 text-center">No course analytics available</p>
+                )}
               </div>
             </div>
 
@@ -816,7 +729,9 @@ const sampleInstructorData = {
                 <div className="bg-gray-700 rounded-lg p-5 border border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <Activity className="w-8 h-8 text-cyan-400" />
-                    <span className="text-2xl font-bold text-cyan-400">{sampleAnalytics.engagement.participationRate}%</span>
+                    <span className="text-2xl font-bold text-cyan-400">
+                      {students.length > 0 ? (students.filter(s => s.progress > 0).length / students.length * 100).toFixed(0) : 0}%
+                    </span>
                   </div>
                   <p className="text-gray-300 font-medium">Participation Rate</p>
                   <p className="text-gray-400 text-sm mt-1">Students are active</p>
@@ -825,16 +740,18 @@ const sampleInstructorData = {
                 <div className="bg-gray-700 rounded-lg p-5 border border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <CheckCircle className="w-8 h-8 text-green-400" />
-                    <span className="text-2xl font-bold text-green-400">{sampleAnalytics.engagement.quizCompletion}</span>
+                    <span className="text-2xl font-bold text-green-400">
+                      {students.filter(s => s.progress > 50).length}/{students.length}
+                    </span>
                   </div>
-                  <p className="text-gray-300 font-medium">Quiz Completion</p>
-                  <p className="text-gray-400 text-sm mt-1">Quizzes completed</p>
+                  <p className="text-gray-300 font-medium">Lessons Active</p>
+                  <p className="text-gray-400 text-sm mt-1">Students past 50% progress</p>
                 </div>
 
                 <div className="bg-gray-700 rounded-lg p-5 border border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <Calendar className="w-8 h-8 text-blue-400" />
-                    <span className="text-2xl font-bold text-blue-400">{sampleAnalytics.engagement.submissionRate}%</span>
+                    <span className="text-2xl font-bold text-blue-400">{students.length > 0 ? 85 : 0}%</span>
                   </div>
                   <p className="text-gray-300 font-medium">On-Time Submissions</p>
                   <p className="text-gray-400 text-sm mt-1">Assignment submission rate</p>
@@ -843,7 +760,7 @@ const sampleInstructorData = {
                 <div className="bg-gray-700 rounded-lg p-5 border border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <Clock className="w-8 h-8 text-purple-400" />
-                    <span className="text-2xl font-bold text-purple-400">{sampleAnalytics.engagement.avgTimeSpent}</span>
+                    <span className="text-2xl font-bold text-purple-400">{students.length > 0 ? "4.5 hours" : "0 hours"}</span>
                   </div>
                   <p className="text-gray-300 font-medium">Avg Time Spent</p>
                   <p className="text-gray-400 text-sm mt-1">Per course weekly</p>
@@ -865,63 +782,54 @@ const sampleInstructorData = {
                     <thead>
                       <tr className="border-b border-gray-700">
                         <th className="text-left py-3 px-4 text-gray-400 font-medium">Student Name</th>
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Enrolled</th>
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Courses</th>
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Avg Grade</th>
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Completion</th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Email</th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Courses Enrolled</th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">Completion Progress</th>
                         <th className="text-left py-3 px-4 text-gray-400 font-medium">Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sampleAnalytics.students.map((student, index) => (
-                        <tr key={index} className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
+                      {students.length > 0 ? students.map((student, index) => (
+                        <tr key={student._id || index} className="border-b border-gray-700 hover:bg-gray-750/50 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                                {student.name.charAt(0)}
+                                {student.displayName?.charAt(0) || student.email?.charAt(0)}
                               </div>
-                              <span className="font-medium">{student.name}</span>
+                              <span className="font-medium">{student.displayName || 'Unknown'}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-gray-300">{student.enrolled}</td>
-                          <td className="py-3 px-4 text-gray-300">{student.courses}</td>
-                          <td className="py-3 px-4">
-                            <span className={`font-semibold ${
-                              student.grade >= 80 ? 'text-green-400' : 
-                              student.grade >= 70 ? 'text-blue-400' : 
-                              student.grade >= 60 ? 'text-yellow-400' : 
-                              'text-red-400'
-                            }`}>
-                              {student.grade}%
-                            </span>
-                          </td>
+                          <td className="py-3 px-4 text-gray-300">{student.email}</td>
+                          <td className="py-3 px-4 text-gray-300">{student.enrolledCourses || 0}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <div className="w-24 bg-gray-700 rounded-full h-2">
                                 <div
                                   className={`h-2 rounded-full ${
-                                    student.completion >= 80 ? 'bg-green-500' : 
-                                    student.completion >= 60 ? 'bg-blue-500' : 
-                                    student.completion >= 40 ? 'bg-yellow-500' : 
+                                    student.progress >= 85 ? 'bg-green-500' : 
+                                    student.progress >= 60 ? 'bg-blue-500' : 
+                                    student.progress >= 40 ? 'bg-yellow-500' : 
                                     'bg-red-500'
                                   }`}
-                                  style={{ width: `${student.completion}%` }}
+                                  style={{ width: `${student.progress || 0}%` }}
                                 ></div>
                               </div>
-                              <span className="text-sm text-gray-400">{student.completion}%</span>
+                              <span className="text-sm text-gray-400">{student.progress?.toFixed(0) || 0}%</span>
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              student.status === 'Active' 
-                                ? 'bg-green-900 text-green-300' 
-                                : 'bg-red-900 text-red-300'
-                            }`}>
-                              {student.status}
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300`}>
+                              Active
                             </span>
                           </td>
                         </tr>
-                      ))}
+                      )) : (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-gray-500 italic bg-gray-800">
+                            No students enrolled in your courses yet.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import recommendationService from '../../services/recommendationService';
 import CourseCard from './CourseCard';
 import useAuth from '../../hooks/useAuth';
 import api from '../../services/api';
@@ -22,9 +21,18 @@ const RecommendedCourses = ({
       return;
     }
 
+    const fetchFallbackCourses = async () => {
+      try {
+        const response = await api.get('/courses');
+        setRecommendations(response.data || []);
+      } catch (err) {
+        console.error("Error fetching fallback database courses:", err);
+        setRecommendations([]);
+      }
+    };
+
     if (!user) {
-      const sampleRecs = recommendationService.getSampleRecommendations(scenario).recommendations;
-      setRecommendations(sampleRecs);
+      fetchFallbackCourses();
       return;
     }
 
@@ -35,13 +43,11 @@ const RecommendedCourses = ({
         if (response.data && response.data.recommendations && response.data.recommendations.length > 0) {
           setRecommendations(response.data.recommendations);
         } else {
-          const sampleRecs = recommendationService.getSampleRecommendations(scenario).recommendations;
-          setRecommendations(sampleRecs);
+          await fetchFallbackCourses();
         }
       } catch (error) {
         console.error("Error fetching personalized recommendations:", error);
-        const sampleRecs = recommendationService.getSampleRecommendations(scenario).recommendations;
-        setRecommendations(sampleRecs);
+        await fetchFallbackCourses();
       } finally {
         setLoading(false);
       }

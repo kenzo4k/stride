@@ -2,7 +2,6 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
-import coursesData from '../../../public/courses.json';
 import PaymentSummary from './PaymentSummary';
 import PaymentForm from './PaymentForm';
 import { courseService } from '../../services/courseService';
@@ -36,16 +35,21 @@ const Payment = () => {
           });
         }
 
-        // Load course from local JSON data
-        const foundCourse = coursesData.find(c => c._id === courseId);
+        // Load course from backend DB
+        const foundCourse = await courseService.getCourseById(courseId);
         
         if (!foundCourse) {
           throw new Error('Course not found.');
         }
 
         // Check if already enrolled
-        const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-        if (enrolledCourses.includes(courseId)) {
+        const enrollments = await courseService.getEnrolledCourses();
+        const isEnrolled = enrollments.some(e => {
+          const cid = typeof e.courseId === 'object' && e.courseId !== null ? e.courseId._id : e.courseId;
+          return cid === courseId;
+        });
+
+        if (isEnrolled) {
           toast.info("You are already enrolled in this course.");
           return navigate(`/course/${courseId}/learn`, { replace: true });
         }
@@ -72,18 +76,25 @@ const Payment = () => {
   }, [courseId, user, navigate, location]);
 
   // Check enrollment limits
-  const checkEnrollmentLimits = () => {
-    const userEnrollments = JSON.parse(localStorage.getItem('userEnrollments') || '[]');
-    if (userEnrollments.length >= 3) {
-      toast.error("You have reached the maximum enrollment limit (3 courses).");
+  const checkEnrollmentLimits = async () => {
+    try {
+      const enrollments = await courseService.getEnrolledCourses();
+      if (enrollments.length >= 3) {
+        toast.error("You have reached the maximum enrollment limit (3 courses).");
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Error checking enrollment limits:", err);
+      toast.error("Failed to check enrollment limit.");
       return false;
     }
-    return true;
   };
 
   // Process payment
   const handlePaymentSubmit = async (paymentData) => {
-    if (!checkEnrollmentLimits()) {
+    const canEnroll = await checkEnrollmentLimits();
+    if (!canEnroll) {
       return;
     }
 
@@ -94,31 +105,7 @@ const Payment = () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Call backend to enroll
-      const enrollmentRes = await courseService.enrollInCourse(courseId);
-
-      // Get current enrollments
-      const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-      const userEnrollments = JSON.parse(localStorage.getItem('userEnrollments') || '[]');
-
-      // Add course to enrolled courses if not already there
-      if (!enrolledCourses.includes(courseId)) {
-        enrolledCourses.push(courseId);
-      }
-      
-      // Check if already in userEnrollments
-      const isAlreadyListed = userEnrollments.some(e => e.courseId === courseId);
-      if (!isAlreadyListed) {
-        userEnrollments.push({
-          courseId: courseId,
-          enrolledAt: enrollmentRes.createdAt || new Date().toISOString(),
-          userName: paymentData.fullName,
-          userEmail: user.email
-        });
-      }
-
-      // Save to localStorage
-      localStorage.setItem('enrolledCourses', JSON.stringify(enrolledCourses));
-      localStorage.setItem('userEnrollments', JSON.stringify(userEnrollments));
+      await courseService.enrollInCourse(courseId);
 
       // Show success message
       toast.success(`Successfully enrolled in ${course.title}!`, {

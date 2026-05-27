@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Swal from 'sweetalert2';
 import useAuth from '../../hooks/useAuth';
-import axiosSecure from '../../services/axiosSecure';
+import api from '../../services/api';
 import { FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
@@ -80,7 +80,7 @@ const AddCourse = () => {
 
         //data fetch section
         try {
-            const response = await axiosSecure.post('/courses', courseData);
+            const response = await api.post('/courses', courseData);
 
             if (response.data.insertedId) {
                 // Success notification

@@ -6,7 +6,7 @@ import { recordSessionTime, recordLessonStarted } from '../services/mlMetricsSer
 
 export const getDropoutPredictions = async (req, res) => {
   try {
-    const email = req.query.email || req.user.email;
+    const email = req.user.email;
     const instructor = await User.findOne({ email });
     if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 

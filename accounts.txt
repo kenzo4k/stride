@@ -1,0 +1,82 @@
+============================================================
+                     STRIDE TEST ACCOUNTS
+============================================================
+NOTE: All seeded test accounts share the same password:
+Common Password: 123456
+============================================================
+
+1. ADMINISTRATOR
+------------------------------------------------------------
+Name:      Platform Admin
+Email:     admin@stride.com
+Role:      admin
+Password:  123456
+
+2. INSTRUCTORS
+------------------------------------------------------------
+Name:      Sarah Johnson
+Email:     instructor@stride.com
+Role:      instructor
+Password:  123456
+
+Name:      Michael Chen
+Email:     michael@stride.com
+Role:      instructor
+Password:  123456
+
+Name:      David Miller
+Email:     david@stride.com
+Role:      instructor
+Password:  123456
+
+Name:      Emily Davis
+Email:     emily@stride.com
+Role:      instructor
+Password:  123456
+
+3. STUDENTS
+------------------------------------------------------------
+Name:      Student User
+Email:     student@stride.com
+Role:      student
+Password:  123456
+
+Name:      Alice Williams
+Email:     alice@student.com
+Role:      student
+Password:  123456
+
+Name:      Bob Martinez
+Email:     bob@student.com
+Role:      student
+Password:  123456
+
+Name:      Carol Davis
+Email:     carol@student.com
+Role:      student
+Password:  123456
+
+Name:      David Brown
+Email:     david@student.com
+Role:      student
+Password:  123456
+
+Name:      Emma Wilson
+Email:     emma@student.com
+Role:      student
+Password:  123456
+
+Name:      Frank Lee
+Email:     frank@student.com
+Role:      student
+Password:  123456
+
+Name:      Grace Taylor
+Email:     grace@student.com
+Role:      student
+Password:  123456
+
+Name:      Henry Anderson
+Email:     henry@student.com
+Role:      student
+Password:  123456

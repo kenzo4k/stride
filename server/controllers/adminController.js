@@ -93,6 +93,7 @@ export const handleUserAction = async (req, res) => {
                 update = { status: 'banned' };
                 break;
             case 'activate':
+            case 'approve':
                 update = { status: 'active' };
                 break;
             case 'suspend':
