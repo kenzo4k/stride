@@ -223,15 +223,3 @@ Stride defines 7 main Mongoose collections inside `server/models/`:
 | `/api/gamification/leaderboard` | `GET` | Public | Retrieve global student rankings |
 | `/api/recommendations` | `GET` | Protected | Get personalized courses recommendations |
 | `/api/dropout/predictions` | `GET` | Protected (Instructor) | Retrieve flagged dropout-risk students |
-
-*For full details on requests, query parameters, and expected JSON structures, see [API_DOCS.md](file:///e:/project/stride/API_DOCS.md).*
-
----
-
-## 🛠️ Audit Notes & Implementation Status
-
-According to the latest system audits, the application stands at **~50% completeness** on integration. Keep these critical aspects in mind for active development:
-1.  **Authentication Middleware**: JWT token authorization verification needs to be fully wired to Express backend routes (currently registered but not applied globally).
-2.  **Route Protection**: Check that the frontend route guards (`AdminRoute.jsx`, `InstructorRoute.jsx`, `StudentRoute.jsx`) match backend roles strictly rather than hardcoded variables.
-3.  **Dashboards Data Integration**: Dashboards (such as `Student.jsx` and `Admin.jsx`) are currently loaded with mock templates. Replace mock local configs with axios requests using `src/services/api.js`.
-4.  **Database Seeding Verification**: Ensure the `seed.js` script connects to your intended local database (defaults to `registrationDB` if `MONGODB_URI` environment variable is not defined).
