@@ -4,11 +4,10 @@ import Enrollment from '../models/Enrollment.js';
 
 export const getInstructorStats = async (req, res) => {
     try {
-        const { email } = req.query;
-        const instructor = await User.findOne({ email: email });
+        const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ instructor: instructor._id });
+        const courses = await Course.find({ "instructor.email": instructor.email });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } });
@@ -35,11 +34,10 @@ export const getInstructorStats = async (req, res) => {
 
 export const getInstructorCourses = async (req, res) => {
     try {
-        const { email } = req.query;
-        const instructor = await User.findOne({ email: email });
+        const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ instructor: instructor._id });
+        const courses = await Course.find({ "instructor.email": instructor.email });
         res.json(courses);
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
@@ -48,11 +46,10 @@ export const getInstructorCourses = async (req, res) => {
 
 export const getInstructorStudents = async (req, res) => {
     try {
-        const { email } = req.query;
-        const instructor = await User.findOne({ email: email });
+        const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ instructor: instructor._id });
+        const courses = await Course.find({ "instructor.email": instructor.email });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } }).populate('userId');
@@ -87,12 +84,11 @@ export const getInstructorStudents = async (req, res) => {
 
 export const getAtRiskStudents = async (req, res) => {
   try {
-    const { email } = req.query;
-    const instructor = await User.findOne({ email: email });
+    const instructor = await User.findById(req.user.id);
     if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
     // Find all courses by this instructor
-    const courses = await Course.find({ instructor: instructor._id });
+    const courses = await Course.find({ "instructor.email": instructor.email });
     const courseIds = courses.map(c => c._id);
 
     // Find enrollments for these courses
@@ -128,11 +124,10 @@ export const getAtRiskStudents = async (req, res) => {
 
 export const getCourseStats = async (req, res) => {
     try {
-        const { email } = req.query;
-        const instructor = await User.findOne({ email: email });
+        const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ instructor: instructor._id });
+        const courses = await Course.find({ "instructor.email": instructor.email });
         
         const stats = await Promise.all(courses.map(async (course) => {
             const enrollments = await Enrollment.find({ courseId: course._id });
@@ -153,11 +148,10 @@ export const getCourseStats = async (req, res) => {
 
 export const getStudentAnalytics = async (req, res) => {
     try {
-        const { email } = req.query;
-        const instructor = await User.findOne({ email: email });
+        const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ instructor: instructor._id });
+        const courses = await Course.find({ "instructor.email": instructor.email });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } });

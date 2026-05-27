@@ -19,9 +19,15 @@ const courseSchema = new mongoose.Schema({
     type: Number,
   },
   instructor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    bio: String,
+    qualification: String,
+    photoURL: String,
+  },
+  author: {
+    name: String,
+    email: String,
   },
   category: {
     type: String,
@@ -62,15 +68,13 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  prerequisites: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course'
-  }],
+  prerequisites: [String],
   learning_outcomes: [String],
+  curriculum: [mongoose.Schema.Types.Mixed],
   tags: [String],
   status: {
     type: String,
-    enum: ['active', 'pending', 'rejected'],
+    enum: ['active', 'pending', 'rejected', 'draft', 'published', 'archived'],
     default: 'pending',
   },
 }, {

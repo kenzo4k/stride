@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
 import CourseContentEditor from './CourseContentEditor';
 import { FileText, Video, List, BookOpen, Settings } from 'lucide-react';
-import coursesData from '../../../public/courses.json';
+import { courseService } from '../../services/courseService';
 
 import { API_BASE_URL } from '../../utils/constants';
 
 const EditCourse = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
     const [activeTab, setActiveTab] = useState('basic');
     const [courseData, setCourseData] = useState({
         title: '',
@@ -49,39 +51,54 @@ const EditCourse = () => {
             return;
         }
 
-        try {
-            const data = coursesData.find(course => course._id === id);
+        const fetchCourse = async () => {
+            try {
+                setLoading(true);
+                const data = await courseService.getCourseById(id);
 
-            if (!data) {
-                toast.error('Course not found.');
+                if (!data) {
+                    toast.error('Course not found.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Verify ownership: Instructors can only edit their own courses
+                if (user && user.role === 'instructor' && data.instructor?.email !== user.email) {
+                    toast.error('Not authorized to edit this course.');
+                    navigate('/manage-courses');
+                    return;
+                }
+
+                setCourseData(prev => ({
+                    ...prev,
+                    ...data,
+                    prerequisites: data.prerequisites?.length > 0 ? data.prerequisites : [''],
+                    learning_outcomes: data.learning_outcomes?.length > 0 ? data.learning_outcomes : [''],
+                    content: data.content?.length > 0 ? data.content : [{
+                        id: Date.now(),
+                        title: 'Introduction',
+                        description: '',
+                        contents: []
+                    }],
+                    instructor: {
+                        ...prev.instructor,
+                        ...data.instructor
+                    },
+                    tags: data.tags?.length > 0 ? data.tags : [''],
+                    status: data.status || 'draft'
+                }));
+            } catch (err) {
+                console.error("Failed to load course details:", err);
+                toast.error('Failed to load course data.');
+            } finally {
                 setLoading(false);
-                return;
             }
+        };
 
-            setCourseData(prev => ({
-                ...prev,
-                ...data,
-                prerequisites: data.prerequisites?.length > 0 ? data.prerequisites : [''],
-                learning_outcomes: data.learning_outcomes?.length > 0 ? data.learning_outcomes : [''],
-                content: data.content?.length > 0 ? data.content : [{
-                    id: Date.now(),
-                    title: 'Introduction',
-                    description: '',
-                    contents: []
-                }],
-                instructor: {
-                    ...prev.instructor,
-                    ...data.instructor
-                },
-                tags: data.tags?.length > 0 ? data.tags : [''],
-                status: data.status || 'draft'
-            }));
-        } catch {
-            toast.error('Failed to load course data.');
-        } finally {
-            setLoading(false);
+        if (user) {
+            fetchCourse();
         }
-    }, [id]);
+    }, [id, user, navigate]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -114,9 +131,10 @@ const EditCourse = () => {
 
             if (response.ok) {
                 toast.success(`Course ${id ? 'updated' : 'created'} successfully!`);
-                navigate('/instructor/courses');
+                navigate('/manage-courses');
             } else {
-                throw new Error('Failed to save course');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to save course');
             }
         } catch (error) {
             toast.error(error.message);

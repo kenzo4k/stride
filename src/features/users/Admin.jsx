@@ -97,7 +97,7 @@ const Admin = () => {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access-token');
       const headers = { Authorization: `Bearer ${token}` };
 
       // Fetch statistics
@@ -148,7 +148,7 @@ const Admin = () => {
 
   const handleUserAction = async (userId, action) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access-token');
       const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/${action}`, {
         method: 'POST',
         headers: {
@@ -170,7 +170,7 @@ const Admin = () => {
 
   const handleCourseAction = async (courseId, action) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access-token');
       const response = await fetch(`${API_BASE_URL}/admin/courses/${courseId}/${action}`, {
         method: 'POST',
         headers: {
@@ -192,7 +192,7 @@ const Admin = () => {
 
   const handleInstructorAction = async (instructorId, action) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access-token');
       const response = await fetch(`${API_BASE_URL}/admin/instructors/${instructorId}/${action}`, {
         method: 'POST',
         headers: {

@@ -7,7 +7,8 @@ import {
     updateUserRole, 
     deleteUser,
     getMe,
-    updateSettings
+    updateSettings,
+    getPublicInstructors
 } from '../controllers/userController.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Public
 router.post('/register-user', registerUser);
+router.get('/public/instructors', getPublicInstructors);
 
 // Protected (any authenticated user)
 router.get('/me', verifyToken, getMe);

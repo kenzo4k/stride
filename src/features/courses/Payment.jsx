@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import coursesData from '../../../public/courses.json';
 import PaymentSummary from './PaymentSummary';
 import PaymentForm from './PaymentForm';
+import { courseService } from '../../services/courseService';
 
 const Payment = () => {
   // Hooks
@@ -92,28 +93,28 @@ const Payment = () => {
       // Simulate payment processing delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
+      // Call backend to enroll
+      const enrollmentRes = await courseService.enrollInCourse(courseId);
+
       // Get current enrollments
       const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
       const userEnrollments = JSON.parse(localStorage.getItem('userEnrollments') || '[]');
 
-      // Check if already enrolled (double check)
-      if (enrolledCourses.includes(courseId)) {
-        toast.info("You are already enrolled in this course.");
-        navigate(`/course/${courseId}/learn`, { replace: true });
-        return;
+      // Add course to enrolled courses if not already there
+      if (!enrolledCourses.includes(courseId)) {
+        enrolledCourses.push(courseId);
       }
-
-      // Add course to enrolled courses
-      enrolledCourses.push(courseId);
       
-      // Create enrollment record
-      const newEnrollment = {
-        courseId: courseId,
-        enrolledAt: new Date().toISOString(),
-        userName: paymentData.fullName,
-        userEmail: user.email
-      };
-      userEnrollments.push(newEnrollment);
+      // Check if already in userEnrollments
+      const isAlreadyListed = userEnrollments.some(e => e.courseId === courseId);
+      if (!isAlreadyListed) {
+        userEnrollments.push({
+          courseId: courseId,
+          enrolledAt: enrollmentRes.createdAt || new Date().toISOString(),
+          userName: paymentData.fullName,
+          userEmail: user.email
+        });
+      }
 
       // Save to localStorage
       localStorage.setItem('enrolledCourses', JSON.stringify(enrolledCourses));
@@ -130,7 +131,7 @@ const Payment = () => {
 
     } catch (err) {
       console.error('Payment processing error:', err);
-      toast.error(err.message || 'Payment processing failed. Please try again.');
+      toast.error(err.response?.data?.message || err.message || 'Payment processing failed. Please try again.');
     } finally {
       setProcessing(false);
     }

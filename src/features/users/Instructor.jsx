@@ -28,6 +28,7 @@ import AtRiskStudents from '../../components/instructor/AtRiskStudents';
 import AnalyticsChart from '../../components/instructor/AnalyticsChart';
 
 import { API_BASE_URL } from '../../utils/constants';
+import api from '../../services/api';
 
 // Sample data for tabs - ADD THIS
 const sampleInstructorData = {
@@ -185,19 +186,16 @@ const sampleInstructorData = {
       setLoading(true);
 
       // Fetch instructor statistics
-      const statsResponse = await fetch(`${API_BASE_URL}/instructor/stats?email=${user.email}`);
-      const statsData = await statsResponse.json();
-      setStats(statsData);
+      const statsResponse = await api.get('/instructor/stats');
+      setStats(statsResponse.data);
 
       // Fetch instructor courses
-      const coursesResponse = await fetch(`${API_BASE_URL}/instructor/courses?email=${user.email}`);
-      const coursesData = await coursesResponse.json();
-      setCourses(coursesData);
+      const coursesResponse = await api.get('/instructor/courses');
+      setCourses(coursesResponse.data);
 
       // Fetch instructor students
-      const studentsResponse = await fetch(`${API_BASE_URL}/instructor/students?email=${user.email}`);
-      const studentsData = await studentsResponse.json();
-      setStudents(studentsData);
+      const studentsResponse = await api.get('/instructor/students');
+      setStudents(studentsResponse.data);
 
     } catch (error) {
       console.error('Error fetching instructor data:', error);
@@ -209,18 +207,12 @@ const sampleInstructorData = {
 
   const handleCourseAction = async (courseId, action) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/instructor/courses/${courseId}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        toast.success(`Course ${action} successfully`);
+      if (action === 'delete') {
+        await api.delete(`/courses/${courseId}`);
+        toast.success(`Course deleted successfully`);
         fetchInstructorData();
       } else {
-        throw new Error('Failed to perform action');
+        toast.error(`Action ${action} is not supported`);
       }
     } catch {
       toast.error(`Failed to ${action} course`);

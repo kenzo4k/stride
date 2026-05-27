@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import pymongo
 from bson import ObjectId
@@ -27,11 +27,41 @@ db = client.get_database()
 # Initialize recommender
 recommender = RecommenderSystem(db)
 
+# Pydantic validation models
+class CourseRecommendation(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str = Field(..., alias="_id")
+    title: str
+    short_description: Optional[str] = None
+    detailed_description: Optional[str] = None
+    price: float
+    discount_price: Optional[float] = None
+    instructor: Optional[str] = None
+    category: str
+    image: Optional[str] = None
+    enrollmentCount: Optional[int] = 0
+    seats: Optional[int] = 0
+    rating: Optional[float] = 0.0
+    level: str
+    language: Optional[str] = "English"
+    duration: Optional[str] = None
+    featured: Optional[bool] = False
+    completion_certificate: Optional[bool] = True
+    prerequisites: Optional[List[str]] = []
+    learning_outcomes: Optional[List[str]] = []
+    tags: Optional[List[str]] = []
+    status: Optional[str] = "pending"
+    recommendation_score: Optional[float] = None
+
+class RecommendationsResponse(BaseModel):
+    recommendations: List[CourseRecommendation]
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/api/recommendations/{user_id}")
+@app.get("/api/recommendations/{user_id}", response_model=RecommendationsResponse)
 async def get_recommendations(user_id: str):
     if not ObjectId.is_valid(user_id):
         raise HTTPException(status_code=400, detail="Invalid user ID format")

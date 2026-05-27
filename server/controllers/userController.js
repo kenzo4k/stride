@@ -50,10 +50,8 @@ export const getUserById = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { name, photoURL, bio, title } = req.body;
-    // In a real app, we'd get the user ID from the auth token
-    // For now, let's assume we have it or use email from body if provided
-    const user = await User.findOneAndUpdate(
-      { email: req.body.email }, // This is a simplification
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
       { name, photoURL, bio, title },
       { new: true }
     );
@@ -112,5 +110,14 @@ export const updateSettings = async (req, res) => {
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const getPublicInstructors = async (req, res) => {
+  try {
+    const instructors = await User.find({ role: 'instructor' }).select('name email bio title photoURL');
+    res.json(instructors);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };

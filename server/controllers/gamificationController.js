@@ -82,15 +82,10 @@ export const getLeaderboard = async (req, res) => {
   }
 };
 
-// GET /api/student/badges?email=...
+// GET /api/student/badges
 export const getBadges = async (req, res) => {
   try {
-    const { email } = req.query;
-    if (!email) {
-      return res.status(400).json({ message: 'Email query parameter is required' });
-    }
-
-    const user = await User.findOne({ email });
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

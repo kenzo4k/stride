@@ -20,7 +20,7 @@ export const validateObjectId = (paramName) => {
 
 export const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ status: 'active' }).populate('instructor', 'name email photoURL');
+    const courses = await Course.find({ status: 'active' });
     res.json(courses);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -36,7 +36,7 @@ export const getCourseById = async (req, res) => {
       return res.status(400).json({ message: "Invalid course ID format" });
     }
     
-    const course = await Course.findById(id).populate('instructor', 'name email photoURL');
+    const course = await Course.findById(id);
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json(course);
   } catch (err) {
@@ -48,7 +48,8 @@ export const createCourse = async (req, res) => {
   try {
     const { instructorEmail, instructor, ...courseData } = req.body;
     
-    const email = instructorEmail || instructor?.email;
+    // If the logged-in user is an instructor, force them to be the instructor of the new course
+    const email = req.user.role === 'instructor' ? req.user.email : (instructorEmail || instructor?.email);
     
     const instructorUser = await User.findOne({ email: email });
     if (!instructorUser) {
@@ -57,7 +58,17 @@ export const createCourse = async (req, res) => {
 
     const newCourse = new Course({
       ...courseData,
-      instructor: instructorUser._id,
+      instructor: {
+        name: instructorUser.name,
+        email: instructorUser.email,
+        bio: instructorUser.bio,
+        qualification: instructorUser.title || 'Instructor',
+        photoURL: instructorUser.photoURL
+      },
+      author: {
+        name: instructorUser.name,
+        email: instructorUser.email
+      },
       status: 'pending'
     });
 
@@ -77,13 +88,20 @@ export const updateCourse = async (req, res) => {
       return res.status(400).json({ message: "Invalid course ID format" });
     }
     
-    const course = await Course.findByIdAndUpdate(
+    const course = await Course.findById(id);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    // Enforce ownership: instructors can only edit their own courses
+    if (req.user.role === 'instructor' && course.instructor?.email !== req.user.email) {
+      return res.status(403).json({ message: "Not authorized to update this course. You can only manage your own courses." });
+    }
+
+    const updatedCourse = await Course.findByIdAndUpdate(
       id,
       req.body,
       { new: true }
     );
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    res.json(course);
+    res.json(updatedCourse);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -98,8 +116,15 @@ export const deleteCourse = async (req, res) => {
       return res.status(400).json({ message: "Invalid course ID format" });
     }
     
-    const course = await Course.findByIdAndDelete(id);
+    const course = await Course.findById(id);
     if (!course) return res.status(404).json({ message: "Course not found" });
+
+    // Enforce ownership: instructors can only delete their own courses
+    if (req.user.role === 'instructor' && course.instructor?.email !== req.user.email) {
+      return res.status(403).json({ message: "Not authorized to delete this course. You can only manage your own courses." });
+    }
+
+    await Course.findByIdAndDelete(id);
     res.json({ message: "Course deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -111,7 +136,7 @@ export const getCoursesByCategory = async (req, res) => {
     const courses = await Course.find({ 
         category: req.params.category,
         status: 'active' 
-    }).populate('instructor', 'name email photoURL');
+    });
     res.json(courses);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

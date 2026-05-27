@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
 import { RecommendedCourses } from '../../components/common';
+import api from '../../services/api';
 
 import { API_BASE_URL } from '../../utils/constants';
 
@@ -43,15 +44,16 @@ const CourseDetails = () => {
                 setCourse(mappedCourse);
                 document.title = `${mappedCourse.title} | Stride`;
 
-                // Check enrollment status from localStorage
+                // Check enrollment status from database
                 if (user) {
-                    const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-                    const enrolled = enrolledCourses.includes(id);
+                    const enrollmentsRes = await api.get('/my-enrollments');
+                    const enrollments = enrollmentsRes.data || [];
+                    const enrolled = enrollments.some(e => {
+                        const eCourseId = e.courseId?._id || e.courseId;
+                        return eCourseId === id;
+                    });
                     setIsEnrolled(enrolled);
-
-                    // Calculate user's enrollment count from localStorage
-                    const userEnrollments = JSON.parse(localStorage.getItem('userEnrollments') || '[]');
-                    setUserEnrollmentCount(userEnrollments.length);
+                    setUserEnrollmentCount(enrollments.length);
                 }
             } catch (err) {
                 setError(err.message);
@@ -175,11 +177,13 @@ const CourseDetails = () => {
                                 <div className="space-y-3">
                                     {course.curriculum.map((item, index) => (
                                         <div key={index} className="border-l-4 border-blue-500 pl-4 bg-gray-700 p-3 rounded-r-lg">
-                                            <h3 className="font-medium text-white">{item.title || `Module ${index + 1}`}</h3>
-                                            {item.description && (
+                                            <h3 className="font-medium text-white">
+                                                {typeof item === 'string' ? item : (item.title || `Module ${index + 1}`)}
+                                            </h3>
+                                            {typeof item !== 'string' && item.description && (
                                                 <p className="text-sm text-gray-400 mt-1">{item.description}</p>
                                             )}
-                                            {item.duration && (
+                                            {typeof item !== 'string' && item.duration && (
                                                 <span className="text-xs text-blue-400">{item.duration}</span>
                                             )}
                                         </div>

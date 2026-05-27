@@ -1,9 +1,9 @@
-import StudentMetric from '../models/StudentMetric.js';
+import MLFeature from '../models/MLFeature.js';
 
 // GET /api/metrics/student/:studentId
 export const getStudentMetrics = async (req, res) => {
   try {
-    const metrics = await StudentMetric.find({ studentId: req.params.studentId })
+    const metrics = await MLFeature.find({ studentId: req.params.studentId })
       .populate('courseId', 'title category');
 
     res.json(metrics);
@@ -15,7 +15,7 @@ export const getStudentMetrics = async (req, res) => {
 // GET /api/metrics/course/:courseId
 export const getCourseMetrics = async (req, res) => {
   try {
-    const metrics = await StudentMetric.find({ courseId: req.params.courseId })
+    const metrics = await MLFeature.find({ courseId: req.params.courseId })
       .populate('studentId', 'name email photoURL');
 
     res.json(metrics);
@@ -27,10 +27,10 @@ export const getCourseMetrics = async (req, res) => {
 // GET /api/metrics/at-risk
 export const getAtRiskStudents = async (req, res) => {
   try {
-    const metrics = await StudentMetric.find({ risk_flag: 'high' })
+    const metrics = await MLFeature.find({ risk_level: 'high' })
       .populate('studentId', 'name email photoURL')
       .populate('courseId', 'title category')
-      .sort({ engagement_score: 1 }); // Worst first
+      .sort({ dropout_risk_score: -1 });
 
     res.json(metrics);
   } catch (err) {

@@ -47,7 +47,7 @@ export const getRecentUsers = async (req, res) => {
 
 export const getRecentCourses = async (req, res) => {
     try {
-        const courses = await Course.find().sort({ createdAt: -1 }).limit(10).populate('instructor');
+        const courses = await Course.find().sort({ createdAt: -1 }).limit(10);
         res.json(courses.map(c => ({
             ...c.toObject(),
             instructor: c.instructor?.name || 'Unknown'
@@ -61,7 +61,7 @@ export const getInstructors = async (req, res) => {
     try {
         const instructors = await User.find({ role: 'instructor' });
         const instructorsWithStats = await Promise.all(instructors.map(async (inst) => {
-            const courses = await Course.find({ instructor: inst._id });
+            const courses = await Course.find({ "instructor.email": inst.email });
             const courseIds = courses.map(c => c._id);
             const enrollments = await Enrollment.find({ courseId: { $in: courseIds } });
             const totalRevenue = courses.reduce((acc, c) => {
@@ -156,5 +156,14 @@ export const handleInstructorAction = async (req, res) => {
         res.json({ message: `Instructor ${action}ed successfully`, instructor });
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+export const getAllCoursesAdmin = async (req, res) => {
+    try {
+        const courses = await Course.find();
+        res.json(courses);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
     }
 };

@@ -111,7 +111,7 @@ app.post("/api/execute", verifyToken, async (req, res) => {
       "https://emkc.org/api/v2/piston/execute",
       executionData
     );
-    res.json(response.data.run);
+    res.json(response.data);
   } catch (error) {
     console.error("Piston API Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Execution engine failed. Please try again." });

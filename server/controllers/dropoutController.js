@@ -10,7 +10,7 @@ export const getDropoutPredictions = async (req, res) => {
     const instructor = await User.findOne({ email });
     if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-    const courses = await Course.find({ instructor: instructor._id });
+    const courses = await Course.find({ "instructor.email": instructor.email });
     const courseIds = courses.map(c => c._id);
 
     const predictions = await MLFeature.find({

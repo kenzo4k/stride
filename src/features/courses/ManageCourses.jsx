@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
 import CourseCard from '../../components/common/CourseCard';
-import coursesData from '../../../public/courses.json';
+import api from '../../services/api';
 
 const ManageCourses = () => {
     const { user: _user } = useContext(AuthContext);
@@ -14,24 +14,29 @@ const ManageCourses = () => {
     const [selectedCourse, setSelectedCourse] = useState(null);
 
     useEffect(() => {
-        loadCourses();
-    }, []);
+        if (_user) {
+            loadCourses();
+        }
+    }, [_user]);
 
-    const loadCourses = () => {
+    const loadCourses = async () => {
         const toastId = toast.loading('Loading courses...');
 
         try {
-            // Filter out courses that were "deleted" in this session
-            const deletedCourseIds = JSON.parse(localStorage.getItem('deletedCourses') || '[]');
-            const filteredData = coursesData.filter(course => !deletedCourseIds.includes(course._id));
+            let response;
+            if (_user?.role === 'admin') {
+                response = await api.get('/admin/courses');
+            } else {
+                response = await api.get('/instructor/courses');
+            }
 
-            setCourses(filteredData);
+            setCourses(response.data);
             setIsLoading(false);
 
-            toast.success(`${filteredData.length} courses loaded successfully!`, { id: toastId });
+            toast.success(`${response.data.length} courses loaded successfully!`, { id: toastId });
         } catch (error) {
             console.error('Error loading courses:', error);
-            toast.error('Failed to load courses. Please try again.', { id: toastId });
+            toast.error(error.response?.data?.message || 'Failed to load courses. Please try again.', { id: toastId });
             setIsLoading(false);
         }
     };
@@ -59,26 +64,12 @@ const ManageCourses = () => {
     const confirmDeleteCourse = async () => {
         if (!courseToDelete) return;
 
-        // Check if user is logged in
-        // if (!user) {
-        //     toast.error('Please log in to delete courses');
-        //     closeDeleteModal();
-        //     return;
-        // }
         setIsDeleting(true);
         const toastId = toast.loading(`Deleting "${courseToDelete.title}"...`);
 
         try {
-            // Mock delete operation since the server requires authentication
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await api.delete(`/courses/${courseToDelete._id}`);
 
-            // Store the deleted course ID in localStorage to persist across page refreshes
-            const deletedCourseIds = JSON.parse(localStorage.getItem('deletedCourses') || '[]');
-            deletedCourseIds.push(courseToDelete._id);
-            localStorage.setItem('deletedCourses', JSON.stringify(deletedCourseIds));
-
-            // Only update UI if backend deletion was successful
             setCourses(prevCourses =>
                 prevCourses.filter(course => course._id !== courseToDelete._id)
             );
@@ -91,7 +82,7 @@ const ManageCourses = () => {
             closeDeleteModal();
         } catch (error) {
             console.error('Error deleting course:', error);
-            toast.error(error.message || 'Failed to delete course. Please try again.', {
+            toast.error(error.response?.data?.message || 'Failed to delete course. Please try again.', {
                 id: toastId,
                 duration: 4000
             });

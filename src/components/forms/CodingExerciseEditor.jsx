@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import toast from "react-hot-toast";
 import { FaChevronDown, FaChevronUp, FaPlay, FaUndo } from "react-icons/fa";
+import api from "../../services/api";
 
 const PISTON_ENDPOINT = "https://emkc.org/api/v2/piston/execute";
 
@@ -149,28 +150,11 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
       const payload = {
         language: languageConfig.pistonLanguage,
         version: "*",
-        files: [
-          {
-            name: languageConfig.fileName,
-            content: code,
-          },
-        ],
+        code: code,
       };
 
-      const response = await fetch(PISTON_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Piston API error (HTTP ${response.status})`);
-      }
-
-      const data = await response.json();
+      const response = await api.post('/execute', payload);
+      const data = response.data;
 
       const entry = {
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,

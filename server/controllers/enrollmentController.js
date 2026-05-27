@@ -5,9 +5,10 @@ import { recordLessonCompleted } from '../services/mlMetricsService.js';
 
 export const enrollInCourse = async (req, res) => {
   try {
-    const { courseId, studentEmail } = req.body;
+    const { courseId } = req.body;
+    const studentId = req.user.id;
     
-    const student = await User.findOne({ email: studentEmail });
+    const student = await User.findById(studentId);
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     const course = await Course.findById(courseId);
@@ -42,11 +43,7 @@ export const enrollInCourse = async (req, res) => {
 
 export const getMyEnrollments = async (req, res) => {
   try {
-    const { email } = req.query; // Simplification for now
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const enrollments = await Enrollment.find({ userId: user._id })
+    const enrollments = await Enrollment.find({ userId: req.user.id })
       .populate('courseId');
     
     res.json(enrollments);

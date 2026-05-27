@@ -105,8 +105,12 @@ class RecommenderSystem:
             # Check prerequisites
             prereqs = c.get("prerequisites", [])
             prereqs_met = True
+            completed_titles = {str(rc.get("title", "")).strip() for rc in courses if str(rc["_id"]) in user_courses_ids}
             for p in prereqs:
-                if str(p) not in user_courses_ids:
+                p_str = str(p).strip()
+                if p_str.lower() == "none" or not p_str:
+                    continue
+                if p_str not in completed_titles:
                     prereqs_met = False
                     break
                     

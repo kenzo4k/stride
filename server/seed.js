@@ -92,6 +92,32 @@ async function seed() {
       title: 'ML Engineer',
     });
 
+    // Additional instructor 3
+    const instructor3 = await User.create({
+      name: 'David Miller',
+      email: 'david@stride.com',
+      password: hashedPassword,
+      role: 'instructor',
+      xp: 3100,
+      level: 8,
+      bio: 'Backend architect specialized in distributed systems and cloud database technologies.',
+      title: 'Backend Systems Architect',
+    });
+    console.log('✓ Instructor account: david@stride.com');
+
+    // Additional instructor 4
+    const instructor4 = await User.create({
+      name: 'Emily Davis',
+      email: 'emily@stride.com',
+      password: hashedPassword,
+      role: 'instructor',
+      xp: 2900,
+      level: 7,
+      bio: 'Mobile Engineer with expertise in native iOS, Android, and Flutter development.',
+      title: 'Lead Mobile Developer',
+    });
+    console.log('✓ Instructor account: emily@stride.com');
+
     // Additional students for variety
     const additionalStudentsData = [
       {
@@ -171,11 +197,63 @@ async function seed() {
 
     const allStudents = [student, ...additionalStudents];
 
-    console.log(`Created ${1 + 2 + additionalStudents.length + 1} total users`);
+    console.log(`Created ${1 + 2 + additionalStudents.length + 1 + 2} total users`);
 
     // === CREATE COURSES ===
     console.log('Creating courses...');
-    
+
+    const instructorObj = {
+      name: instructor.name,
+      email: instructor.email,
+      bio: instructor.bio,
+      qualification: instructor.title || 'Senior Software Engineer',
+      photoURL: instructor.photoURL
+    };
+
+    const instructor2Obj = {
+      name: instructor2.name,
+      email: instructor2.email,
+      bio: instructor2.bio,
+      qualification: instructor2.title || 'ML Engineer',
+      photoURL: instructor2.photoURL
+    };
+
+    const instructor3Obj = {
+      name: instructor3.name,
+      email: instructor3.email,
+      bio: instructor3.bio,
+      qualification: instructor3.title || 'Backend Systems Architect',
+      photoURL: instructor3.photoURL
+    };
+
+    const instructor4Obj = {
+      name: instructor4.name,
+      email: instructor4.email,
+      bio: instructor4.bio,
+      qualification: instructor4.title || 'Lead Mobile Developer',
+      photoURL: instructor4.photoURL
+    };
+
+    const authorObj = {
+      name: instructor.name,
+      email: instructor.email
+    };
+
+    const author2Obj = {
+      name: instructor2.name,
+      email: instructor2.email
+    };
+
+    const author3Obj = {
+      name: instructor3.name,
+      email: instructor3.email
+    };
+
+    const author4Obj = {
+      name: instructor4.name,
+      email: instructor4.email
+    };
+
     const courses = await Course.create([
       // === Front End Path ===
       {
@@ -183,7 +261,8 @@ async function seed() {
         short_description: 'Master the building blocks of the web: HTML5, CSS3, and responsive design.',
         detailed_description: 'Start your frontend developer journey here. Learn semantic HTML, styling, layout techniques (Flexbox and Grid), media queries, and responsive web design best practices.',
         price: 2999,
-        instructor: instructor._id,
+        instructor: instructorObj,
+        author: authorObj,
         category: 'Front End',
         image: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713',
         seats: 100,
@@ -192,7 +271,8 @@ async function seed() {
         duration: '15 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['None'],
+        curriculum: ['Introduction to HTML5', 'CSS Styling & Selectors', 'Flexbox & Grid Layouts', 'Responsive Web Design'],
         learning_outcomes: ['Build structured web pages using HTML5', 'Style pages using modern CSS3 techniques', 'Create responsive layouts for all devices'],
         tags: ['HTML', 'CSS', 'Frontend', 'Responsive'],
         status: 'active',
@@ -202,7 +282,8 @@ async function seed() {
         short_description: 'Deep dive into modern JavaScript programming, async actions, and DOM manipulation.',
         detailed_description: 'Learn variables, functions, closures, promises, async/await, DOM events, and how to build interactive elements for web applications.',
         price: 3999,
-        instructor: instructor._id,
+        instructor: instructorObj,
+        author: authorObj,
         category: 'Front End',
         image: 'https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a',
         seats: 80,
@@ -211,7 +292,8 @@ async function seed() {
         duration: '20 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['HTML & CSS Foundations'],
+        curriculum: ['JavaScript Basics', 'DOM Manipulation', 'Asynchronous JS', 'Advanced ES6+'],
         learning_outcomes: ['Understand core JavaScript concepts and ES6+ features', 'Manipulate the DOM to build interactive UIs', 'Fetch data from REST APIs using async/await'],
         tags: ['JavaScript', 'DOM', 'ES6', 'Frontend'],
         status: 'active',
@@ -221,7 +303,8 @@ async function seed() {
         short_description: 'Master components, state, hooks, and React Router to build scalable client-side SPAs.',
         detailed_description: 'Learn React fundamentals, component lifecycle, state management, custom hooks, and routing to develop high-performance single-page web applications.',
         price: 4999,
-        instructor: instructor._id,
+        instructor: instructorObj,
+        author: authorObj,
         category: 'Front End',
         image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee',
         seats: 60,
@@ -230,7 +313,8 @@ async function seed() {
         duration: '25 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Modern JavaScript & DOM'],
+        curriculum: ['React Components', 'State & Props', 'React Hooks', 'Routing & State Management'],
         learning_outcomes: ['Build modular and reusable React components', 'Manage application state using Hooks', 'Implement routing with React Router'],
         tags: ['React', 'JavaScript', 'Frontend', 'SPA'],
         status: 'active',
@@ -240,7 +324,8 @@ async function seed() {
         short_description: 'Learn Server-Side Rendering, Static Site Generation, API routes, and deployment with Next.js.',
         detailed_description: 'Build enterprise-grade applications with Next.js. Master the App Router, data fetching strategies, server actions, dynamic routing, and optimizations.',
         price: 5999,
-        instructor: instructor._id,
+        instructor: instructorObj,
+        author: authorObj,
         category: 'Front End',
         image: 'https://images.unsplash.com/photo-1618477388954-7852f32655ec',
         seats: 50,
@@ -249,7 +334,8 @@ async function seed() {
         duration: '30 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['React.js Development'],
+        curriculum: ['App Router', 'Data Fetching (SSR/SSG)', 'Server Actions', 'Optimizations & Deployment'],
         learning_outcomes: ['Optimize pages with SSR and SSG', 'Build API routes inside Next.js', 'Deploy Next.js apps to production with Vercel'],
         tags: ['Next.js', 'React', 'Frontend', 'SSR'],
         status: 'active',
@@ -261,7 +347,8 @@ async function seed() {
         short_description: 'Build fast, scalable server-side applications and RESTful APIs using Node.js and Express.',
         detailed_description: 'Learn node runtime, npm, event loop, file system operations, routing, middleware patterns, and how to structure REST APIs.',
         price: 3999,
-        instructor: instructor._id,
+        instructor: instructor3Obj,
+        author: author3Obj,
         category: 'Back End',
         image: 'https://images.unsplash.com/photo-1547658719-da2b51169166',
         seats: 90,
@@ -270,7 +357,8 @@ async function seed() {
         duration: '18 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Modern JavaScript & DOM'],
+        curriculum: ['Node Runtime', 'Express Routing', 'REST API Design', 'Middleware & Authentication'],
         learning_outcomes: ['Create robust HTTP servers in Node.js', 'Write Express middleware for routing and validation', 'Handle errors and request inputs securely'],
         tags: ['Node.js', 'Express', 'Backend', 'JavaScript'],
         status: 'active',
@@ -280,7 +368,8 @@ async function seed() {
         short_description: 'Master MongoDB and PostgreSQL, database design, query optimization, and schema mapping.',
         detailed_description: 'Understand relational vs document databases. Learn mongoose, pg-promise, indexes, aggregations, database transactions, and security practices.',
         price: 4999,
-        instructor: instructor._id,
+        instructor: instructor3Obj,
+        author: author3Obj,
         category: 'Back End',
         image: 'https://images.unsplash.com/photo-1544383023-53fafa435504',
         seats: 70,
@@ -289,7 +378,8 @@ async function seed() {
         duration: '22 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Introduction to Node.js & Express'],
+        curriculum: ['Relational DB (PostgreSQL)', 'NoSQL DB (MongoDB)', 'Mongoose ODM', 'Index Optimizations'],
         learning_outcomes: ['Model data for SQL and NoSQL databases', 'Write complex aggregation pipelines and JOIN queries', 'Connect Express apps to PostgreSQL and MongoDB'],
         tags: ['MongoDB', 'PostgreSQL', 'SQL', 'Database'],
         status: 'active',
@@ -299,7 +389,8 @@ async function seed() {
         short_description: 'Scale your server apps with caching, authentication, validation, and real-time sockets.',
         detailed_description: 'Deep dive into backend services. Implement Redis caching, JWT authentication, rate limiting, file uploads, and Socket.io integrations.',
         price: 5999,
-        instructor: instructor._id,
+        instructor: instructor3Obj,
+        author: author3Obj,
         category: 'Back End',
         image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c',
         seats: 60,
@@ -308,7 +399,8 @@ async function seed() {
         duration: '28 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['SQL & NoSQL Databases'],
+        curriculum: ['JWT Security', 'Redis Caching', 'Real-time WebSockets', 'Docker Containers'],
         learning_outcomes: ['Secure backends with JWT and session auth', 'Optimize response times with Redis caching', 'Implement real-time features using WebSockets'],
         tags: ['Backend', 'APIs', 'JWT', 'Redis'],
         status: 'active',
@@ -318,7 +410,8 @@ async function seed() {
         short_description: 'Design distributed architectures, message queues, containerization, and gateways.',
         detailed_description: 'Learn microservices design, Docker containers, RabbitMQ/Kafka brokers, API gateways, load balancing, and high-availability setups.',
         price: 7999,
-        instructor: instructor._id,
+        instructor: instructor3Obj,
+        author: author3Obj,
         category: 'Back End',
         image: 'https://images.unsplash.com/photo-1600132806370-bf17e65e942f',
         seats: 40,
@@ -327,7 +420,8 @@ async function seed() {
         duration: '35 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Production Backend & APIs'],
+        curriculum: ['Microservices Architectures', 'RabbitMQ/Kafka Message Brokers', 'API Gateways', 'Scalability Patterns'],
         learning_outcomes: ['Break monolithic apps into dockerized microservices', 'Implement asynchronous messaging using RabbitMQ', 'Design for high traffic and system fault-tolerance'],
         tags: ['Microservices', 'System Design', 'Docker', 'Backend'],
         status: 'active',
@@ -339,7 +433,8 @@ async function seed() {
         short_description: 'Learn Python programming, data analysis with Pandas, and data plotting with Matplotlib.',
         detailed_description: 'Start your AI journey. Learn Python variables, loops, lists, dictionaries, Pandas DataFrames, NumPy arrays, and visualization libraries.',
         price: 2999,
-        instructor: instructor2._id,
+        instructor: instructor2Obj,
+        author: author2Obj,
         category: 'AI & Machine Learning',
         image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5',
         seats: 100,
@@ -348,7 +443,8 @@ async function seed() {
         duration: '15 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['None'],
+        curriculum: ['Python Syntax', 'NumPy & Array Operations', 'Pandas DataFrames', 'Matplotlib Visualization'],
         learning_outcomes: ['Write efficient scripts in Python', 'Clean and analyze datasets using Pandas', 'Create interactive plots and charts'],
         tags: ['Python', 'Pandas', 'Data Science', 'AI'],
         status: 'active',
@@ -358,7 +454,8 @@ async function seed() {
         short_description: 'Learn foundational ML concepts, regression, classification, and scikit-learn models.',
         detailed_description: 'Dive into supervised and unsupervised learning. Train linear regressions, decision trees, random forests, and SVMs using python libraries.',
         price: 5999,
-        instructor: instructor2._id,
+        instructor: instructor2Obj,
+        author: author2Obj,
         category: 'AI & Machine Learning',
         image: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4',
         seats: 80,
@@ -367,7 +464,8 @@ async function seed() {
         duration: '25 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Python Basics for Data Science'],
+        curriculum: ['Supervised Learning', 'Unsupervised Learning', 'Model Evaluation', 'Scikit-Learn models'],
         learning_outcomes: ['Explain key ML concepts and math fundamentals', 'Train and evaluate classification/regression models', 'Feature engineer data for scikit-learn algorithms'],
         tags: ['Machine Learning', 'AI', 'Scikit-Learn', 'Python'],
         status: 'active',
@@ -377,7 +475,8 @@ async function seed() {
         short_description: 'Build, train, and deploy artificial neural networks using TensorFlow and PyTorch.',
         detailed_description: 'Learn deep neural networks (DNNs), convolutional neural networks (CNNs), recurrent neural networks (RNNs), model tuning, and optimization.',
         price: 7999,
-        instructor: instructor2._id,
+        instructor: instructor2Obj,
+        author: author2Obj,
         category: 'AI & Machine Learning',
         image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe',
         seats: 50,
@@ -386,7 +485,8 @@ async function seed() {
         duration: '32 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Introduction to Machine Learning'],
+        curriculum: ['Perceptrons & DNNs', 'Convolutional Neural Networks', 'Recurrent Neural Networks', 'PyTorch/TensorFlow'],
         learning_outcomes: ['Implement multi-layer neural networks from scratch', 'Build CNNs for image classification tasks', 'Optimize weights using PyTorch / TensorFlow'],
         tags: ['Deep Learning', 'Neural Networks', 'TensorFlow', 'AI'],
         status: 'active',
@@ -396,7 +496,8 @@ async function seed() {
         short_description: 'Learn tokenization, transformers, BERT, GPT models, and prompt engineering.',
         detailed_description: 'Understand language architectures. Build text classification, sentiment analysis, custom transformers, and interface with LLMs via API calls.',
         price: 8999,
-        instructor: instructor2._id,
+        instructor: instructor2Obj,
+        author: author2Obj,
         category: 'AI & Machine Learning',
         image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb',
         seats: 40,
@@ -405,7 +506,8 @@ async function seed() {
         duration: '35 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['Introduction to Machine Learning'],
+        curriculum: ['Tokenization & Embeddings', 'RNNs & LSTMs', 'Transformer Architectures', 'LLMs & Prompt Engineering'],
         learning_outcomes: ['Perform NLP processing and tokenization', 'Fine-tune BERT models for text classification', 'Deploy transformer architectures for chatbots'],
         tags: ['NLP', 'Transformers', 'LLM', 'AI'],
         status: 'active',
@@ -417,7 +519,8 @@ async function seed() {
         short_description: 'Create native Android and iOS mobile applications using Dart and Flutter framework.',
         detailed_description: 'Learn Dart programming, widgets layout, state management (Provider/Bloc), local storage, and integrating backend REST APIs.',
         price: 4999,
-        instructor: instructor2._id,
+        instructor: instructor4Obj,
+        author: author4Obj,
         category: 'Mobile Applications',
         image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c',
         seats: 80,
@@ -426,7 +529,8 @@ async function seed() {
         duration: '22 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['None'],
+        curriculum: ['Dart Programming', 'Flutter Widgets', 'State Management (Provider)', 'API Integration'],
         learning_outcomes: ['Write applications in Dart language', 'Design fluid interfaces using Flutter widgets', 'Build cross-platform applications from single codebase'],
         tags: ['Flutter', 'Dart', 'Mobile', 'Cross-Platform'],
         status: 'active',
@@ -436,7 +540,8 @@ async function seed() {
         short_description: 'Develop iOS and Android mobile apps leveraging your React skills.',
         detailed_description: 'Learn React Native layout, JSX elements, native modules, device API integration, navigation libraries, and build deployment pipelines.',
         price: 5999,
-        instructor: instructor._id,
+        instructor: instructor4Obj,
+        author: author4Obj,
         category: 'Mobile Applications',
         image: 'https://images.unsplash.com/photo-1555066931-dfdd70a7e120',
         seats: 60,
@@ -445,7 +550,8 @@ async function seed() {
         duration: '24 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['React.js Development'],
+        curriculum: ['React Native CLI & Expo', 'Flexbox layouts', 'Native Device APIs', 'App Store Publishing'],
         learning_outcomes: ['Translate web React skills into mobile app structures', 'Style native mobile layouts using Flexbox', 'Use device APIs like location and camera'],
         tags: ['React Native', 'Mobile', 'React', 'JavaScript'],
         status: 'active',
@@ -455,7 +561,8 @@ async function seed() {
         short_description: 'Master iOS development, Swift language, Storyboards, and SwiftUI layouts.',
         detailed_description: 'Learn Apple Xcode environment, Swift foundations, UI design with SwiftUI, local storage with CoreData, and App Store guidelines.',
         price: 6999,
-        instructor: instructor._id,
+        instructor: instructor4Obj,
+        author: author4Obj,
         category: 'Mobile Applications',
         image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f',
         seats: 50,
@@ -464,7 +571,8 @@ async function seed() {
         duration: '30 hours',
         featured: true,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['None'],
+        curriculum: ['Swift Syntax', 'SwiftUI Views', 'State & Data Binding', 'CoreData Persistence'],
         learning_outcomes: ['Write Swift code and structure iOS applications', 'Create user interfaces using SwiftUI', 'Store database inputs using CoreData'],
         tags: ['Swift', 'SwiftUI', 'iOS', 'Mobile'],
         status: 'active',
@@ -474,7 +582,8 @@ async function seed() {
         short_description: 'Learn native Android mobile app development using Jetpack Compose and Kotlin.',
         detailed_description: 'Master Android Studio, Kotlin programming, layouts with Jetpack Compose, background services, Room DB, and Play Store publishing.',
         price: 6999,
-        instructor: instructor2._id,
+        instructor: instructor4Obj,
+        author: author4Obj,
         category: 'Mobile Applications',
         image: 'https://images.unsplash.com/photo-1610563166150-b34df4f3bcd6',
         seats: 50,
@@ -483,24 +592,13 @@ async function seed() {
         duration: '30 hours',
         featured: false,
         completion_certificate: true,
-        prerequisites: [],
+        prerequisites: ['None'],
+        curriculum: ['Kotlin Syntax', 'Jetpack Compose UIs', 'Room Database', 'WorkManager & Background services'],
         learning_outcomes: ['Write Kotlin scripts for Android app triggers', 'Develop responsive views with Jetpack Compose', 'Interact with SQLite database using Room persistence'],
         tags: ['Kotlin', 'Android', 'Jetpack Compose', 'Mobile'],
         status: 'active',
       },
     ]);
-
-    // Update prerequisites with actual ObjectIds
-    await Course.findByIdAndUpdate(courses[1]._id, { prerequisites: [courses[0]._id] }); // Modern JS -> HTML/CSS
-    await Course.findByIdAndUpdate(courses[2]._id, { prerequisites: [courses[1]._id] }); // React -> Modern JS
-    await Course.findByIdAndUpdate(courses[3]._id, { prerequisites: [courses[2]._id] }); // Next.js -> React
-    await Course.findByIdAndUpdate(courses[5]._id, { prerequisites: [courses[4]._id] }); // SQL/NoSQL -> Node.js
-    await Course.findByIdAndUpdate(courses[6]._id, { prerequisites: [courses[5]._id] }); // Prod Backend -> SQL/NoSQL
-    await Course.findByIdAndUpdate(courses[7]._id, { prerequisites: [courses[6]._id] }); // System Design -> Prod Backend
-    await Course.findByIdAndUpdate(courses[9]._id, { prerequisites: [courses[8]._id] }); // ML -> Python Basics
-    await Course.findByIdAndUpdate(courses[10]._id, { prerequisites: [courses[9]._id] }); // Deep Learning -> ML
-    await Course.findByIdAndUpdate(courses[11]._id, { prerequisites: [courses[9]._id] }); // NLP -> ML
-    await Course.findByIdAndUpdate(courses[13]._id, { prerequisites: [courses[2]._id] }); // React Native -> React
 
     console.log(`Created ${courses.length} courses`);
 
