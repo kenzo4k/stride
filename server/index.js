@@ -53,7 +53,17 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow local development and vercel deployments
+    if (!origin || origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // === MongoDB Connect ===
