@@ -1,6 +1,7 @@
 import Enrollment from '../models/Enrollment.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
+import { recordLessonCompleted } from '../services/mlMetricsService.js';
 
 export const enrollInCourse = async (req, res) => {
   try {
@@ -57,12 +58,28 @@ export const getMyEnrollments = async (req, res) => {
 export const updateProgress = async (req, res) => {
     try {
         const { progress, completedLessons, grade } = req.body;
-        const enrollment = await Enrollment.findByIdAndUpdate(
-            req.params.id,
-            { progress, completedLessons, grade },
-            { new: true }
-        );
+        
+        const enrollment = await Enrollment.findById(req.params.id);
         if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
+
+        const previouslyCompleted = enrollment.completedLessons || [];
+        const newlyCompleted = (completedLessons || []).filter(
+            l => !previouslyCompleted.includes(l)
+        );
+
+        enrollment.progress = progress;
+        enrollment.completedLessons = completedLessons;
+        if (grade !== undefined) {
+            enrollment.grade = grade;
+        }
+        await enrollment.save();
+
+        // Record metrics for newly completed lessons (non-blocking)
+        for (const lessonId of newlyCompleted) {
+            recordLessonCompleted(enrollment.userId, enrollment.courseId)
+                .catch(err => console.error('ML metrics recordLessonCompleted error:', err));
+        }
+
         res.json(enrollment);
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });

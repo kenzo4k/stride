@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Enrollment from '../models/Enrollment.js';
+import { recordLogin } from '../services/mlMetricsService.js';
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || 'secret';
 
@@ -78,6 +80,16 @@ export const login = async (req, res) => {
       }
       user.lastLogin = now;
       await user.save();
+    }
+
+    // Record login for ML dropout features (non-blocking)
+    if (user.role === 'student') {
+      Enrollment.find({ userId: user._id, status: 'active' })
+        .then(enrollments => {
+          const courseIds = enrollments.map(e => e.courseId);
+          return recordLogin(user._id, courseIds);
+        })
+        .catch(err => console.error('ML metrics recordLogin error:', err));
     }
 
     // Generate JWT

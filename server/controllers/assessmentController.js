@@ -2,6 +2,7 @@ import Assessment from '../models/Assessment.js';
 import Enrollment from '../models/Enrollment.js';
 import User from '../models/User.js';
 import Course from '../models/Course.js';
+import { recordAssessmentAttempt } from '../services/mlMetricsService.js';
 
 // GET /api/courses/:courseId/assessment
 // Returns assessment questions with correct answers STRIPPED for security
@@ -109,6 +110,10 @@ export const submitAssessment = async (req, res) => {
       enrollment.grade = score;
       await enrollment.save();
     }
+
+    // Record ML metrics (non-blocking)
+    recordAssessmentAttempt(user._id, courseId, score, assessment._id.toString())
+      .catch(err => console.error('ML metrics recordAssessmentAttempt error:', err));
 
     // Award XP based on score
     let xpAwarded = 10;

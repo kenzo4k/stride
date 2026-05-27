@@ -30,5 +30,17 @@ export const instructorService = {
     getStudentAnalytics: async () => {
         const response = await api.get('/instructor/student-analytics');
         return response.data;
+    },
+
+    // Get ML dropout predictions for the instructor's courses
+    getDropoutPredictions: async () => {
+        const response = await api.get('/dropout/predictions');
+        return response.data;
+    },
+
+    // Trigger ML service to predict dropout risk for all students
+    triggerPredictions: async () => {
+        const response = await api.post('/dropout/run-predictions');
+        return response.data;
     }
 };

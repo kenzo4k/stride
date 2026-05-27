@@ -48,5 +48,17 @@ export const courseService = {
   getEnrolledCourses: async () => {
     const response = await api.get('/my-enrollments');
     return response.data;
+  },
+
+  // Record student study session duration
+  recordSessionTime: async (courseId, durationMinutes) => {
+    const response = await api.post('/dropout/session-time', { courseId, durationMinutes });
+    return response.data;
+  },
+
+  // Record student starting a lesson
+  recordLessonStarted: async (courseId) => {
+    const response = await api.post('/dropout/lesson-started', { courseId });
+    return response.data;
   }
 };

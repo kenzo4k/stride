@@ -24,6 +24,7 @@ import XPCounter from '../../components/common/XPCounter';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 import api from '../../services/api';
+import { courseService } from '../../services/courseService';
 
 const CourseContent = () => {
     const { id: courseId } = useParams();
@@ -141,6 +142,55 @@ const CourseContent = () => {
         setCurrentQuestionIndex(0);
         setAnswers({});
     }, [activeLesson?.id]);
+
+    // Record when a lesson is started (for ML dropout tracking)
+    useEffect(() => {
+        if (!user || user.role !== 'student' || !courseId || !activeLesson?.id) return;
+        courseService.recordLessonStarted(courseId)
+            .catch(err => console.error('Failed to record lesson start:', err));
+    }, [activeLesson?.id, courseId, user]);
+
+    // Study session time tracking (for ML dropout tracking)
+    useEffect(() => {
+        if (!user || user.role !== 'student' || !courseId) return;
+
+        let activeSeconds = 0;
+        let isWindowActive = true;
+
+        const handleFocus = () => { isWindowActive = true; };
+        const handleBlur = () => { isWindowActive = false; };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('blur', handleBlur);
+
+        const interval = setInterval(() => {
+            if (isWindowActive) {
+                activeSeconds += 5; // increment every 5 seconds
+                
+                // When we accumulate 60 active seconds, send 1 minute to the server
+                if (activeSeconds >= 60) {
+                    const durationMinutes = activeSeconds / 60;
+                    activeSeconds = 0; // reset
+                    
+                    courseService.recordSessionTime(courseId, durationMinutes)
+                        .catch(err => console.error('Failed to record session time:', err));
+                }
+            }
+        }, 5000);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('blur', handleBlur);
+            
+            // On unmount, send remaining active seconds
+            if (activeSeconds > 0) {
+                const durationMinutes = activeSeconds / 60;
+                courseService.recordSessionTime(courseId, durationMinutes)
+                    .catch(err => console.error('Failed to record unmount session time:', err));
+            }
+        };
+    }, [courseId, user]);
 
     // Handle lesson completion
     const markLessonComplete = async (lessonId) => {
