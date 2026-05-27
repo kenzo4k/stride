@@ -19,6 +19,36 @@ export const getAdminStats = async (req, res) => {
         const pendingApprovals = await Course.countDocuments({ status: 'pending' });
         const totalInstructors = await User.countDocuments({ role: 'instructor' });
 
+        // Calculate User Growth
+        const allUsers = await User.find({}, 'createdAt').sort({ createdAt: 1 });
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const growthMap = {};
+        allUsers.forEach(u => {
+            if (u.createdAt) {
+                const date = new Date(u.createdAt);
+                const monthStr = months[date.getMonth()];
+                growthMap[monthStr] = (growthMap[monthStr] || 0) + 1;
+            }
+        });
+
+        let cumulative = 0;
+        const userGrowthData = months.map(m => {
+            cumulative += (growthMap[m] || 0);
+            return { month: m, users: cumulative };
+        }).filter(item => item.users > 0);
+
+        // Calculate Enrollment Trends
+        const courseEnrollmentMap = {};
+        enrollments.forEach(e => {
+            const courseTitle = e.courseId?.title || 'Unknown Course';
+            courseEnrollmentMap[courseTitle] = (courseEnrollmentMap[courseTitle] || 0) + 1;
+        });
+
+        const enrollmentData = Object.keys(courseEnrollmentMap).map(title => ({
+            course: title.length > 15 ? title.substring(0, 15) + '...' : title,
+            enrollments: courseEnrollmentMap[title]
+        })).sort((a, b) => b.enrollments - a.enrollments).slice(0, 5);
+
         res.json({
             totalUsers,
             totalCourses,
@@ -26,7 +56,9 @@ export const getAdminStats = async (req, res) => {
             totalRevenue,
             activeUsers,
             pendingApprovals,
-            totalInstructors
+            totalInstructors,
+            userGrowthData,
+            enrollmentData
         });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });

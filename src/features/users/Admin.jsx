@@ -55,6 +55,8 @@ const Admin = () => {
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentCourses, setRecentCourses] = useState([]);
   const [instructors, setInstructors] = useState([]);
+  const [userGrowth, setUserGrowth] = useState([]);
+  const [enrollmentsChart, setEnrollmentsChart] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -76,6 +78,8 @@ const Admin = () => {
       setRecentUsers(usersRes.data || []);
       setRecentCourses(coursesRes.data || []);
       setInstructors(instructorsRes.data || []);
+      setUserGrowth(statsRes.data.userGrowthData && statsRes.data.userGrowthData.length > 0 ? statsRes.data.userGrowthData : userGrowthData);
+      setEnrollmentsChart(statsRes.data.enrollmentData && statsRes.data.enrollmentData.length > 0 ? statsRes.data.enrollmentData : enrollmentData);
 
     } catch (error) {
       console.error('Error fetching admin data:', error);
@@ -480,7 +484,7 @@ const Admin = () => {
                 <h3 className="text-lg font-medium mb-4">User Growth</h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={userGrowthData}>
+                    <LineChart data={userGrowth}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
                       <XAxis dataKey="month" stroke="#9CA3AF" />
                       <YAxis stroke="#9CA3AF" />
@@ -494,7 +498,7 @@ const Admin = () => {
                 <h3 className="text-lg font-medium mb-4">Course Enrollment Trends</h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={enrollmentData}>
+                    <BarChart data={enrollmentsChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
                       <XAxis dataKey="course" stroke="#9CA3AF" />
                       <YAxis stroke="#9CA3AF" />

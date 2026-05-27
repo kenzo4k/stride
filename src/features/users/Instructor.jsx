@@ -30,95 +30,6 @@ import AnalyticsChart from '../../components/instructor/AnalyticsChart';
 import { API_BASE_URL } from '../../utils/constants';
 import api from '../../services/api';
 
-// Sample data for tabs - ADD THIS
-const sampleInstructorData = {
-  // Overview Tab
-  overview: {
-    stats: {
-      totalStudents: 45,
-      activeCourses: 3,
-      avgGrade: 78,
-      completionRate: 72
-    },
-    recentActivity: [
-      { user: "Ahmed Khan", action: "Enrolled", course: "Web Dev", time: "2 hours ago" },
-      { user: "Fatima Ali", action: "Completed", course: "Python", time: "Yesterday" },
-      { user: "Omar Hassan", action: "Started", course: "React", time: "2 days ago" }
-    ]
-  },
-
-  // Courses Tab
-  courses: [
-    {
-      id: 1,
-      title: "Web Development Bootcamp",
-      students: 45,
-      avgGrade: 85,
-      completion: 90,
-      lastUpdated: "2024-01-15",
-      status: "Active"
-    },
-    {
-      id: 2,
-      title: "Python Basics",
-      students: 32,
-      avgGrade: 72,
-      completion: 80,
-      lastUpdated: "2024-01-12",
-      status: "Active"
-    },
-    {
-      id: 3,
-      title: "React Advanced",
-      students: 28,
-      avgGrade: 78,
-      completion: 75,
-      lastUpdated: "2024-01-10",
-      status: "Active"
-    }
-  ],
-
-  // Students Tab
-  students: [
-    {
-      id: 1,
-      name: "Ahmed Khan",
-      email: "ahmed@email.com",
-      enrolledCourses: 3,
-      avgGrade: 85,
-      completion: 90,
-      status: "Active"
-    },
-    {
-      id: 2,
-      name: "Fatima Ali",
-      email: "fatima@email.com",
-      enrolledCourses: 2,
-      avgGrade: 72,
-      completion: 80,
-      status: "Active"
-    },
-    {
-      id: 3,
-      name: "Omar Hassan",
-      email: "omar@email.com",
-      enrolledCourses: 3,
-      avgGrade: 45,
-      completion: 30,
-      status: "At Risk"
-    },
-    {
-      id: 4,
-      name: "Zainab Ahmed",
-      email: "zainab@email.com",
-      enrolledCourses: 1,
-      avgGrade: 55,
-      completion: 50,
-      status: "At Risk"
-    }
-  ]
-  };
-
   const Instructor = () => {
   const { user } = React.useContext(AuthContext);
   const navigate = useNavigate();
@@ -594,7 +505,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-blue-100 text-sm font-medium">Total Students</p>
-                    <p className="text-4xl font-bold text-white mt-1">{sampleAnalytics.stats.totalStudents}</p>
+                    <p className="text-4xl font-bold text-white mt-1">{stats.totalStudents}</p>
                     <p className="text-blue-100 text-xs mt-1">Enrolled across all courses</p>
                   </div>
                   <Users className="w-12 h-12 text-blue-200 opacity-80" />
@@ -605,7 +516,7 @@ const sampleInstructorData = {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-cyan-100 text-sm font-medium">Active Courses</p>
-                    <p className="text-4xl font-bold text-white mt-1">{sampleAnalytics.stats.activeCourses}</p>
+                    <p className="text-4xl font-bold text-white mt-1">{stats.activeCourses}</p>
                     <p className="text-cyan-100 text-xs mt-1">Currently running</p>
                   </div>
                   <BookOpen className="w-12 h-12 text-cyan-200 opacity-80" />

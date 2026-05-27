@@ -223,7 +223,11 @@ const Student = () => {
           </div>
 
           {/* Stats Grid */}
-          <StatsGrid stats={stats} />
+          <StatsGrid stats={{
+            ...stats,
+            currentLevel: user?.level || stats.currentLevel || 1,
+            totalXP: user?.xp || stats.totalXP || 0
+          }} />
         </div>
 
         {/* Navigation Tabs */}
