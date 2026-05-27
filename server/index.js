@@ -47,11 +47,31 @@ if (stripeSecretKey) {
   };
 }
 
+// === MongoDB Connection Middleware for Serverless ===
+const connectDB = async (req, res, next) => {
+  if (mongoose.connection.readyState === 1) {
+    return next();
+  }
+  try {
+    console.log("Connecting to MongoDB Atlas...");
+    await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/stride", {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log("Connected to MongoDB Atlas");
+    next();
+  } catch (err) {
+    console.error("Database connection error in middleware:", err);
+    res.status(500).json({ message: "Database connection failed", error: err.message });
+  }
+};
+
 // === LOG MIDDLEWARE ===
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);
   next();
 });
+
+app.use(connectDB);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -65,14 +85,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-
-// === MongoDB Connect ===
-mongoose
-  .connect(
-    process.env.MONGODB_URI || "mongodb://localhost:27017/stride"
-  )
-  .then(() => console.log("MongoDB connected "))
-  .catch((err) => console.error("MongoDB connection error :", err));
 
 
 app.get('/api', (req, res) => {
