@@ -61,9 +61,24 @@ mongoose
   .connect(
     process.env.MONGODB_URI || "mongodb://localhost:27017/stride"
   )
-  .then(() => console.log("MongoDB connected ✔️"))
-  .catch((err) => console.error("MongoDB connection error ❌:", err));
+  .then(() => console.log("MongoDB connected "))
+  .catch((err) => console.error("MongoDB connection error :", err));
 
+
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Stride API is running',
+    version: '1.0.0',
+    endpoints: {
+      users: '/api/users',
+      courses: '/api/courses',
+      auth: '/api/auth',
+      enrollments: '/api/enrollments',
+      metrics: '/api/metrics'
+    }
+  });
+});
 // === API Routes ===
 app.use("/api/users", userRoutes);
 app.use("/api/courses", contentRoutes);    // /api/courses/:id/content
