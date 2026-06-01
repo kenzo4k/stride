@@ -133,7 +133,8 @@ export const handleUserAction = async (req, res) => {
                 break;
             case 'delete':
                 await User.findByIdAndDelete(id);
-                return res.json({ message: 'User deleted successfully' });
+                await Enrollment.deleteMany({ userId: id });
+                return res.json({ message: 'User and their enrollments deleted successfully' });
             default:
                 return res.status(400).json({ message: `Unknown action: ${action}` });
         }
@@ -152,6 +153,9 @@ export const handleCourseAction = async (req, res) => {
         switch (action) {
             case 'approve':
                 update = { status: 'active' };
+                break;
+            case 'publish':
+                update = { status: 'published' };
                 break;
             case 'reject':
                 update = { status: 'rejected' };

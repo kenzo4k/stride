@@ -1,13 +1,19 @@
 import User from '../models/User.js';
 import Course from '../models/Course.js';
 import Enrollment from '../models/Enrollment.js';
+import TimeTracking from '../models/TimeTracking.js';
 
 export const getInstructorStats = async (req, res) => {
     try {
         const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ "instructor.email": instructor.email });
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } });
@@ -17,13 +23,25 @@ export const getInstructorStats = async (req, res) => {
             return acc + (count * course.price);
         }, 0);
 
+        // Calculate actual study time from TimeTracking across instructor's courses
+        const trackingRecords = await TimeTracking.find({ courseId: { $in: courseIds } });
+        const totalMinutes = trackingRecords.reduce((acc, r) => acc + r.minutes, 0);
+        const avgHours = enrollments.length > 0 ? (totalMinutes / enrollments.length / 60) : 0;
+
+        // Calculate average student course progress as submission rate proxy
+        const avgProgress = enrollments.length > 0
+            ? enrollments.reduce((acc, e) => acc + e.progress, 0) / enrollments.length
+            : 0;
+
         const stats = {
             totalCourses: courses.length,
             totalStudents: enrollments.length,
             totalRevenue: totalRevenue,
             averageRating: courses.reduce((acc, c) => acc + (c.rating || 0), 0) / (courses.length || 1),
-            pendingReviews: 0, // Mocked
-            activeCourses: courses.filter(c => c.status === 'active').length
+            pendingReviews: courses.filter(c => c.status === 'pending').length,
+            activeCourses: courses.filter(c => ['active', 'published'].includes(c.status)).length,
+            avgTimeSpent: parseFloat(avgHours.toFixed(1)),
+            submissionRate: Math.round(avgProgress)
         };
 
         res.json(stats);
@@ -37,7 +55,12 @@ export const getInstructorCourses = async (req, res) => {
         const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ "instructor.email": instructor.email });
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
         res.json(courses);
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
@@ -49,7 +72,12 @@ export const getInstructorStudents = async (req, res) => {
         const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ "instructor.email": instructor.email });
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } }).populate('userId');
@@ -88,7 +116,12 @@ export const getAtRiskStudents = async (req, res) => {
     if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
     // Find all courses by this instructor
-    const courses = await Course.find({ "instructor.email": instructor.email });
+    const courses = await Course.find({
+        $or: [
+            { instructorId: instructor._id },
+            { "instructor.email": instructor.email }
+        ]
+    });
     const courseIds = courses.map(c => c._id);
 
     // Find enrollments for these courses
@@ -127,7 +160,12 @@ export const getCourseStats = async (req, res) => {
         const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ "instructor.email": instructor.email });
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
         
         const stats = await Promise.all(courses.map(async (course) => {
             const enrollments = await Enrollment.find({ courseId: course._id });
@@ -151,7 +189,12 @@ export const getStudentAnalytics = async (req, res) => {
         const instructor = await User.findById(req.user.id);
         if (!instructor) return res.status(404).json({ message: "Instructor not found" });
 
-        const courses = await Course.find({ "instructor.email": instructor.email });
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } });

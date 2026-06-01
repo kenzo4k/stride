@@ -111,83 +111,199 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
           />
         );
       case 'video':
+        const handleVideoFileChange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          
+          if (file.size > 10 * 1024 * 1024) {
+            toast.error("Video file is larger than 10MB! It may fail to save due to database limits.");
+          }
+          
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            onUpdate({ ...content, videoData: reader.result, url: '' });
+          };
+          reader.readAsDataURL(file);
+        };
+        
+        const videoInputType = content.videoInputType || 'url';
+        
         return (
           <div className="space-y-2">
             <input
               type="text"
               value={content.title || ''}
               onChange={(e) => onUpdate({ ...content, title: e.target.value })}
-              className="w-full p-2 border rounded bg-gray-800 text-white"
+              className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700"
               placeholder="Video Title"
             />
-            <input
-              type="url"
-              value={content.url || ''}
-              onChange={(e) => onUpdate({ ...content, url: e.target.value })}
-              className="w-full p-2 border rounded bg-gray-800 text-white"
-              placeholder="Video URL (YouTube, Vimeo, etc.)"
-            />
+            <div className="flex space-x-4 mb-2">
+              <label className="flex items-center text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`video-type-${content.id}`}
+                  checked={videoInputType === 'url'}
+                  onChange={() => onUpdate({ ...content, videoInputType: 'url', videoData: '' })}
+                  className="mr-2"
+                />
+                Video URL
+              </label>
+              <label className="flex items-center text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`video-type-${content.id}`}
+                  checked={videoInputType === 'file'}
+                  onChange={() => onUpdate({ ...content, videoInputType: 'file', url: '' })}
+                  className="mr-2"
+                />
+                Upload File
+              </label>
+            </div>
+            {videoInputType === 'url' ? (
+              <input
+                type="url"
+                value={content.url || ''}
+                onChange={(e) => onUpdate({ ...content, url: e.target.value })}
+                className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700"
+                placeholder="Video URL (YouTube, Vimeo, etc.)"
+              />
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoFileChange}
+                  className="w-full p-2 border rounded bg-gray-800 text-gray-300 border-gray-700 cursor-pointer"
+                />
+                {content.videoData && (
+                  <div className="text-xs text-green-400">
+                    ✓ Video uploaded successfully ({Math.round(content.videoData.length * 0.75 / 1024 / 1024 * 100) / 100} MB base64 data)
+                  </div>
+                )}
+                <div className="text-xs text-yellow-500">
+                  Max upload size: 10MB (MongoDB 16MB document limit).
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'quiz':
+        const quizType = content.quizType || 'multiple-choice';
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="flex space-x-4 mb-2">
+              <label className="flex items-center text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`quiz-type-${content.id}`}
+                  checked={quizType === 'multiple-choice'}
+                  onChange={() => onUpdate({ ...content, quizType: 'multiple-choice', options: ['', ''], correctAnswers: [] })}
+                  className="mr-2"
+                />
+                Multiple Choice
+              </label>
+              <label className="flex items-center text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`quiz-type-${content.id}`}
+                  checked={quizType === 'true-false'}
+                  onChange={() => onUpdate({ ...content, quizType: 'true-false', options: ['True', 'False'], correctAnswers: [0] })}
+                  className="mr-2"
+                />
+                True / False
+              </label>
+            </div>
+            
             <input
               type="text"
               value={content.question || ''}
               onChange={(e) => onUpdate({ ...content, question: e.target.value })}
-              className="w-full p-2 border rounded bg-gray-800 text-white"
+              className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700"
               placeholder="Question"
             />
-            <div className="space-y-2">
-              {content.options?.map((option, i) => (
-                <div key={i} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={content.correctAnswers?.includes(i) || false}
-                    onChange={(e) => {
-                      const correctAnswers = [...(content.correctAnswers || [])];
-                      if (e.target.checked) {
-                        correctAnswers.push(i);
-                      } else {
-                        const index = correctAnswers.indexOf(i);
-                        if (index > -1) correctAnswers.splice(index, 1);
-                      }
-                      onUpdate({ ...content, correctAnswers });
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => {
-                      const options = [...content.options];
-                      options[i] = e.target.value;
-                      onUpdate({ ...content, options });
-                    }}
-                    className="flex-1 p-2 border rounded bg-gray-800 text-white"
-                    placeholder={`Option ${i + 1}`}
-                  />
+            
+            {quizType === 'multiple-choice' ? (
+              <div className="space-y-2">
+                {content.options?.map((option, i) => (
+                  <div key={i} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={content.correctAnswers?.includes(i) || false}
+                      onChange={(e) => {
+                        const correctAnswers = [...(content.correctAnswers || [])];
+                        if (e.target.checked) {
+                          correctAnswers.push(i);
+                        } else {
+                          const index = correctAnswers.indexOf(i);
+                          if (index > -1) correctAnswers.splice(index, 1);
+                        }
+                        onUpdate({ ...content, correctAnswers });
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const options = [...content.options];
+                        options[i] = e.target.value;
+                        onUpdate({ ...content, options });
+                      }}
+                      className="flex-1 p-2 border rounded bg-gray-800 text-white border-gray-700"
+                      placeholder={`Option ${i + 1}`}
+                    />
+                    <button
+                      onClick={() => {
+                        const options = content.options.filter((_, idx) => idx !== i);
+                        const correctAnswers = (content.correctAnswers || [])
+                          .filter(idx => idx !== i)
+                          .map(idx => idx > i ? idx - 1 : idx);
+                        onUpdate({ ...content, options, correctAnswers });
+                      }}
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const options = [...(content.options || []), ''];
+                    onUpdate({ ...content, options });
+                  }}
+                  className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
+                >
+                  <Plus size={14} className="mr-1" /> Add Option
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 pl-4">
+                <span className="text-xs text-gray-400">Select the correct answer:</span>
+                <div className="flex space-x-4">
                   <button
-                    onClick={() => {
-                      const options = content.options.filter((_, idx) => idx !== i);
-                      onUpdate({ ...content, options });
-                    }}
-                    className="text-red-500 hover:text-red-400"
+                    type="button"
+                    onClick={() => onUpdate({ ...content, correctAnswers: [0] })}
+                    className={`px-4 py-2 rounded border font-semibold transition-colors ${
+                      content.correctAnswers?.includes(0)
+                        ? 'bg-green-600 border-green-500 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
+                    }`}
                   >
-                    <X size={16} />
+                    True
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ ...content, correctAnswers: [1] })}
+                    className={`px-4 py-2 rounded border font-semibold transition-colors ${
+                      content.correctAnswers?.includes(1)
+                        ? 'bg-red-600 border-red-500 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
+                    }`}
+                  >
+                    False
                   </button>
                 </div>
-              ))}
-              <button
-                onClick={() => {
-                  const options = [...(content.options || []), ''];
-                  onUpdate({ ...content, options });
-                }}
-                className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
-              >
-                <Plus size={14} className="mr-1" /> Add Option
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         );
       case 'code':

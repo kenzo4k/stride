@@ -20,6 +20,7 @@ const CourseDetails = () => {
     const [error, setError] = useState(null);
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [userEnrollmentCount, setUserEnrollmentCount] = useState(0);
+    const [enrollment, setEnrollment] = useState(null);
 
     // Data fetching Dynamic Title useEffect
     useEffect(() => {
@@ -45,11 +46,12 @@ const CourseDetails = () => {
                 if (user) {
                     const enrollmentsRes = await api.get('/my-enrollments');
                     const enrollments = enrollmentsRes.data || [];
-                    const enrolled = enrollments.some(e => {
+                    const foundEnrollment = enrollments.find(e => {
                         const eCourseId = e.courseId?._id || e.courseId;
                         return eCourseId === id;
                     });
-                    setIsEnrolled(enrolled);
+                    setIsEnrolled(!!foundEnrollment);
+                    setEnrollment(foundEnrollment || null);
                     setUserEnrollmentCount(enrollments.length);
                 }
             } catch (err) {
@@ -83,6 +85,32 @@ const CourseDetails = () => {
             </div>
         );
     }
+
+    const handleUnenroll = async () => {
+        if (!enrollment) return;
+        const confirm = window.confirm("Are you sure you want to unenroll from this course? This will submit a refund request to the administrators.");
+        if (!confirm) return;
+
+        try {
+            await api.post(`/enrollments/${enrollment._id}/unenroll`, {
+                reason: "Requested by student via course details page"
+            });
+            toast.success("Refund/Unenrollment requested! Admin approval is pending.");
+            // Refresh status
+            const enrollmentsRes = await api.get('/my-enrollments');
+            const enrollments = enrollmentsRes.data || [];
+            const foundEnrollment = enrollments.find(e => {
+                const eCourseId = e.courseId?._id || e.courseId;
+                return eCourseId === id;
+            });
+            setIsEnrolled(!!foundEnrollment);
+            setEnrollment(foundEnrollment || null);
+            setUserEnrollmentCount(enrollments.length);
+        } catch (error) {
+            console.error("Failed to request unenrollment:", error);
+            toast.error(error.response?.data?.message || "Failed to submit unenrollment request.");
+        }
+    };
 
     const seatsLeft = course?.seats - course?.enrollmentCount;
     const isEnrollmentLimitReached = !isEnrolled && userEnrollmentCount >= 3;
@@ -310,12 +338,18 @@ const CourseDetails = () => {
                                     </button>
                                 ) : (
                                     <button
-                                        onClick={() => navigate(`/course/${id}/payment`)}
-                                        className={`btn btn-wide w-full border-none ${isEnrolled ? 'bg-orange-600 hover:bg-orange-700 text-white' : (isEnrollmentLimitReached ? 'btn-disabled' : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white')}`}
-                                        disabled={isEnrollmentLimitReached}
+                                        onClick={() => {
+                                            if (isEnrolled) {
+                                                handleUnenroll();
+                                            } else {
+                                                navigate(`/course/${id}/payment`);
+                                            }
+                                        }}
+                                        className={`btn btn-wide w-full border-none ${isEnrolled ? (enrollment?.refundStatus === 'requested' ? 'bg-gray-600 cursor-not-allowed text-white' : 'bg-orange-600 hover:bg-orange-700 text-white') : (isEnrollmentLimitReached ? 'btn-disabled' : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white')}`}
+                                        disabled={isEnrollmentLimitReached || enrollment?.refundStatus === 'requested'}
                                     >
                                         {isEnrolled ? (
-                                            '✓ Enrolled (Click to Un-enroll)'
+                                            enrollment?.refundStatus === 'requested' ? 'Refund Pending' : '✓ Enrolled (Click to Un-enroll)'
                                         ) : isEnrollmentLimitReached ? (
                                             'Enrollment Limit Reached'
                                         ) : (
@@ -371,7 +405,8 @@ const CourseDetails = () => {
             {/* Similar Courses Section */}
             <div className="border-t border-gray-800 pt-8">
                 <RecommendedCourses 
-                    scenario={course?.category?.toLowerCase().includes('python') || course?.category?.toLowerCase().includes('programming') ? 'python' : 'web-dev'}
+                    courseId={course?.id || course?._id}
+                    category={course?.category}
                     title="Similar Courses"
                     description="Explore more courses in this category and level"
                 />

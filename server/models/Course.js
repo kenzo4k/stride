@@ -25,6 +25,10 @@ const courseSchema = new mongoose.Schema({
     qualification: String,
     photoURL: String,
   },
+  instructorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   author: {
     name: String,
     email: String,
@@ -70,7 +74,7 @@ const courseSchema = new mongoose.Schema({
   },
   prerequisites: [String],
   learning_outcomes: [String],
-  curriculum: [mongoose.Schema.Types.Mixed],
+  topics: [String],
   tags: [String],
   status: {
     type: String,
@@ -80,6 +84,11 @@ const courseSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+courseSchema.index({ status: 1 });
+courseSchema.index({ category: 1, status: 1 });
+courseSchema.index({ 'instructor.email': 1 });
+courseSchema.index({ instructorId: 1 });
 
 const Course = mongoose.model('Course', courseSchema);
 export default Course;

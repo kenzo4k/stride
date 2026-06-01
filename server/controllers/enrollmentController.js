@@ -31,10 +31,6 @@ export const enrollInCourse = async (req, res) => {
     course.enrollmentCount = (course.enrollmentCount || 0) + 1;
     await course.save();
 
-    // Add to user's enrolledCourses
-    student.enrolledCourses.push(course._id);
-    await student.save();
-
     res.status(201).json(enrollment);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -81,4 +77,73 @@ export const updateProgress = async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }
-}
+};
+
+export const requestUnenrollment = async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findById(req.params.id);
+    if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
+
+    // Verify the user owns this enrollment
+    if (enrollment.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to unenroll from this course" });
+    }
+
+    enrollment.refundStatus = 'requested';
+    enrollment.refundRequestedAt = new Date();
+    enrollment.refundReason = req.body.reason || 'Requested by student';
+    await enrollment.save();
+
+    res.json(enrollment);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const getRefundRequests = async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find({ refundStatus: 'requested' })
+      .populate('userId', 'name email')
+      .populate('courseId', 'title price instructor');
+    res.json(enrollments);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const processRefund = async (req, res) => {
+  try {
+    const { id } = req.params; // enrollment ID
+    const { action, reason } = req.body; // 'approve' or 'deny'
+
+    const enrollment = await Enrollment.findById(id);
+    if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
+
+    if (action === 'approve') {
+      enrollment.refundStatus = 'approved';
+      enrollment.refundProcessedAt = new Date();
+      await enrollment.save();
+
+      // Also decrement enrollmentCount in course
+      const course = await Course.findById(enrollment.courseId);
+      if (course) {
+        course.enrollmentCount = Math.max(0, (course.enrollmentCount || 1) - 1);
+        await course.save();
+      }
+
+      // Delete the Enrollment record on approval to fully unenroll the student
+      await Enrollment.findByIdAndDelete(id);
+      return res.json({ message: "Refund approved and student unenrolled successfully", enrollmentId: id, status: 'approved' });
+    } else if (action === 'deny') {
+      enrollment.refundStatus = 'denied';
+      enrollment.refundProcessedAt = new Date();
+      if (reason) enrollment.refundReason = reason;
+      await enrollment.save();
+      return res.json(enrollment);
+    } else {
+      return res.status(400).json({ message: "Invalid action. Must be 'approve' or 'deny'" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};

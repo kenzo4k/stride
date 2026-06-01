@@ -23,55 +23,6 @@ import {
   Eye
 } from 'lucide-react';
 
-const USE_ADMIN_SAMPLE_DATA = false;
-
-const adminSampleData = {
-  stats: {
-    totalCourses: 8,
-    totalUsers: 45,
-    totalRevenue: 2100,
-    avgRating: 4.2,
-  },
-  courses: [
-    { id: '1', title: 'Web Development Bootcamp', instructor: 'Ahmed Khan', students: 45, revenue: 1200, status: 'Active' },
-    { id: '2', title: 'Python Basics', instructor: 'Fatima Ali', students: 32, revenue: 650, status: 'Active' },
-    { id: '3', title: 'React Fundamentals', instructor: 'Omar Hassan', students: 38, revenue: 800, status: 'Active' },
-  ],
-  users: [
-    { id: '1', name: 'Ahmed Khan', email: 'ahmed@email.com', role: 'Instructor', joinDate: '2024-01-05', status: 'Active' },
-    { id: '2', name: 'Fatima Ali', email: 'fatima@email.com', role: 'Instructor', joinDate: '2024-01-03', status: 'Active' },
-    { id: '3', name: 'Zainab Ahmed', email: 'zainab@email.com', role: 'Student', joinDate: '2024-01-10', status: 'Active' },
-  ],
-  recentEnrollments: [
-    { id: '1', user: 'Zainab Ahmed', course: 'Web Development', date: '2 hours ago' },
-    { id: '2', user: 'Omar Hassan', course: 'Python Basics', date: 'Yesterday' },
-  ],
-  popularCourses: [
-    { id: '1', title: 'Web Development Bootcamp', students: 45 },
-    { id: '3', title: 'React Fundamentals', students: 38 },
-  ],
-};
-
-// Sample data - ONLY for display
-const sampleStats = {
-  totalCourses: 8,
-  totalUsers: 45,
-  totalRevenue: 2100,
-  avgRating: 4.2
-};
-
-const sampleCourses = [
-  { _id: 1, title: "Web Development Bootcamp", instructor: "Ahmed Khan", students: 45, revenue: 1200, status: "Active" },
-  { _id: 2, title: "Python Basics", instructor: "Fatima Ali", students: 32, revenue: 650, status: "Active" },
-  { _id: 3, title: "React Fundamentals", instructor: "Omar Hassan", students: 38, revenue: 800, status: "Active" }
-];
-
-const sampleUsers = [
-  { _id: 1, name: "Ahmed Khan", email: "ahmed@email.com", role: "Instructor", createdAt: "2024-01-05", status: "Active" },
-  { _id: 2, name: "Fatima Ali", email: "fatima@email.com", role: "Instructor", createdAt: "2024-01-03", status: "Active" },
-  { _id: 3, name: "Zainab Ahmed", email: "zainab@email.com", role: "Student", createdAt: "2024-01-10", status: "Active" }
-];
-
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -86,33 +37,45 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [courses, setCourses] = useState([]);
   const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [newCourse, setNewCourse] = useState({
+    title: '',
+    short_description: '',
+    price: '',
+    category: 'Front End',
+    seats: 50,
+  });
 
-  // Check if user is admin or instructor
-  const isAdmin = user?.email === 'admin@learnify.com' || user?.email === 'emad@gmail.com';
-  const isInstructor = Boolean(!isAdmin && user);
+  const isAdmin = user?.role === 'admin';
+  const isInstructor = user?.role === 'instructor';
 
   useEffect(() => {
-    if (USE_ADMIN_SAMPLE_DATA && isAdmin) {
-      setLoading(false);
-    }
-
     fetchData();
   }, [isAdmin]);
 
   const fetchData = async () => {
     try {
-      const [coursesRes, usersRes] = await Promise.all([
+      setLoading(true);
+      const [coursesRes, usersRes, statsRes] = await Promise.all([
         api.get('/courses'),
-        api.get('/users')
+        api.get('/users'),
+        api.get('/admin/stats').catch(err => {
+          console.warn("Failed to fetch admin stats:", err);
+          return { data: null };
+        })
       ]);
       
       setCourses(coursesRes.data || []);
       setUsers(usersRes.data || []);
+      if (statsRes.data) {
+        setStats(statsRes.data);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
+      toast.error('Failed to retrieve dashboard data');
     } finally {
       setLoading(false);
     }
@@ -124,18 +87,53 @@ const Dashboard = () => {
         await api.delete(`/courses/${courseId}`);
         setCourses(courses.filter(course => course._id !== courseId));
         toast.success('Course deleted successfully');
+        fetchData();
       } catch (error) {
         console.error('Error deleting course:', error);
+        toast.error('Failed to delete course');
       }
     }
   };
 
-  const coursesToDisplay = courses && courses.length > 0 ? courses : sampleCourses;
-  const usersToDisplay = users && users.length > 0 ? users : sampleUsers;
+  const handleAddCourse = async () => {
+    try {
+      if (!newCourse.title || !newCourse.price) {
+        toast.error("Please fill in course title and price.");
+        return;
+      }
+      
+      const payload = {
+        title: newCourse.title,
+        short_description: newCourse.short_description || 'No description provided.',
+        price: parseFloat(newCourse.price),
+        category: newCourse.category,
+        seats: parseInt(newCourse.seats) || 50,
+        instructorEmail: user?.email,
+      };
 
-  const filteredCourses = coursesToDisplay.filter(course =>
+      await api.post('/courses', payload);
+      toast.success('Course created successfully!');
+      setShowAddModal(false);
+      setNewCourse({
+        title: '',
+        short_description: '',
+        price: '',
+        category: 'Front End',
+        seats: 50,
+      });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create course');
+    }
+  };
+
+  const filteredCourses = courses.filter(course =>
     course.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const avgRating = courses.length > 0
+    ? (courses.reduce((acc, c) => acc + (c.rating || 0), 0) / courses.length).toFixed(1)
+    : '0.0';
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
     <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 hover:border-cyan-600 transition">
@@ -156,7 +154,6 @@ const Dashboard = () => {
       { id: 'overview', label: 'Overview', icon: TrendingUp },
       { id: 'courses', label: 'All Courses', icon: BookOpen },
       { id: 'users', label: 'Users', icon: Users },
-      { id: 'instructors', label: 'Instructors', icon: UserCheck },
     ] : [
       { id: 'overview', label: 'My Dashboard', icon: TrendingUp },
       { id: 'courses', label: 'My Courses', icon: BookOpen },
@@ -194,8 +191,8 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-white">{user?.displayName || 'User'}</p>
-                <p className="text-xs text-gray-400 capitalize">
-                  {isAdmin ? 'Admin' : isInstructor ? 'Instructor' : 'User'}
+                <p className="text-xs text-gray-400 capitalize font-bold">
+                  {user?.role || 'student'}
                 </p>
               </div>
             </div>
@@ -264,41 +261,25 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                   title="Total Courses"
-                  value={
-                    USE_ADMIN_SAMPLE_DATA && isAdmin
-                      ? adminSampleData.stats.totalCourses
-                      : courses.length > 0 ? courses.length : sampleStats.totalCourses
-                  }
+                  value={stats ? stats.totalCourses : courses.length}
                   icon={BookOpen}
                   color="bg-cyan-600"
                 />
                 <StatCard
                   title="Total Users"
-                  value={
-                    USE_ADMIN_SAMPLE_DATA && isAdmin
-                      ? adminSampleData.stats.totalUsers
-                      : users.length > 0 ? users.length : sampleStats.totalUsers
-                  }
+                  value={stats ? stats.totalUsers : users.length}
                   icon={Users}
                   color="bg-blue-600"
                 />
                 <StatCard
                   title="Total Revenue"
-                  value={
-                    USE_ADMIN_SAMPLE_DATA && isAdmin
-                      ? formatCurrency(adminSampleData.stats.totalRevenue)
-                      : formatCurrency(sampleStats.totalRevenue)
-                  }
+                  value={stats ? formatCurrency(stats.totalRevenue) : formatCurrency(0)}
                   icon={DollarSign}
                   color="bg-indigo-600"
                 />
                 <StatCard
                   title="Avg Rating"
-                  value={
-                    USE_ADMIN_SAMPLE_DATA && isAdmin
-                      ? adminSampleData.stats.avgRating
-                      : sampleStats.avgRating
-                  }
+                  value={avgRating}
                   icon={Star}
                   color="bg-sky-600"
                 />
@@ -312,7 +293,7 @@ const Dashboard = () => {
                     <div className="p-6 border-b border-gray-700">
                       <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-cyan-400" />
-                        {isAdmin && USE_ADMIN_SAMPLE_DATA ? 'Sample Courses' : 'Recent Courses'}
+                        Recent Courses
                       </h2>
                     </div>
                     <div className="overflow-x-auto">
@@ -327,13 +308,13 @@ const Dashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-gray-800">
-                          {(isAdmin && USE_ADMIN_SAMPLE_DATA ? adminSampleData.courses : (courses.length > 0 ? courses.slice(0, 5) : sampleCourses)).map((course) => (
-                            <tr key={course.id || course._id} className="border-b border-gray-700 hover:bg-gray-750">
+                          {courses.slice(0, 5).map((course) => (
+                            <tr key={course._id} className="border-b border-gray-700 hover:bg-gray-750">
                               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-white">{course.title}</td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{course.instructor}</td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{course.students || 0}</td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{course.instructor?.name || 'Unknown'}</td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{course.enrollmentCount || 0}</td>
                               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">
-                                {course.revenue ? formatCurrency(course.revenue) : formatCurrency(course.price || 0)}
+                                {formatCurrency((course.enrollmentCount || 0) * course.price)}
                               </td>
                               <td className="px-4 py-4 whitespace-nowrap">
                                 <span className="inline-flex items-center rounded-full bg-green-900/40 px-2.5 py-1 text-xs font-semibold text-green-300 border border-green-800">
@@ -352,7 +333,7 @@ const Dashboard = () => {
                     <div className="p-6 border-b border-gray-700">
                       <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <Users className="w-5 h-5 text-blue-400" />
-                        {isAdmin && USE_ADMIN_SAMPLE_DATA ? 'Sample Users' : 'Recent Users'}
+                        Recent Users
                       </h2>
                     </div>
                     <div className="overflow-x-auto">
@@ -365,8 +346,8 @@ const Dashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-gray-800">
-                          {(isAdmin && USE_ADMIN_SAMPLE_DATA ? adminSampleData.users : (users.length > 0 ? users.slice(0, 5) : sampleUsers)).map((u) => (
-                            <tr key={u.id || u._id} className="border-b border-gray-700 hover:bg-gray-750">
+                          {users.slice(0, 5).map((u) => (
+                            <tr key={u._id} className="border-b border-gray-700 hover:bg-gray-750">
                               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-white">{u.name}</td>
                               <td className="px-4 py-4 whitespace-nowrap">
                                 <span className="inline-flex items-center rounded-full bg-cyan-900/40 px-2.5 py-1 text-xs font-semibold text-cyan-300 border border-cyan-800">
@@ -391,19 +372,21 @@ const Dashboard = () => {
                     <div className="bg-gray-800 rounded-lg border border-gray-700 hover:border-cyan-600 transition p-6">
                       <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                         <UserPlus className="w-5 h-5 text-cyan-400" />
-                        Recent Enrollments
+                        Recent Users List
                       </h2>
                       <div className="space-y-3">
-                        {adminSampleData.recentEnrollments.map((enrollment) => (
+                        {users.slice(0, 5).map((u) => (
                           <div
-                            key={enrollment.id}
+                            key={u._id}
                             className="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-900/40 px-4 py-3"
                           >
                             <div>
-                              <p className="text-white font-medium">{enrollment.user}</p>
-                              <p className="text-sm text-gray-400">{enrollment.course}</p>
+                              <p className="text-white font-medium">{u.name}</p>
+                              <p className="text-sm text-gray-400">{u.email}</p>
                             </div>
-                            <span className="text-xs text-gray-500">{enrollment.date}</span>
+                            <span className="text-xs text-gray-500">
+                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -415,18 +398,21 @@ const Dashboard = () => {
                         Popular Courses
                       </h2>
                       <div className="space-y-3">
-                        {adminSampleData.popularCourses.map((course) => (
-                          <div
-                            key={course.id}
-                            className="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-900/40 px-4 py-3"
-                          >
-                            <div>
-                              <p className="text-white font-medium">{course.title}</p>
-                              <p className="text-sm text-gray-400">{course.students} students</p>
+                        {[...courses]
+                          .sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
+                          .slice(0, 5)
+                          .map((course, idx) => (
+                            <div
+                              key={course._id}
+                              className="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-900/40 px-4 py-3"
+                            >
+                              <div>
+                                <p className="text-white font-medium">{course.title}</p>
+                                <p className="text-sm text-gray-400">{course.enrollmentCount || 0} students</p>
+                              </div>
+                              <span className="text-cyan-400 text-sm font-bold">#{idx + 1}</span>
                             </div>
-                            <span className="text-cyan-400 text-sm font-bold">#{course.id}</span>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     </div>
                   </div>
@@ -496,10 +482,10 @@ const Dashboard = () => {
                               <div className="text-sm font-medium text-white">{course.title}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{course.instructor}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{course.students || 0}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{course.instructor?.name || 'Unknown'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{course.enrollmentCount || 0}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {course.revenue ? formatCurrency(course.revenue) : formatCurrency(course.price || 0)}
+                            {formatCurrency((course.enrollmentCount || 0) * course.price)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-900/40 text-green-300 border border-green-800">
@@ -551,7 +537,7 @@ const Dashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-gray-800">
-                      {usersToDisplay.map((u) => (
+                      {users.map((u) => (
                         <tr key={u._id} className="border-b border-gray-700 hover:bg-gray-750">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -650,6 +636,8 @@ const Dashboard = () => {
                 <label className="block text-sm font-medium text-gray-400 mb-2">Course Title</label>
                 <input
                   type="text"
+                  value={newCourse.title}
+                  onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
                   placeholder="Enter course title"
                   className="input input-bordered w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500"
                 />
@@ -657,18 +645,35 @@ const Dashboard = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">Description</label>
                 <textarea
+                  value={newCourse.short_description}
+                  onChange={(e) => setNewCourse({ ...newCourse, short_description: e.target.value })}
                   placeholder="Enter course description"
                   rows={3}
                   className="textarea textarea-bordered w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">Price</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Price ($)</label>
                 <input
                   type="number"
+                  value={newCourse.price}
+                  onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })}
                   placeholder="0"
                   className="input input-bordered w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Category</label>
+                <select
+                  value={newCourse.category}
+                  onChange={(e) => setNewCourse({ ...newCourse, category: e.target.value })}
+                  className="select select-bordered w-full bg-gray-700 border-gray-600 text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="Front End">Front End</option>
+                  <option value="Back End">Back End</option>
+                  <option value="AI & Machine Learning">AI & Machine Learning</option>
+                  <option value="Mobile Applications">Mobile Applications</option>
+                </select>
               </div>
             </div>
             <div className="flex justify-end space-x-3 mt-6">
@@ -679,10 +684,7 @@ const Dashboard = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  toast.success('Course added (sample)');
-                }}
+                onClick={handleAddCourse}
                 className="btn bg-green-600 hover:bg-green-700 text-white border-none"
               >
                 Add Course

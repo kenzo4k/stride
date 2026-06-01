@@ -39,6 +39,8 @@ const mlFeatureSchema = new mongoose.Schema({
   dropout_prediction:  { type: Boolean, default: null },
   risk_level:          { type: String, enum: ['low', 'medium', 'high', null], default: null },
   last_prediction_at:  { type: Date, default: null },
+  engagement_score: { type: Number, default: 0, min: 0, max: 100 },
+  risk_flag: { type: String, enum: ['low', 'medium', 'high'], default: 'low' },
 }, { timestamps: true });
 
 // One record per student per course per window

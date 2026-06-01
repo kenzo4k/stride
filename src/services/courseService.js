@@ -26,6 +26,18 @@ export const courseService = {
     return response.data;
   },
 
+  // Get course content
+  getCourseContent: async (id) => {
+    const response = await api.get(`/courses/${id}/content`);
+    return response.data;
+  },
+
+  // Update course content
+  updateCourseContent: async (id, sections) => {
+    const response = await api.put(`/courses/${id}/content`, { sections });
+    return response.data;
+  },
+
   // Delete course
   deleteCourse: async (id) => {
     const response = await api.delete(`/courses/${id}`);

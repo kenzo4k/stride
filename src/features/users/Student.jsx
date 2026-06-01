@@ -38,9 +38,16 @@ const Student = () => {
   const [recommended, setRecommended] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [categoryProgress, setCategoryProgress] = useState([]);
+  const [weeklyActivity, setWeeklyActivity] = useState([]);
 
   React.useEffect(() => {
     if (!user?.email) return;
+
+    api.get('/time-tracking/weekly')
+      .then(res => {
+        setWeeklyActivity(res.data || []);
+      })
+      .catch(err => console.error("Failed to fetch weekly activity:", err));
 
     api.get(`/my-enrollments?email=${user.email}`)
       .then(res => {
@@ -495,18 +502,25 @@ const Student = () => {
                   Weekly Activity
                 </h3>
                 <div className="space-y-4">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
-                    <div key={day} className="flex items-center space-x-3">
-                      <span className="w-12 text-sm text-gray-400">{day}</span>
-                      <div className="flex-1 bg-gray-600 rounded-full h-3">
-                        <div 
-                          className="bg-gradient-to-r from-cyan-400 to-blue-500 h-3 rounded-full"
-                          style={{ width: `${[65, 80, 45, 90, 70, 30, 50][i]}%` }}
-                        />
+                  {weeklyActivity.map((item) => {
+                    const hours = (item.minutes / 60).toFixed(1);
+                    const pct = Math.min(100, Math.round((item.minutes / 180) * 100)); // 3 hours = 100%
+                    return (
+                      <div key={item.date} className="flex items-center space-x-3">
+                        <span className="w-12 text-sm text-gray-400">{item.day}</span>
+                        <div className="flex-1 bg-gray-600 rounded-full h-3">
+                          <div 
+                            className="bg-gradient-to-r from-cyan-400 to-blue-500 h-3 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-300 w-12"> {hours}h</span>
                       </div>
-                      <span className="text-sm text-gray-300 w-12"> {[2.5, 3, 2, 3.5, 2.8, 1.2, 2][i]}h</span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {weeklyActivity.length === 0 && (
+                    <p className="text-gray-500 text-center italic py-2">No study time recorded this week.</p>
+                  )}
                 </div>
               </div>
               <div className="bg-gray-700 p-6 rounded-lg">

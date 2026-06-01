@@ -4,7 +4,8 @@ import useAuth from '../../hooks/useAuth';
 import api from '../../services/api';
 
 const RecommendedCourses = ({ 
-  scenario = 'web-dev', 
+  courseId = null,
+  category = null,
   maxCourses = 4, 
   title = "Recommended For You",
   description = "Based on your learning history and interests",
@@ -23,8 +24,17 @@ const RecommendedCourses = ({
 
     const fetchFallbackCourses = async () => {
       try {
-        const response = await api.get('/courses');
-        setRecommendations(response.data || []);
+        let response;
+        if (category) {
+          response = await api.get(`/courses/category/${category}`);
+        } else {
+          response = await api.get('/courses');
+        }
+        let list = response.data || [];
+        if (courseId) {
+          list = list.filter(c => (c._id || c.id) !== courseId);
+        }
+        setRecommendations(list);
       } catch (err) {
         console.error("Error fetching fallback database courses:", err);
         setRecommendations([]);
@@ -39,7 +49,10 @@ const RecommendedCourses = ({
     const fetchRecommendations = async () => {
       setLoading(true);
       try {
-        const response = await api.get('/recommendations');
+        const params = {};
+        if (courseId) params.courseId = courseId;
+        if (category) params.category = category;
+        const response = await api.get('/recommendations', { params });
         if (response.data && response.data.recommendations && response.data.recommendations.length > 0) {
           setRecommendations(response.data.recommendations);
         } else {
@@ -54,7 +67,7 @@ const RecommendedCourses = ({
     };
 
     fetchRecommendations();
-  }, [user, scenario, customCourses]);
+  }, [user, courseId, category, customCourses]);
 
   if (loading) {
     return (

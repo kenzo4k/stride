@@ -33,6 +33,20 @@ const enrollmentSchema = new mongoose.Schema({
     enum: ['active', 'completed', 'cancelled'],
     default: 'active',
   },
+  refundStatus: {
+    type: String,
+    enum: ['none', 'requested', 'approved', 'denied'],
+    default: 'none',
+  },
+  refundRequestedAt: {
+    type: Date,
+  },
+  refundProcessedAt: {
+    type: Date,
+  },
+  refundReason: {
+    type: String,
+  },
 }, {
   timestamps: true,
 });

@@ -9,6 +9,7 @@ import {
     handleInstructorAction,
     getAllCoursesAdmin
 } from '../controllers/adminController.js';
+import { getRefundRequests, processRefund } from '../controllers/enrollmentController.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -21,6 +22,8 @@ router.get('/recent-users', getRecentUsers);
 router.get('/recent-courses', getRecentCourses);
 router.get('/instructors', getInstructors);
 router.get('/courses', getAllCoursesAdmin);
+router.get('/refund-requests', getRefundRequests);
+router.post('/enrollments/:id/refund', processRefund);
 router.post('/users/:id/:action', handleUserAction);
 router.post('/courses/:id/:action', handleCourseAction);
 router.post('/instructors/:id/:action', handleInstructorAction);

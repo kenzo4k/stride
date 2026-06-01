@@ -39,7 +39,9 @@ import api from '../../services/api';
     totalRevenue: 0,
     averageRating: 0,
     pendingReviews: 0,
-    activeCourses: 0
+    activeCourses: 0,
+    avgTimeSpent: 0,
+    submissionRate: 0
   });
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
@@ -586,11 +588,11 @@ import api from '../../services/api';
                   />
                   <AnalyticsChart 
                     data={{ 
-                      percentage: students.length > 0 ? 85 : 0, 
-                      label: `${students.length > 0 ? 85 : 0}% on-time assignment submissions`
+                      percentage: stats.submissionRate || 0, 
+                      label: `${stats.submissionRate || 0}% overall student course progress`
                     }} 
                     type="progress"
-                    title="Assignment Submission Rate"
+                    title="Overall Student Progress"
                   />
                 </div>
               </div>
@@ -662,19 +664,19 @@ import api from '../../services/api';
                 <div className="bg-gray-700 rounded-lg p-5 border border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <Calendar className="w-8 h-8 text-blue-400" />
-                    <span className="text-2xl font-bold text-blue-400">{students.length > 0 ? 85 : 0}%</span>
+                    <span className="text-2xl font-bold text-blue-400">{stats.submissionRate || 0}%</span>
                   </div>
-                  <p className="text-gray-300 font-medium">On-Time Submissions</p>
-                  <p className="text-gray-400 text-sm mt-1">Assignment submission rate</p>
+                  <p className="text-gray-300 font-medium">Avg Progress</p>
+                  <p className="text-gray-400 text-sm mt-1">Average student progress</p>
                 </div>
 
                 <div className="bg-gray-700 rounded-lg p-5 border border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <Clock className="w-8 h-8 text-purple-400" />
-                    <span className="text-2xl font-bold text-purple-400">{students.length > 0 ? "4.5 hours" : "0 hours"}</span>
+                    <span className="text-2xl font-bold text-purple-400">{stats.avgTimeSpent || 0} hours</span>
                   </div>
                   <p className="text-gray-300 font-medium">Avg Time Spent</p>
-                  <p className="text-gray-400 text-sm mt-1">Per course weekly</p>
+                  <p className="text-gray-400 text-sm mt-1">Per course enrollment</p>
                 </div>
               </div>
             </div>

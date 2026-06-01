@@ -53,11 +53,7 @@ const userSchema = new mongoose.Schema({
   streakDays: {
     type: Number,
     default: 0,
-  },
-  enrolledCourses: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course'
-  }]
+  }
 }, {
   timestamps: true,
 });

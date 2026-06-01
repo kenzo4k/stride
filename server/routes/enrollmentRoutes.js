@@ -2,7 +2,8 @@ import express from 'express';
 import {
     enrollInCourse,
     getMyEnrollments,
-    updateProgress
+    updateProgress,
+    requestUnenrollment
 } from '../controllers/enrollmentController.js';
 import { verifyToken } from '../middleware/auth.js';
 
@@ -29,5 +30,7 @@ router.patch('/:id/progress', verifyToken, [
   body('progress').isNumeric().withMessage('Progress must be a number'),
   body('completedLessons').isArray().withMessage('completedLessons must be an array')
 ], validate, updateProgress);
+
+router.post('/:id/unenroll', verifyToken, requestUnenrollment);
 
 export default router;

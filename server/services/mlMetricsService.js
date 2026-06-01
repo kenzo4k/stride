@@ -1,4 +1,5 @@
 import MLFeature from '../models/MLFeature.js';
+import { recordDailyTime } from '../controllers/timeTrackingController.js';
 
 export const getWindowBounds = (date = new Date()) => {
   const now = new Date(date);
@@ -86,6 +87,11 @@ export const recordSessionTime = async (studentId, courseId, durationMinutes) =>
   }
   
   await doc.save();
+
+  // Also track study time in TimeTracking for dashboard (non-blocking)
+  recordDailyTime(studentId, courseId, durationMinutes)
+    .catch(err => console.error('TimeTracking recordDailyTime error:', err));
+
   return doc;
 };
 

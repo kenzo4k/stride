@@ -8,6 +8,82 @@ import { courseService } from '../../services/courseService';
 
 import { API_BASE_URL } from '../../utils/constants';
 
+const transformEditorToViewer = (sections) => {
+    return (sections || []).map(section => ({
+        title: section.title,
+        lessons: (section.contents || []).map(item => {
+            const lesson = {
+                id: item.id ? String(item.id) : `lesson-${Date.now()}-${Math.random()}`,
+                title: item.title || item.question || 'Untitled Lesson',
+                type: item.type === 'code' ? 'coding' : (item.type === 'text' ? 'article' : item.type),
+                xp: item.type === 'quiz' ? 20 : (item.type === 'code' ? 30 : 10),
+            };
+
+            if (item.type === 'text') {
+                lesson.content = item.content || '';
+            } else if (item.type === 'video') {
+                lesson.content = item.url || item.videoData || '';
+                lesson.videoInputType = item.videoInputType || 'url';
+                if (item.videoData) lesson.videoData = item.videoData;
+            } else if (item.type === 'quiz') {
+                const quizType = item.quizType || 'multiple-choice';
+                lesson.questions = [{
+                    id: `q-${lesson.id}`,
+                    type: quizType === 'true-false' ? 'trueFalse' : 'mcq',
+                    question: item.question || '',
+                    options: quizType === 'true-false' ? ['True', 'False'] : (item.options || []),
+                    correctAnswers: item.correctAnswers || [],
+                    quizType: quizType
+                }];
+            } else if (item.type === 'code') {
+                lesson.exercise = {
+                    description: item.description || '',
+                    starterCode: item.starterCode || '',
+                    language: item.language || 'javascript'
+                };
+            }
+            return lesson;
+        })
+    }));
+};
+
+const transformViewerToEditor = (sections) => {
+    return (sections || []).map((section, sIdx) => ({
+        id: section._id || section.id || `sec-${Date.now()}-${sIdx}`,
+        title: section.title,
+        description: section.description || '',
+        contents: (section.lessons || []).map(lesson => {
+            const item = {
+                id: lesson.id,
+                title: lesson.title,
+                type: lesson.type === 'coding' ? 'code' : (lesson.type === 'article' ? 'text' : lesson.type),
+            };
+
+            if (lesson.type === 'article') {
+                item.content = lesson.content || '';
+            } else if (lesson.type === 'video') {
+                item.videoInputType = lesson.videoInputType || 'url';
+                if (item.videoInputType === 'file') {
+                    item.videoData = lesson.content || lesson.videoData || '';
+                } else {
+                    item.url = lesson.content || '';
+                }
+            } else if (lesson.type === 'quiz') {
+                const q = lesson.questions?.[0] || {};
+                item.quizType = q.quizType || (q.type === 'trueFalse' ? 'true-false' : 'multiple-choice');
+                item.question = q.question || '';
+                item.options = q.options || [];
+                item.correctAnswers = q.correctAnswers || [];
+            } else if (lesson.type === 'coding') {
+                item.description = lesson.exercise?.description || '';
+                item.starterCode = lesson.exercise?.starterCode || '';
+                item.language = lesson.exercise?.language || 'javascript';
+            }
+            return item;
+        })
+    }));
+};
+
 const EditCourse = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -51,30 +127,45 @@ const EditCourse = () => {
             return;
         }
 
-        const fetchCourse = async () => {
+        const fetchCourseAndContent = async () => {
             try {
                 setLoading(true);
-                const data = await courseService.getCourseById(id);
+                
+                // Fetch course details and content concurrently
+                const [courseDataResult, courseContentResult] = await Promise.all([
+                    courseService.getCourseById(id),
+                    courseService.getCourseContent(id).catch(err => {
+                        console.warn("No course content found yet or failed to fetch:", err.message);
+                        return null;
+                    })
+                ]);
 
-                if (!data) {
+                if (!courseDataResult) {
                     toast.error('Course not found.');
                     setLoading(false);
                     return;
                 }
 
                 // Verify ownership: Instructors can only edit their own courses
-                if (user && user.role === 'instructor' && data.instructor?.email !== user.email) {
+                const isOwner = courseDataResult.instructorId 
+                  ? courseDataResult.instructorId === user?.id
+                  : courseDataResult.instructor?.email === user?.email;
+
+                if (user && user.role === 'instructor' && !isOwner) {
                     toast.error('Not authorized to edit this course.');
                     navigate('/manage-courses');
                     return;
                 }
 
+                const rawSections = courseContentResult?.sections || [];
+                const editorSections = transformViewerToEditor(rawSections);
+
                 setCourseData(prev => ({
                     ...prev,
-                    ...data,
-                    prerequisites: data.prerequisites?.length > 0 ? data.prerequisites : [''],
-                    learning_outcomes: data.learning_outcomes?.length > 0 ? data.learning_outcomes : [''],
-                    content: data.content?.length > 0 ? data.content : [{
+                    ...courseDataResult,
+                    prerequisites: courseDataResult.prerequisites?.length > 0 ? courseDataResult.prerequisites : [''],
+                    learning_outcomes: courseDataResult.learning_outcomes?.length > 0 ? courseDataResult.learning_outcomes : [''],
+                    content: editorSections.length > 0 ? editorSections : [{
                         id: Date.now(),
                         title: 'Introduction',
                         description: '',
@@ -82,10 +173,10 @@ const EditCourse = () => {
                     }],
                     instructor: {
                         ...prev.instructor,
-                        ...data.instructor
+                        ...courseDataResult.instructor
                     },
-                    tags: data.tags?.length > 0 ? data.tags : [''],
-                    status: data.status || 'draft'
+                    tags: courseDataResult.tags?.length > 0 ? courseDataResult.tags : [''],
+                    status: courseDataResult.status || 'draft'
                 }));
             } catch (err) {
                 console.error("Failed to load course details:", err);
@@ -96,7 +187,7 @@ const EditCourse = () => {
         };
 
         if (user) {
-            fetchCourse();
+            fetchCourseAndContent();
         }
     }, [id, user, navigate]);
 
@@ -108,7 +199,6 @@ const EditCourse = () => {
         }));
     };
 
-
     const handleContentChange = (updatedContent) => {
         setCourseData(prev => ({
             ...prev,
@@ -117,15 +207,33 @@ const EditCourse = () => {
     };
 
     const saveCourse = async (statusOverride) => {
+        const topics = (courseData.content || []).map(section => section.title);
+
         const payload = {
             ...courseData,
+            topics,
             ...(statusOverride ? { status: statusOverride } : {})
         };
+        // Remove content from main course PUT payload to avoid Mongoose validation issues
+        delete payload.content;
+
+        let savedCourse;
         if (id) {
-            return await courseService.updateCourse(id, payload);
+            savedCourse = await courseService.updateCourse(id, payload);
         } else {
-            return await courseService.createCourse(payload);
+            savedCourse = await courseService.createCourse(payload);
         }
+
+        // Save sections content to the CourseContent collection
+        const courseId = id || savedCourse?._id || savedCourse?.id;
+        if (courseId && courseData.content) {
+            const transformedSections = transformEditorToViewer(courseData.content);
+            await courseService.updateCourseContent(courseId, transformedSections).catch(err => {
+                console.error("Failed to save course content:", err);
+                toast.error("Basic info saved, but content failed to save.");
+            });
+        }
+        return savedCourse;
     };
 
     const handleUpdateCourse = async (e) => {

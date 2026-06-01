@@ -27,14 +27,18 @@ export const upsertContent = async (req, res) => {
     }
 
     // Verify instructor owns this course (skip for admin)
-    if (req.user.role === 'instructor' && course.instructor.toString() !== req.user.id) {
+    const isOwner = course.instructorId 
+      ? course.instructorId.toString() === req.user.id
+      : course.instructor?.email === req.user.email;
+
+    if (req.user.role === 'instructor' && !isOwner) {
       return res.status(403).json({ message: 'You can only edit content for your own courses' });
     }
 
     const content = await CourseContent.findOneAndUpdate(
       { courseId },
       { courseId, sections },
-      { new: true, upsert: true, runValidators: true }
+      { new: true, upsert: true }
     );
 
     res.json(content);

@@ -20,7 +20,7 @@ export const validateObjectId = (paramName) => {
 
 export const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ status: 'active' });
+    const courses = await Course.find({ status: { $in: ['active', 'published'] } });
     res.json(courses);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -65,6 +65,7 @@ export const createCourse = async (req, res) => {
         qualification: instructorUser.title || 'Instructor',
         photoURL: instructorUser.photoURL
       },
+      instructorId: instructorUser._id,
       author: {
         name: instructorUser.name,
         email: instructorUser.email
@@ -92,7 +93,11 @@ export const updateCourse = async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     // Enforce ownership: instructors can only edit their own courses
-    if (req.user.role === 'instructor' && course.instructor?.email !== req.user.email) {
+    const isOwner = course.instructorId 
+      ? course.instructorId.toString() === req.user.id
+      : course.instructor?.email === req.user.email;
+
+    if (req.user.role === 'instructor' && !isOwner) {
       return res.status(403).json({ message: "Not authorized to update this course. You can only manage your own courses." });
     }
 
@@ -120,7 +125,11 @@ export const deleteCourse = async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     // Enforce ownership: instructors can only delete their own courses
-    if (req.user.role === 'instructor' && course.instructor?.email !== req.user.email) {
+    const isOwner = course.instructorId 
+      ? course.instructorId.toString() === req.user.id
+      : course.instructor?.email === req.user.email;
+
+    if (req.user.role === 'instructor' && !isOwner) {
       return res.status(403).json({ message: "Not authorized to delete this course. You can only manage your own courses." });
     }
 
@@ -135,7 +144,7 @@ export const getCoursesByCategory = async (req, res) => {
   try {
     const courses = await Course.find({ 
         category: req.params.category,
-        status: 'active' 
+        status: { $in: ['active', 'published'] }
     });
     res.json(courses);
   } catch (err) {
