@@ -214,8 +214,12 @@ const EditCourse = () => {
             topics,
             ...(statusOverride ? { status: statusOverride } : {})
         };
-        // Remove content from main course PUT payload to avoid Mongoose validation issues
+        // Remove content and metadata/immutable fields from main course payload
+        delete payload._id;
         delete payload.content;
+        delete payload.createdAt;
+        delete payload.updatedAt;
+        delete payload.__v;
 
         let savedCourse;
         if (id) {
