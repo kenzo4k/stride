@@ -148,7 +148,7 @@ const EditCourse = () => {
 
                 // Verify ownership: Instructors can only edit their own courses
                 const isOwner = courseDataResult.instructorId 
-                  ? courseDataResult.instructorId === user?.id
+                  ? courseDataResult.instructorId === (user?._id || user?.id)
                   : courseDataResult.instructor?.email === user?.email;
 
                 if (user && user.role === 'instructor' && !isOwner) {
