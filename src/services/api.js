@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../utils/constants';
 // Create base axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000,
   withCredentials: true,
 });
 

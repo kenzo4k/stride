@@ -56,7 +56,7 @@ export default function StripeContainer({ amount, courseId }) {
     <div className="w-full">
       {clientSecret ? (
         <Elements options={{ clientSecret, appearance }} stripe={stripePromise}>
-          <CheckoutForm />
+          <CheckoutForm courseId={courseId} />
         </Elements>
       ) : (
         /* Loading Skeleton to match your dark theme */

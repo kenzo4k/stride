@@ -5,7 +5,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ courseId }) {
   const stripe = useStripe();
   const elements = useElements();
   const [message, setMessage] = useState(null);
@@ -22,20 +22,33 @@ export default function CheckoutForm() {
     setIsLoading(true);
     setMessage(null); // Clear any previous errors
 
-    // 2. Confirm the payment
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        // Redirect to your completion page on success
-        return_url: `${window.location.origin}/completion`,
-      },
-    });
+    try {
+      // 2. Confirm the payment
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          // Redirect to your completion page on success
+          return_url: `${window.location.origin}/completion?courseId=${courseId}`,
+        },
+        redirect: "if_required"
+      });
 
-    // 3. Error Handling: This only runs if there's an error during confirmation
-    // If successful, the user is redirected away to the return_url
-    if (error.type === "card_error" || error.type === "validation_error") {
-      setMessage(error.message);
-    } else {
+      // 3. Handling results
+      if (error) {
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setMessage(error.message);
+        } else {
+          setMessage("An unexpected error occurred. Please try again.");
+        }
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        // If Stripe processed inline without redirecting, go to the completion page manually
+        window.location.href = `/completion?courseId=${courseId}`;
+      } else {
+        // Payment is processing or requires action (handled by redirect if redirect occurred)
+        setMessage("Payment processed. Awaiting confirmation...");
+      }
+    } catch (err) {
+      console.error(err);
       setMessage("An unexpected error occurred. Please try again.");
     }
 

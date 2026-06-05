@@ -38,7 +38,7 @@ const CourseContent = () => {
     const [error, setError] = useState(null);
     const [activeLesson, setActiveLesson] = useState(null);
     const [completedLessons, setCompletedLessons] = useState(new Set());
-    const [, setIsEnrolled] = useState(false); // Reserved for future use
+    const [isEnrolled, setIsEnrolled] = useState(false);
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [earnedXP, setEarnedXP] = useState(0);
@@ -665,12 +665,6 @@ const CourseContent = () => {
         }
     };
 
-    // Temporarily disabled for testing - Enrollment check
-    // if (!isEnrolled) {
-    //     // In a real app, you might want to show a message and a button to enroll
-    //     navigate(`/course/${courseId}`);
-    //     return null;
-    // }
 
     if (loading) {
         return (
@@ -691,6 +685,17 @@ const CourseContent = () => {
                 </div>
             </div>
         );
+    }
+
+    const isInstructor = course?.instructorId 
+        ? course.instructorId === (user?._id || user?.id)
+        : course?.instructor?.email === user?.email;
+
+    const allowed = isEnrolled || user?.role === 'admin' || isInstructor;
+
+    if (!allowed) {
+        navigate(`/course/${courseId}`);
+        return null;
     }
 
     return (

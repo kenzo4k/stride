@@ -70,7 +70,7 @@ export const createCourse = async (req, res) => {
         name: instructorUser.name,
         email: instructorUser.email
       },
-      status: 'pending'
+      status: 'active'
     });
 
     const saved = await newCourse.save();

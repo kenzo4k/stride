@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
 import PaymentSummary from './PaymentSummary';
-import PaymentForm from './PaymentForm';
+import StripeContainer from '../../components/payment/StripeContainer';
 import { courseService } from '../../services/courseService';
 
 const Payment = () => {
@@ -223,10 +223,55 @@ const Payment = () => {
 
             {/* Right Column - Payment Form */}
             <div className="lg:order-2">
-              <PaymentForm 
-                onSubmit={handlePaymentSubmit} 
-                loading={processing}
-              />
+              {import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY && 
+               import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY !== 'pk_test_placeholder' &&
+               import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY.trim() !== '' ? (
+                <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-white mb-2">Payment Details</h2>
+                    <p className="text-gray-400">Complete your enrollment with secure credit card processing via Stripe.</p>
+                  </div>
+                  <StripeContainer amount={course.price} courseId={course.id} />
+                </div>
+              ) : (
+                <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Demo Enrollment</h2>
+                    <p className="text-gray-400 font-medium">No Stripe API key detected. You can enroll for free in demo mode.</p>
+                  </div>
+                  
+                  <div className="bg-indigo-950/20 rounded-xl p-4 border border-indigo-500/20 flex items-start gap-3">
+                    <div className="p-2 bg-indigo-500/20 rounded-lg mt-0.5">
+                      <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-indigo-400 font-bold">Demo Mode Active</h4>
+                      <p className="text-xs text-gray-300 mt-1">
+                        Click the button below to simulate checkout and instantly enroll in this course.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handlePaymentSubmit()}
+                    disabled={processing}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {processing ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        Processing Enrollment...
+                      </>
+                    ) : (
+                      <>
+                        Complete Enrollment (Demo Mode)
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

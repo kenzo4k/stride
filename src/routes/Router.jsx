@@ -24,6 +24,7 @@ import CourseAssessment from "../features/assessment/CourseAssessment";
 import CourseContent from "../features/courses/CourseContent";
 import Achievements from "../pages/Achievements";
 import Settings from "../pages/Settings";
+import CompletionPage from "../pages/CompletionPage";
 
 const router = createBrowserRouter([
   {
@@ -58,7 +59,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/course/:id/payment",
-        element: <Payment />,
+        element: <PrivateRoute><Payment /></PrivateRoute>,
+      },
+      {
+        path: "/completion",
+        element: <PrivateRoute><CompletionPage /></PrivateRoute>,
       },
       {
         path: "/course/:id/learn",
