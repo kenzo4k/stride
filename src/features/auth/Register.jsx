@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, User, Mail, Lock, UserPlus, ArrowRight, ChevronDown } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 
 const Register = () => {
-    const { register, handleSubmit, formState: { errors }, watch } = useForm({
-        defaultValues: {
-            role: 'student' // Default role
-        }
-    });
+    const { register, handleSubmit, formState: { errors }, watch } = useForm();
     const { createUser } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -22,21 +19,25 @@ const Register = () => {
     const onSubmit = async (data) => {
         setIsLoading(true);
         try {
+            // Determine role from invite parameter
+            const inviteParam = new URLSearchParams(location.search).get('invite');
+            const role = ['instructor', 'admin'].includes(inviteParam) ? inviteParam : 'student';
+
             // Create user with all fields
             await createUser({
                 name: data.name,
                 email: data.email,
                 password: data.password,
-                role: data.role,
+                role: role,
                 photoURL: data.photoURL
             });
 
             toast.success("Registration successful!");
 
             // Redirect based on role
-            if (data.role === 'instructor') {
+            if (role === 'instructor') {
                 navigate('/instructor');
-            } else if (data.role === 'admin') {
+            } else if (role === 'admin') {
                 navigate('/admin');
             } else {
                 navigate('/student');
@@ -183,24 +184,6 @@ const Register = () => {
                             )}
                         </div>
 
-                        {/* Role Selection */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                                <User className="w-4 h-4 text-blue-400" />
-                                Account Type
-                            </label>
-                            <div className="relative">
-                                <select
-                                    {...register("role", { required: "Please select a role" })}
-                                    className="select select-bordered w-full bg-gray-700/80 text-white border-gray-600 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 appearance-none"
-                                >
-                                    <option value="student">Student</option>
-                                    <option value="instructor">Instructor</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                                <ChevronDown className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-                            </div>
-                        </div>
 
                         {/* Submit button */}
                         <button

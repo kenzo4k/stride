@@ -6,6 +6,7 @@ import useAuth from '../../hooks/useAuth';
 import api from '../../services/api';
 import { FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { courseService } from '../../services/courseService';
 
 
 //add courses section
@@ -58,7 +59,25 @@ const AddCourse = () => {
             language: data.language,
             prerequisites: data.prerequisites ? data.prerequisites.split(',').map(item => item.trim()) : [],
             learning_outcomes: data.learning_outcomes ? data.learning_outcomes.split(',').map(item => item.trim()) : [],
-            curriculum: data.curriculum ? data.curriculum.split('\n').filter(item => item.trim()) : [],
+            curriculum: data.curriculum
+                ? data.curriculum.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .map(line => {
+                        if (line.includes(':')) {
+                            const parts = line.split(':');
+                            return {
+                                title: parts[0].trim(),
+                                description: parts.slice(1).join(':').trim()
+                            };
+                        } else {
+                            return {
+                                title: line,
+                                description: ''
+                            };
+                        }
+                    })
+                : [],
             instructor: {
                 name: data.instructor_name || user?.displayName,
                 email: user?.email,
@@ -80,9 +99,9 @@ const AddCourse = () => {
 
         //data fetch section
         try {
-            const response = await api.post('/courses', courseData);
+            const newCourse = await courseService.createCourse(courseData);
 
-            if (response.data.insertedId) {
+            if (newCourse._id || newCourse.insertedId) {
                 // Success notification
                 await Swal.fire({
                     icon: 'success',

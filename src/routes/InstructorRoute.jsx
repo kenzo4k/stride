@@ -8,7 +8,7 @@ const InstructorRoute = ({ children }) => {
 
   if (loading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/Auth/login" replace />;
-  if (user.role !== 'instructor') return <Navigate to="/" replace />;
+  if (user.role !== 'instructor' && user.role !== 'admin') return <Navigate to="/" replace />;
 
   return children;
 };

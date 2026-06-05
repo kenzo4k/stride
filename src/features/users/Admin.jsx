@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 import {
   Users,
   BookOpen,
@@ -143,7 +144,30 @@ const Admin = () => {
 
   const handleRefundAction = async (enrollmentId, action) => {
     try {
-      await api.post(`/admin/enrollments/${enrollmentId}/refund`, { action });
+      if (action === 'deny') {
+        const { value: inputReason } = await Swal.fire({
+          title: 'Deny Refund Request',
+          input: 'text',
+          inputLabel: 'Reason for denial',
+          inputPlaceholder: 'Enter reason here...',
+          showCancelButton: true,
+          inputValidator: (value) => {
+            if (!value) {
+              return 'You need to write a reason!';
+            }
+          },
+          background: '#1f2937',
+          color: '#f3f4f6'
+        });
+
+        if (inputReason === undefined) {
+          return;
+        }
+
+        await api.post(`/admin/enrollments/${enrollmentId}/refund`, { action: 'deny', reason: inputReason });
+      } else {
+        await api.post(`/admin/enrollments/${enrollmentId}/refund`, { action });
+      }
       toast.success(`Refund request ${action}ed successfully`);
       fetchAdminData();
     } catch (error) {
@@ -170,7 +194,7 @@ const Admin = () => {
             <p className="text-gray-400">Manage platform users, courses, and pending requests</p>
           </div>
           <button 
-            onClick={() => navigate('/edit-course')}
+            onClick={() => navigate('/add-course')}
             className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition"
           >
             <Plus className="w-5 h-5" />

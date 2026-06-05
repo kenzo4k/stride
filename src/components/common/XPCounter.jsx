@@ -1,8 +1,8 @@
 import React from 'react';
 
 const XPCounter = ({ xp = 450, compact = false }) => {
-  const currentLevel = Math.floor(xp / 100);
-  const xpInCurrentLevel = xp - (currentLevel * 100);
+  const currentLevel = Math.floor(xp / 100) + 1;
+  const xpInCurrentLevel = xp % 100;
   const progressToNextLevel = Math.round((xpInCurrentLevel / 100) * 100);
 
   if (compact) {

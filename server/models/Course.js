@@ -74,6 +74,7 @@ const courseSchema = new mongoose.Schema({
   },
   prerequisites: [String],
   learning_outcomes: [String],
+  curriculum: [{ title: { type: String }, description: { type: String } }],
   topics: [String],
   tags: [String],
   status: {

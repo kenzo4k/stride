@@ -239,7 +239,7 @@ const Student = () => {
 
         {/* Navigation Tabs */}
         <div className="flex space-x-1 mb-8 border-b border-gray-700 overflow-x-auto">
-          {['overview', 'courses', 'progress', 'achievements'].map((tab) => (
+          {['overview', 'courses', 'progress', 'achievements', 'leaderboard'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -545,6 +545,13 @@ const Student = () => {
         {activeTab === 'achievements' && (
           <div className="space-y-6">
             <Badges userEmail={user?.email} />
+          </div>
+        )}
+        
+        {/* Leaderboard Tab */}
+        {activeTab === 'leaderboard' && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <Leaderboard />
           </div>
         )}
       </div>

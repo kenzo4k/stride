@@ -8,7 +8,8 @@ import {
     deleteUser,
     getMe,
     updateSettings,
-    getPublicInstructors
+    getPublicInstructors,
+    changePassword
 } from '../controllers/userController.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 
@@ -21,6 +22,7 @@ router.get('/public/instructors', getPublicInstructors);
 // Protected (any authenticated user)
 router.get('/me', verifyToken, getMe);
 router.patch('/settings', verifyToken, updateSettings);
+router.put('/change-password', verifyToken, changePassword);
 router.get('/:id', verifyToken, getUserById);
 router.put('/profile', verifyToken, updateProfile);
 

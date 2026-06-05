@@ -38,6 +38,18 @@ export const courseService = {
     return response.data;
   },
 
+  // Get course assessment
+  getCourseAssessment: async (id) => {
+    const response = await api.get(`/courses/${id}/assessment`);
+    return response.data;
+  },
+
+  // Update course assessment
+  updateCourseAssessment: async (id, assessmentData) => {
+    const response = await api.put(`/courses/${id}/assessment`, assessmentData);
+    return response.data;
+  },
+
   // Delete course
   deleteCourse: async (id) => {
     const response = await api.delete(`/courses/${id}`);

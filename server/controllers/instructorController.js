@@ -80,28 +80,46 @@ export const getInstructorStudents = async (req, res) => {
         });
         const courseIds = courses.map(c => c._id);
 
-        const enrollments = await Enrollment.find({ courseId: { $in: courseIds } }).populate('userId');
+        const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
+            .populate('userId')
+            .populate('courseId');
         
         // Unique students
         const studentsMap = {};
         enrollments.forEach(e => {
-            if (!studentsMap[e.userId._id]) {
-                studentsMap[e.userId._id] = {
+            if (!e.userId || !e.courseId) return;
+            const studentId = e.userId._id.toString();
+            if (!studentsMap[studentId]) {
+                studentsMap[studentId] = {
                     _id: e.userId._id,
                     displayName: e.userId.name,
                     email: e.userId.email,
+                    lastLogin: e.userId.lastLogin,
                     enrolledCourses: 0,
-                    progress: 0
+                    progressSum: 0,
+                    gradeSum: 0,
+                    courses: []
                 };
             }
-            studentsMap[e.userId._id].enrolledCourses++;
-            // progress could be average progress
-            studentsMap[e.userId._id].progress += e.progress;
+            studentsMap[studentId].enrolledCourses++;
+            studentsMap[studentId].progressSum += e.progress || 0;
+            studentsMap[studentId].gradeSum += e.grade || 0;
+            studentsMap[studentId].courses.push({
+                title: e.courseId.title,
+                progress: e.progress,
+                enrolledAt: e.enrolledAt
+            });
         });
 
         const students = Object.values(studentsMap).map(s => ({
-            ...s,
-            progress: s.progress / s.enrolledCourses
+            _id: s._id,
+            displayName: s.displayName,
+            email: s.email,
+            lastLogin: s.lastLogin,
+            enrolledCourses: s.enrolledCourses,
+            progress: s.enrolledCourses > 0 ? (s.progressSum / s.enrolledCourses) : 0,
+            avgGrade: s.enrolledCourses > 0 ? (s.gradeSum / s.enrolledCourses) : 0,
+            courses: s.courses
         }));
 
         res.json(students);
@@ -223,11 +241,97 @@ export const getStudentAnalytics = async (req, res) => {
 };
 
 export const sendReminder = async (req, res) => {
-    // This is a stub as actual email sending is not requested
-    res.json({ message: "Reminder sent successfully" });
+    try {
+        const { studentId } = req.params;
+        const { message } = req.body || {};
+
+        // Find the student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Get the instructor
+        const instructor = await User.findById(req.user.id);
+        if (!instructor) {
+            return res.status(404).json({ message: "Instructor not found" });
+        }
+
+        // Find instructor's courses
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
+        const courseIds = courses.map(c => c._id);
+
+        // Find student's enrollment in one of these courses to get the course title
+        const enrollment = await Enrollment.findOne({
+            userId: studentId,
+            courseId: { $in: courseIds }
+        }).populate('courseId');
+
+        const courseTitle = enrollment && enrollment.courseId ? enrollment.courseId.title : "Unknown Course";
+        const reminderMsg = message || `Hi ${student.name}, please remember to check back into your course: ${courseTitle}.`;
+
+        console.log(`[Reminder Sent]
+Recipient ID: ${student._id}
+Recipient Email: ${student.email}
+Course Title: ${courseTitle}
+Message: ${reminderMsg}
+`);
+
+        res.json({ message: "Reminder sent successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
 };
 
 export const sendBulkReminder = async (req, res) => {
-    // This is a stub
-    res.json({ message: "Bulk reminders sent successfully" });
+    try {
+        const { studentIds, message } = req.body || {};
+        if (!studentIds || !Array.isArray(studentIds)) {
+            return res.status(400).json({ message: "studentIds array is required" });
+        }
+
+        // Get the instructor
+        const instructor = await User.findById(req.user.id);
+        if (!instructor) {
+            return res.status(404).json({ message: "Instructor not found" });
+        }
+
+        // Find instructor's courses
+        const courses = await Course.find({
+            $or: [
+                { instructorId: instructor._id },
+                { "instructor.email": instructor.email }
+            ]
+        });
+        const courseIds = courses.map(c => c._id);
+
+        for (const studentId of studentIds) {
+            const student = await User.findById(studentId);
+            if (!student) continue;
+
+            const enrollment = await Enrollment.findOne({
+                userId: studentId,
+                courseId: { $in: courseIds }
+            }).populate('courseId');
+
+            const courseTitle = enrollment && enrollment.courseId ? enrollment.courseId.title : "Unknown Course";
+            const reminderMsg = message || `Hi ${student.name}, please remember to check back into your course: ${courseTitle}.`;
+
+            console.log(`[Bulk Reminder Sent]
+Recipient ID: ${student._id}
+Recipient Email: ${student.email}
+Course Title: ${courseTitle}
+Message: ${reminderMsg}
+`);
+        }
+
+        res.json({ message: "Bulk reminders sent successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
 };

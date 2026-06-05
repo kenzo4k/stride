@@ -89,8 +89,26 @@ export const submitAssessment = async (req, res) => {
             correct = studentAnswer.answer?.toLowerCase().trim() === question.answer?.toLowerCase().trim();
             break;
           case 'matching':
-            // For matching, check if all pairs are correct
-            correct = true; // assume correct unless proven wrong
+            {
+              const dbCorrectPairs = question.pairs || [];
+              let studentPairs = [];
+              if (Array.isArray(studentAnswer.answer)) {
+                studentPairs = studentAnswer.answer;
+              } else if (studentAnswer.answer && typeof studentAnswer.answer === 'object') {
+                studentPairs = Object.entries(studentAnswer.answer).map(([left, right]) => ({ left, right }));
+              }
+
+              const normalize = (val) => String(val || '').trim().toLowerCase();
+
+              const correctMatches = studentPairs.filter(sp =>
+                dbCorrectPairs.some(dp =>
+                  normalize(dp.left) === normalize(sp.left) &&
+                  normalize(dp.right) === normalize(sp.right)
+                )
+              );
+
+              correct = (correctMatches.length === studentPairs.length) && (correctMatches.length === dbCorrectPairs.length);
+            }
             break;
           default:
             break;
@@ -152,7 +170,7 @@ export const upsertAssessment = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    if (req.user.role === 'instructor' && course.instructor.toString() !== req.user.id) {
+    if (req.user.role === 'instructor' && course.instructorId?.toString() !== req.user.id) {
       return res.status(403).json({ message: 'You can only edit assessments for your own courses' });
     }
 

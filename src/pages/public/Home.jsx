@@ -7,7 +7,7 @@ import PopularCourses from './PopularCourses';
 import TopInstructors from './TopInstructors';
 import Testimonials from './Testimonials';
 import Categories from './Categories';
-import Newsletter from './Newsletter';
+
 import { RecommendedCourses } from '../../components/common';
 
 

@@ -8,10 +8,12 @@ const Login = () => {
   const { register, handleSubmit } = useForm();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
 
   const handleLogin = async (data) => {
     const { email, password } = data;
+    setIsLoading(true);
 
     try {
       const response = await signIn(email, password);
@@ -35,6 +37,8 @@ const Login = () => {
       const message = err.response?.data?.message || "Invalid email or password";
       setError(message);
       toast.error(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,9 +96,17 @@ const Login = () => {
             {/* Login Button */}
             <button
               type="submit"
-              className="btn bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none w-full shadow-lg transition-all duration-200"
+              disabled={isLoading}
+              className="btn bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none w-full shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
             >
-              Sign In
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
 
             <div className="text-center text-gray-400 text-sm mt-4">

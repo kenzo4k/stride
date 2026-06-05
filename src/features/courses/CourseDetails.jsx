@@ -153,9 +153,10 @@ const CourseDetails = () => {
                                             key={star}
                                             type="radio"
                                             name="rating"
-                                            className="mask mask-star-2 bg-orange-400"
+                                            className="mask mask-star-2 bg-orange-400 pointer-events-none"
                                             checked={star <= (course?.rating || 0)}
                                             readOnly
+                                            disabled
                                         />
                                     ))}
                                 </div>
@@ -331,7 +332,7 @@ const CourseDetails = () => {
                                     </button>
                                 ) : !user ? (
                                     <button
-                                        onClick={() => navigate('/login', { state: { from: location }, replace: true })}
+                                        onClick={() => navigate('/Auth/login', { state: { from: location }, replace: true })}
                                         className="btn bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none btn-wide w-full"
                                     >
                                         Login to Enroll
@@ -360,14 +361,16 @@ const CourseDetails = () => {
                             </div>
 
                             {/* Assessment Button */}
-                            <div className="mt-4">
-                                <button
-                                    onClick={() => navigate(`/course/${id}/assessment`)}
-                                    className="btn bg-green-600 hover:bg-green-700 text-white border-none btn-wide w-full"
-                                >
-                                    Take Assessment
-                                </button>
-                            </div>
+                            {isEnrolled && (
+                                <div className="mt-4">
+                                    <button
+                                        onClick={() => navigate(`/course/${id}/assessment`)}
+                                        className="btn bg-green-600 hover:bg-green-700 text-white border-none btn-wide w-full"
+                                    >
+                                        Take Assessment
+                                    </button>
+                                </div>
+                            )}
                             {course?.tags && course.tags.length > 0 && (
                                 <div className="mt-6">
                                     <h3 className="text-sm font-medium text-gray-400 mb-2">Tags:</h3>

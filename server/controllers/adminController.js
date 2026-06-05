@@ -107,7 +107,7 @@ export const getInstructors = async (req, res) => {
                 totalCourses: courses.length,
                 totalStudents: enrollments.length,
                 totalRevenue: totalRevenue,
-                status: 'active'
+                status: inst.status || 'active'
             };
         }));
         res.json(instructorsWithStats);

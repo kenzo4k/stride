@@ -29,7 +29,7 @@ const Payment = () => {
         // Check authentication first
         if (!user) {
           toast.error("Please login to continue with payment.");
-          return navigate('/login', { 
+          return navigate('/Auth/login', { 
             state: { from: location, returnTo: `/course/${courseId}/payment` }, 
             replace: true 
           });
@@ -174,29 +174,6 @@ const Payment = () => {
               className="btn btn-sm btn-outline border-yellow-600 text-yellow-100 hover:bg-yellow-800"
             >
               Back to Course
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user already owns the course
-  const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-  if (enrolledCourses.includes(courseId)) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="alert alert-info max-w-md bg-blue-900 border border-blue-700 text-blue-100">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>You are already enrolled in this course.</span>
-          <div>
-            <button 
-              onClick={() => navigate(`/course/${courseId}/learn`)}
-              className="btn btn-sm btn-outline border-blue-600 text-blue-100 hover:bg-blue-800"
-            >
-              Go to Course
             </button>
           </div>
         </div>

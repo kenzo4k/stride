@@ -8,14 +8,8 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogOut = () => {
-    logOut()
-      .then(() => {
-        toast.success('Successfully logged out!');
-        setIsMobileMenuOpen(false);
-      })
-      .catch(error => {
-        toast.error(error.message);
-      });
+    setIsMobileMenuOpen(false);
+    logOut();
   };
 
   const toggleMobileMenu = () => {
@@ -175,22 +169,22 @@ const Navbar = () => {
                         {user?.photoURL ? (
                           <img
                             src={user.photoURL}
-                            alt={user?.displayName || 'User'}
+                            alt={user?.name || user?.displayName || 'User'}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = `<span class="text-white text-sm font-semibold">${(user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}</span>`;
+                              e.target.parentElement.innerHTML = `<span class="text-white text-sm font-semibold">${((user?.name || user?.displayName)?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}</span>`;
                             }}
                           />
                         ) : (
                           <span className="text-white text-sm font-semibold">
-                            {(user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+                            {((user?.name || user?.displayName)?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
                           </span>
                         )}
                       </div>
                       <div className="hidden lg:block text-left">
                         <p className="text-sm font-medium text-white">
-                          {user?.displayName || 'User'}
+                          {user?.name || user?.displayName || 'User'}
                         </p>
                         <p className="text-xs text-gray-400">
                           {user?.email}
@@ -215,7 +209,7 @@ const Navbar = () => {
                         <div className={`px-4 py-2 border-b ${'border-gray-700'
                           }`}>
                           <p className="text-sm font-medium text-white">
-                            {user?.displayName || 'User'}
+                            {user?.name || user?.displayName || 'User'}
                           </p>
                           <p className="text-xs text-gray-300">
                             {user?.email}
@@ -298,7 +292,7 @@ const Navbar = () => {
                               <span>📊</span> Dashboard
                             </Link>
                             <Link
-                              to="/admin/users"
+                              to="/admin"
                               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-red-800 hover:text-white transition-colors duration-200"
                             >
                               <span>👥</span> Users
@@ -516,7 +510,7 @@ const Navbar = () => {
                 <button
                   onClick={() => {
                     closeMobileMenu();
-                    logout();
+                    handleLogOut();
                   }}
                   className="w-full text-left block px-3 py-2 rounded-lg text-base font-medium text-red-400 hover:text-white hover:bg-red-900 transition-colors duration-200 mt-2"
                 >

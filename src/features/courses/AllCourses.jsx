@@ -34,11 +34,7 @@ const AllCourses = () => {
       try {
         const data = await courseService.getAllCourses();
 
-        // Filter out courses that were "deleted" in this session
-        const deletedCourseIds = JSON.parse(localStorage.getItem('deletedCourses') || '[]');
-        const filteredData = data.filter(course => !deletedCourseIds.includes(course._id));
-
-        setCourses(filteredData);
+        setCourses(data);
       } catch (error) {
         console.error('Error loading courses data:', error);
         setError('Could not load courses data.');

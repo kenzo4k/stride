@@ -76,9 +76,9 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">Explore</h3>
             <ul className="space-y-3">
               <li><Link to="/" className="text-gray-400 hover:text-cyan-400 transition-colors">Home</Link></li>
-              <li><Link to="/instructors" className="text-gray-400 hover:text-cyan-400 transition-colors">Instructors</Link></li>
-              <li><Link to="/blog" className="text-gray-400 hover:text-cyan-400 transition-colors">Blog</Link></li>
-              <li><Link to="/events" className="text-gray-400 hover:text-cyan-400 transition-colors">Events</Link></li>
+              <li><Link to="/courses" className="text-gray-400 hover:text-cyan-400 transition-colors">All Courses</Link></li>
+              <li><Link to="/Auth/login" className="text-gray-400 hover:text-cyan-400 transition-colors">Login</Link></li>
+              <li><Link to="/Auth/register" className="text-gray-400 hover:text-cyan-400 transition-colors">Get Started</Link></li>
             </ul>
           </div>
 
@@ -136,9 +136,8 @@ const Footer = () => {
               &copy; {new Date().getFullYear()} Stride. All rights reserved.
             </p>
             <div className="flex space-x-6">
-              <Link to="/privacy-policy" className="text-gray-500 hover:text-purple-400 text-sm transition-colors">Privacy Policy</Link>
-              <Link to="/terms" className="text-gray-500 hover:text-purple-400 text-sm transition-colors">Terms</Link>
-              <Link to="/sitemap" className="text-gray-500 hover:text-purple-400 text-sm transition-colors">Sitemap</Link>
+              <span className="text-gray-500 text-sm">Privacy Policy</span>
+              <span className="text-gray-500 text-sm">Terms</span>
             </div>
           </div>
         </div>

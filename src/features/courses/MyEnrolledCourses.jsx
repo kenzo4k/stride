@@ -67,19 +67,31 @@ const MyEnrolledCourses = () => {
             confirmButtonText: 'Yes, remove it!',
             background: '#1f2937',
             color: '#f3f4f6'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                // Future: call API to actually remove enrollment
-                Swal.fire({
-                    title: 'Removed!',
-                    text: 'Your enrollment has been removed.',
-                    icon: 'success',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                setEnrolledCourses(prev => prev.filter(course => course._id !== courseId));
+                try {
+                    await api.post(`/enrollments/${courseId}/unenroll`, {
+                        reason: 'Removed by student from My Courses page'
+                    });
+                    Swal.fire({
+                        title: 'Removed!',
+                        text: 'Your enrollment has been removed.',
+                        icon: 'success',
+                        background: '#1f2937',
+                        color: '#f3f4f6',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    setEnrolledCourses(prev => prev.filter(course => course._id !== courseId));
+                } catch (error) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: error.response?.data?.message || 'Failed to remove enrollment.',
+                        icon: 'error',
+                        background: '#1f2937',
+                        color: '#f3f4f6'
+                    });
+                }
             }
         });
     };

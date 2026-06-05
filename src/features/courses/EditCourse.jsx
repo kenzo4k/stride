@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
 import CourseContentEditor from './CourseContentEditor';
-import { FileText, Video, List, BookOpen, Settings } from 'lucide-react';
+import CourseAssessmentEditor from './CourseAssessmentEditor';
+import { FileText, Video, List, BookOpen, Settings, CheckSquare } from 'lucide-react';
 import { courseService } from '../../services/courseService';
 
 import { API_BASE_URL } from '../../utils/constants';
@@ -120,6 +121,8 @@ const EditCourse = () => {
         completion_certificate: true
     });
     const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [assessmentData, setAssessmentData] = useState({ topics: [] });
 
     useEffect(() => {
         if (!id) {
@@ -132,11 +135,15 @@ const EditCourse = () => {
                 setLoading(true);
                 
                 // Fetch course details and content concurrently
-                const [courseDataResult, courseContentResult] = await Promise.all([
+                const [courseDataResult, courseContentResult, assessmentResult] = await Promise.all([
                     courseService.getCourseById(id),
                     courseService.getCourseContent(id).catch(err => {
                         console.warn("No course content found yet or failed to fetch:", err.message);
                         return null;
+                    }),
+                    courseService.getCourseAssessment(id).catch(err => {
+                        console.warn("No course assessment found yet or failed to fetch:", err.message);
+                        return { topics: [] };
                     })
                 ]);
 
@@ -144,6 +151,10 @@ const EditCourse = () => {
                     toast.error('Course not found.');
                     setLoading(false);
                     return;
+                }
+
+                if (assessmentResult && assessmentResult.topics) {
+                    setAssessmentData(assessmentResult);
                 }
 
                 // Verify ownership: Instructors can only edit their own courses
@@ -230,30 +241,42 @@ const EditCourse = () => {
 
         // Save sections content to the CourseContent collection
         const courseId = id || savedCourse?._id || savedCourse?.id;
-        if (courseId && courseData.content) {
-            const transformedSections = transformEditorToViewer(courseData.content);
-            await courseService.updateCourseContent(courseId, transformedSections).catch(err => {
-                console.error("Failed to save course content:", err);
-                toast.error("Basic info saved, but content failed to save.");
-            });
+        if (courseId) {
+            if (courseData.content) {
+                const transformedSections = transformEditorToViewer(courseData.content);
+                await courseService.updateCourseContent(courseId, transformedSections).catch(err => {
+                    console.error("Failed to save course content:", err);
+                    toast.error("Basic info saved, but content failed to save.");
+                });
+            }
+            if (assessmentData && assessmentData.topics) {
+                await courseService.updateCourseAssessment(courseId, assessmentData).catch(err => {
+                    console.error("Failed to save course assessment:", err);
+                    toast.error("Saved, but assessment failed to save.");
+                });
+            }
         }
         return savedCourse;
     };
 
     const handleUpdateCourse = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
+        setIsSaving(true);
         try {
             await saveCourse();
             toast.success(`Course ${id ? 'updated' : 'created'} successfully!`);
             navigate('/manage-courses');
         } catch (error) {
             toast.error(error.response?.data?.message || error.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const tabs = [
         { id: 'basic', name: 'Basic Info', icon: <FileText size={18} className="mr-2" /> },
         { id: 'content', name: 'Course Content', icon: <List size={18} className="mr-2" /> },
+        { id: 'assessment', name: 'Assessment', icon: <CheckSquare size={18} className="mr-2" /> },
         { id: 'media', name: 'Media', icon: <Video size={18} className="mr-2" /> },
         { id: 'settings', name: 'Settings', icon: <Settings size={18} className="mr-2" /> }
     ];
@@ -343,6 +366,15 @@ const EditCourse = () => {
                         <CourseContentEditor 
                             content={courseData.content || []} 
                             onChange={handleContentChange} 
+                        />
+                    </div>
+                );
+            case 'assessment':
+                return (
+                    <div className="bg-gray-700 p-6 rounded-lg">
+                        <CourseAssessmentEditor 
+                            assessmentData={assessmentData} 
+                            onChange={setAssessmentData} 
                         />
                     </div>
                 );
@@ -536,7 +568,11 @@ const EditCourse = () => {
                         <div className="flex justify-between pt-6 border-t border-gray-700">
                             <button
                                 type="button"
-                                onClick={() => navigate(-1)}
+                                onClick={() => {
+                                    if (window.confirm("Are you sure you want to discard your unsaved changes?")) {
+                                        navigate(-1);
+                                    }
+                                }}
                                 className="px-6 py-2 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors"
                             >
                                 Cancel
@@ -544,23 +580,29 @@ const EditCourse = () => {
                             <div className="space-x-4">
                                 <button
                                     type="button"
-                                    className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                    disabled={isSaving}
+                                    className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
                                     onClick={async () => {
+                                        setIsSaving(true);
                                         try {
                                             await saveCourse('draft');
                                             toast.success('Course saved as draft successfully!');
                                             navigate('/manage-courses');
                                         } catch (error) {
                                             toast.error(error.response?.data?.message || error.message);
+                                        } finally {
+                                            setIsSaving(false);
                                         }
                                     }}
                                 >
-                                    Save as Draft
+                                    {isSaving ? 'Saving...' : 'Save as Draft'}
                                 </button>
                                 <button
                                     type="button"
-                                    className="px-6 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
+                                    disabled={isSaving}
+                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                                     onClick={async () => {
+                                        setIsSaving(true);
                                         try {
                                             const data = await saveCourse();
                                             toast.success('Course changes saved!');
@@ -570,25 +612,31 @@ const EditCourse = () => {
                                             }
                                         } catch (error) {
                                             toast.error(error.response?.data?.message || error.message);
+                                        } finally {
+                                            setIsSaving(false);
                                         }
                                     }}
                                 >
-                                    Preview Course
+                                    {isSaving ? 'Saving...' : 'Preview Course'}
                                 </button>
                                 <button
                                     type="button"
-                                    className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors"
+                                    disabled={isSaving}
+                                    className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors disabled:opacity-50"
                                     onClick={async () => {
+                                        setIsSaving(true);
                                         try {
                                             await saveCourse('published');
                                             toast.success('Course published successfully!');
                                             navigate('/manage-courses');
                                         } catch (error) {
                                             toast.error(error.response?.data?.message || error.message);
+                                        } finally {
+                                            setIsSaving(false);
                                         }
                                     }}
                                 >
-                                    Publish Course
+                                    {isSaving ? 'Saving...' : 'Publish Course'}
                                 </button>
                             </div>
                         </div>

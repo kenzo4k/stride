@@ -102,12 +102,35 @@ import api from '../../services/api';
     ? (students.filter(s => s.progress === 100).length / students.length * 100)
     : 0;
 
-  const recentActivities = students.slice(0, 5).map((student, idx) => ({
-    user: student.displayName || student.email || 'Unknown Student',
-    action: student.progress > 0 ? `reached ${student.progress.toFixed(0)}% progress in` : 'enrolled in',
-    course: 'their course',
-    time: 'recently'
-  }));
+  const getRelativeTime = (dateString) => {
+    if (!dateString) return 'recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    if (isNaN(diffMs) || diffMs < 0) return new Date(dateString).toLocaleDateString();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const allActivities = students.flatMap(student => 
+    (student.courses || []).map(course => ({
+      user: student.displayName || student.email || 'Unknown Student',
+      action: course.progress > 0 ? `reached ${course.progress.toFixed(0)}% progress in` : 'enrolled in',
+      course: course.title || 'their course',
+      enrolledAt: course.enrolledAt ? new Date(course.enrolledAt) : new Date(0),
+      time: getRelativeTime(course.enrolledAt)
+    }))
+  );
+
+  const recentActivities = allActivities
+    .sort((a, b) => b.enrolledAt - a.enrolledAt)
+    .slice(0, 5);
 
   if (loading) {
     return (
@@ -445,7 +468,7 @@ import api from '../../services/api';
                         </td>
                         <td className="py-3 px-4 text-gray-400">{student.email}</td>
                         <td className="py-3 px-4">{student.enrolledCourses || 0}</td>
-                        <td className="py-3 px-4">-</td>
+                        <td className="py-3 px-4">{student.avgGrade ? `${student.avgGrade.toFixed(1)}%` : 'N/A'}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-2">
                             <div className="w-24 bg-gray-700 rounded-full h-2">

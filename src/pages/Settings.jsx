@@ -89,7 +89,8 @@ const Settings = () => {
     } catch {
       parsedSettings = {};
     }
-    parsedSettings[userKey] = settings;
+    const { account, ...settingsWithoutPasswords } = settings;
+    parsedSettings[userKey] = settingsWithoutPasswords;
     localStorage.setItem('userSettings', JSON.stringify(parsedSettings));
     toast.success('Settings saved', { id: 'settings-saved' });
   }, [settings, userKey, hasLoaded, skipSave]);
@@ -164,8 +165,26 @@ const Settings = () => {
     toast.success('Settings reset to defaults', { id: 'settings-reset' });
   };
 
-  const handlePasswordUpdate = () => {
-    toast('Password update saved locally', { icon: '🔒', id: 'password-update' });
+  const handlePasswordUpdate = async () => {
+    const { currentPassword, newPassword, confirmPassword } = settings.account;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return toast.error('Please fill in all password fields.', { id: 'password-error' });
+    }
+    if (newPassword !== confirmPassword) {
+      return toast.error('New passwords do not match.', { id: 'password-error' });
+    }
+    if (newPassword.length < 8) {
+      return toast.error('Password must be at least 8 characters.', { id: 'password-error' });
+    }
+    try {
+      await api.put('/users/change-password', { currentPassword, newPassword });
+      toast.success('Password updated successfully!', { icon: '🔒', id: 'password-update' });
+      handleAccountChange('currentPassword', '');
+      handleAccountChange('newPassword', '');
+      handleAccountChange('confirmPassword', '');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update password.', { id: 'password-error' });
+    }
   };
 
   const summaryItems = useMemo(

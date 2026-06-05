@@ -9,7 +9,7 @@ const MainLayout = () => {
   const location = useLocation();
 
   
-  const pathsWithoutFooter = ['/login', '/register'];
+  const pathsWithoutFooter = ['/Auth/login', '/Auth/register'];
 
  
   const showFooter = !pathsWithoutFooter.includes(location.pathname);

@@ -16,14 +16,11 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create user
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password,
       role: role || 'student',
       photoURL,
     });
@@ -35,7 +32,10 @@ export const register = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.status(201).json({ user, token });
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({ user: userResponse, token });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -99,7 +99,10 @@ export const login = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.status(200).json({ user, token });
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(200).json({ user: userResponse, token });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

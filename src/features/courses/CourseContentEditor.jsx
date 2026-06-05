@@ -226,20 +226,19 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
               <div className="space-y-2">
                 {content.options?.map((option, i) => (
                   <div key={i} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={content.correctAnswers?.includes(i) || false}
-                      onChange={(e) => {
-                        const correctAnswers = [...(content.correctAnswers || [])];
-                        if (e.target.checked) {
-                          correctAnswers.push(i);
-                        } else {
-                          const index = correctAnswers.indexOf(i);
-                          if (index > -1) correctAnswers.splice(index, 1);
-                        }
-                        onUpdate({ ...content, correctAnswers });
-                      }}
-                    />
+                    <div className="flex flex-col items-center justify-center mr-2">
+                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-1">Correct</span>
+                      <input
+                        type="radio"
+                        name={`correct-answer-${content.id}`}
+                        checked={content.correctAnswers?.includes(i) || false}
+                        onChange={() => {
+                          onUpdate({ ...content, correctAnswers: [i] });
+                        }}
+                        className="radio radio-success radio-sm border-gray-600"
+                        title="Mark as correct answer"
+                      />
+                    </div>
                     <input
                       type="text"
                       value={option}
