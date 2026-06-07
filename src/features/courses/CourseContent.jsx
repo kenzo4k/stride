@@ -127,6 +127,12 @@ const CourseContent = () => {
                 if (combinedCourse?.sections?.[0]?.lessons?.[0]) {
                     setActiveLesson(combinedCourse.sections[0].lessons[0]);
                 }
+
+                // Expand the first section by default
+                if (combinedCourse?.sections?.[0]) {
+                    const firstSectionId = combinedCourse.sections[0].id || combinedCourse.sections[0]._id || 'section-0';
+                    setExpandedSections(new Set([firstSectionId]));
+                }
             } catch (err) {
                 console.error("Failed to load content", err);
                 setError('An error occurred while loading the course content');
@@ -307,14 +313,36 @@ const CourseContent = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-6"
                     >
-                        <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl ring-1 ring-gray-700">
-                            <ReactPlayer
-                                url={activeLesson.content}
-                                width="100%"
-                                height="100%"
-                                controls
-                                onEnded={() => markLessonComplete(activeLesson.id)}
-                            />
+                        <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl ring-1 ring-gray-700 flex items-center justify-center">
+                            {(activeLesson.videoInputType === 'file' || activeLesson.content?.includes('cloudinary.com') || activeLesson.content?.match(/\.(mp4|webm|ogg|mov)($|\?)/i)) ? (
+                                <video
+                                    key={activeLesson.content}
+                                    src={activeLesson.content}
+                                    className="w-full h-full object-contain"
+                                    controls
+                                    playsInline
+                                    controlsList="nodownload"
+                                    onEnded={() => markLessonComplete(activeLesson.id)}
+                                />
+                            ) : (
+                                <ReactPlayer
+                                    key={activeLesson.content}
+                                    url={activeLesson.content}
+                                    width="100%"
+                                    height="100%"
+                                    controls
+                                    playsinline
+                                    config={{
+                                        file: {
+                                            attributes: {
+                                                crossOrigin: "anonymous",
+                                                controlsList: "nodownload"
+                                            }
+                                        }
+                                    }}
+                                    onEnded={() => markLessonComplete(activeLesson.id)}
+                                />
+                            )}
                         </div>
                         <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700">
                             <div className="flex items-center space-x-4">
@@ -1032,15 +1060,16 @@ const CourseContent = () => {
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
                         {course?.sections?.map((section, sectionIndex) => {
-                            const isExpanded = expandedSections.has(section.id);
+                            const sectionId = section.id || section._id || `section-${sectionIndex}`;
+                            const isExpanded = expandedSections.has(sectionId);
                             const sectionProgress = section.lessons?.filter(l => completedLessons.has(l.id)).length;
                             const sectionTotal = section.lessons?.length || 0;
                             const sectionPercent = (sectionProgress / sectionTotal) * 100;
 
                             return (
-                                <div key={section.id || sectionIndex} className="group">
+                                <div key={sectionId} className="group">
                                     <button
-                                        onClick={() => toggleSection(section.id)}
+                                        onClick={() => toggleSection(sectionId)}
                                         className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
                                             isExpanded ? 'bg-gray-800/50 shadow-inner' : 'hover:bg-gray-800/30'
                                         }`}
