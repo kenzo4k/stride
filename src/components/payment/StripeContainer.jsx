@@ -4,8 +4,14 @@ import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "./CheckoutForm";
 import api from "../../services/api";
 
-// Initialize Stripe with your Publishable Key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// Initialize Stripe with your Publishable Key safely (prevent top-level crash if undefined)
+const stripePromise = (() => {
+  const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+  if (key && key.startsWith('pk_')) {
+    return loadStripe(key);
+  }
+  return null;
+})();
 
 export default function StripeContainer({ amount, courseId }) {
   const [clientSecret, setClientSecret] = useState("");
@@ -15,8 +21,8 @@ export default function StripeContainer({ amount, courseId }) {
     // Reset error state on new request
     setError(null);
 
-    // Ensure we only fetch if amount exists
-    if (amount > 0) {
+    // Ensure we only fetch if amount exists and Stripe is configured
+    if (amount > 0 && stripePromise) {
       api.post("/create-payment-intent", { amount, courseId })
         .then((res) => setClientSecret(res.data.clientSecret))
         .catch((err) => {
@@ -43,6 +49,14 @@ export default function StripeContainer({ amount, courseId }) {
       },
     },
   };
+
+  if (!stripePromise) {
+    return (
+      <div className="text-red-400 p-4 bg-red-950/20 border border-red-500/20 rounded-lg text-sm text-center">
+        Stripe publishable key is missing or invalid. Please check your configuration.
+      </div>
+    );
+  }
 
   if (error) {
     return (

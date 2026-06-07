@@ -1,8 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, X, FileText, Video, FileCode, ListChecks, Play } from 'lucide-react';
+import { Plus, X, FileText, Video, FileCode, ListChecks, Play, Upload, File, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '../../services/api';
 
-// Simple code editor supporting JavaScript and Python
+// ─── File Upload Helper ───────────────────────────────────────────────────────
+const uploadFileToCloud = async (file, onProgress) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percent);
+      }
+    },
+  });
+
+  return response.data; // { url, publicId, resourceType, format, bytes, originalName }
+};
+
+// ─── Upload Progress UI ──────────────────────────────────────────────────────
+const UploadProgress = ({ progress, fileName }) => (
+  <div className="mt-2 space-y-1">
+    <div className="flex items-center justify-between text-xs text-gray-400">
+      <span className="flex items-center gap-1">
+        <Loader2 size={12} className="animate-spin" />
+        Uploading {fileName}...
+      </span>
+      <span>{progress}%</span>
+    </div>
+    <div className="w-full bg-gray-700 rounded-full h-2">
+      <div
+        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  </div>
+);
+
+// ─── Simple Code Editor (JS/Python) ─────────────────────────────────────────
 const CodeExerciseEditor = ({ content, onUpdate }) => {
   const [output, setOutput] = useState('');
   const [language, setLanguage] = useState(content.language || 'javascript');
@@ -45,8 +83,6 @@ const CodeExerciseEditor = ({ content, onUpdate }) => {
     setOutput('');
     try {
       if (language === 'javascript') {
-        // Execute code in a simple sandbox
-        // Avoid using eval directly in production
         const result = new Function(code)();
         setOutput(String(result));
       } else if (language === 'python') {
@@ -97,7 +133,11 @@ const CodeExerciseEditor = ({ content, onUpdate }) => {
   );
 };
 
+// ─── Content Item Renderer ────────────────────────────────────────────────────
 const ContentItem = ({ type, content, onUpdate, onRemove }) => {
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const renderContentInput = () => {
     switch (type) {
       case 'text':
@@ -110,24 +150,51 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
             placeholder="Enter your text content here..."
           />
         );
-      case 'video':
-        const handleVideoFileChange = (e) => {
+
+      case 'video': {
+        const handleVideoFileUpload = async (e) => {
           const file = e.target.files[0];
           if (!file) return;
-          
-          if (file.size > 10 * 1024 * 1024) {
-            toast.error("Video file is larger than 10MB! It may fail to save due to database limits.");
+
+          if (!file.type.startsWith('video/')) {
+            toast.error('Please select a video file.');
+            return;
           }
-          
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            onUpdate({ ...content, videoData: reader.result, url: '' });
-          };
-          reader.readAsDataURL(file);
+
+          if (file.size > 100 * 1024 * 1024) {
+            toast.error('Video must be under 100MB.');
+            return;
+          }
+
+          setIsUploading(true);
+          setUploadProgress(0);
+
+          try {
+            const result = await uploadFileToCloud(file, (percent) => {
+              setUploadProgress(percent);
+            });
+
+            onUpdate({
+              ...content,
+              url: result.url,
+              videoData: '', // Clear any old base64 data
+              videoInputType: 'file',
+              cloudinaryPublicId: result.publicId,
+              originalFileName: result.originalName,
+            });
+
+            toast.success('Video uploaded successfully!');
+          } catch (error) {
+            console.error('Video upload failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to upload video.');
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(null);
+          }
         };
-        
+
         const videoInputType = content.videoInputType || 'url';
-        
+
         return (
           <div className="space-y-2">
             <input
@@ -153,7 +220,7 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
                   type="radio"
                   name={`video-type-${content.id}`}
                   checked={videoInputType === 'file'}
-                  onChange={() => onUpdate({ ...content, videoInputType: 'file', url: '' })}
+                  onChange={() => onUpdate({ ...content, videoInputType: 'file' })}
                   className="mr-2"
                 />
                 Upload File
@@ -172,22 +239,107 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
                 <input
                   type="file"
                   accept="video/*"
-                  onChange={handleVideoFileChange}
-                  className="w-full p-2 border rounded bg-gray-800 text-gray-300 border-gray-700 cursor-pointer"
+                  onChange={handleVideoFileUpload}
+                  disabled={isUploading}
+                  className="w-full p-2 border rounded bg-gray-800 text-gray-300 border-gray-700 cursor-pointer disabled:opacity-50"
                 />
-                {content.videoData && (
-                  <div className="text-xs text-green-400">
-                    ✓ Video uploaded successfully ({Math.round(content.videoData.length * 0.75 / 1024 / 1024 * 100) / 100} MB base64 data)
+                {isUploading && uploadProgress !== null && (
+                  <UploadProgress progress={uploadProgress} fileName="video" />
+                )}
+                {content.url && !isUploading && (
+                  <div className="flex items-center gap-2 text-xs text-green-400">
+                    <CheckCircle size={14} />
+                    <span>Video uploaded: <a href={content.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-300">{content.originalFileName || 'View video'}</a></span>
                   </div>
                 )}
-                <div className="text-xs text-yellow-500">
-                  Max upload size: 10MB (MongoDB 16MB document limit).
+                <div className="text-xs text-gray-500">
+                  Max upload size: 100MB. Videos are stored in the cloud.
                 </div>
               </div>
             )}
           </div>
         );
-      case 'quiz':
+      }
+
+      case 'document': {
+        const handleDocumentUpload = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const allowed = ['application/pdf', 'text/plain'];
+          if (!allowed.includes(file.type)) {
+            toast.error('Only PDF and TXT files are supported.');
+            return;
+          }
+
+          if (file.size > 10 * 1024 * 1024) {
+            toast.error('Document must be under 10MB.');
+            return;
+          }
+
+          setIsUploading(true);
+          setUploadProgress(0);
+
+          try {
+            const result = await uploadFileToCloud(file, (percent) => {
+              setUploadProgress(percent);
+            });
+
+            onUpdate({
+              ...content,
+              url: result.url,
+              cloudinaryPublicId: result.publicId,
+              originalFileName: result.originalName,
+              fileFormat: result.format,
+              fileSize: result.bytes,
+            });
+
+            toast.success('Document uploaded successfully!');
+          } catch (error) {
+            console.error('Document upload failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to upload document.');
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(null);
+          }
+        };
+
+        return (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={content.title || ''}
+              onChange={(e) => onUpdate({ ...content, title: e.target.value })}
+              className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700"
+              placeholder="Document Title"
+            />
+            <input
+              type="file"
+              accept=".pdf,.txt,application/pdf,text/plain"
+              onChange={handleDocumentUpload}
+              disabled={isUploading}
+              className="w-full p-2 border rounded bg-gray-800 text-gray-300 border-gray-700 cursor-pointer disabled:opacity-50"
+            />
+            {isUploading && uploadProgress !== null && (
+              <UploadProgress progress={uploadProgress} fileName="document" />
+            )}
+            {content.url && !isUploading && (
+              <div className="flex items-center gap-2 text-xs text-green-400">
+                <CheckCircle size={14} />
+                <span>
+                  Document uploaded: <a href={content.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-300">{content.originalFileName || 'View document'}</a>
+                  {content.fileSize && ` (${(content.fileSize / 1024).toFixed(1)} KB)`}
+                </span>
+              </div>
+            )}
+            <div className="text-xs text-gray-500">
+              Supported: PDF, TXT. Max size: 10MB.
+            </div>
+          </div>
+        );
+      }
+
+      case 'quiz': {
         const quizType = content.quizType || 'multiple-choice';
         return (
           <div className="space-y-3">
@@ -305,6 +457,8 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
             )}
           </div>
         );
+      }
+
       case 'code':
         return <CodeExerciseEditor content={content} onUpdate={onUpdate} />;
       default:
@@ -322,6 +476,8 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
         return <ListChecks size={16} className="text-yellow-400" />;
       case 'code':
         return <FileCode size={16} className="text-green-400" />;
+      case 'document':
+        return <File size={16} className="text-orange-400" />;
       default:
         return null;
     }
@@ -348,6 +504,7 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
   );
 };
 
+// ─── Section Component ────────────────────────────────────────────────────────
 const Section = ({ section, onUpdate, onRemove }) => {
   const [isAddingContent, setIsAddingContent] = useState(false);
   const [_newContentType, _setNewContentType] = useState('text');
@@ -364,6 +521,9 @@ const Section = ({ section, onUpdate, onRemove }) => {
       newContent.starterCode = '';
       newContent.solutionCode = '';
     } else if (type === 'video') {
+      newContent.title = '';
+      newContent.url = '';
+    } else if (type === 'document') {
       newContent.title = '';
       newContent.url = '';
     } else {
@@ -442,7 +602,7 @@ const Section = ({ section, onUpdate, onRemove }) => {
                 <X size={18} />
               </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <button
                 onClick={() => addContent('text')}
                 className="flex flex-col items-center justify-center p-3 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
@@ -456,6 +616,13 @@ const Section = ({ section, onUpdate, onRemove }) => {
               >
                 <Video size={24} className="text-red-400 mb-1" />
                 <span className="text-sm text-gray-200">Video</span>
+              </button>
+              <button
+                onClick={() => addContent('document')}
+                className="flex flex-col items-center justify-center p-3 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <File size={24} className="text-orange-400 mb-1" />
+                <span className="text-sm text-gray-200">Document</span>
               </button>
               <button
                 onClick={() => addContent('quiz')}
@@ -491,6 +658,7 @@ const Section = ({ section, onUpdate, onRemove }) => {
   );
 };
 
+// ─── Main Editor Component ────────────────────────────────────────────────────
 const CourseContentEditor = ({ content = [], onChange }) => {
   const [sections, setSections] = useState(
     content.length > 0 ? content : [{ id: Date.now(), title: 'Introduction', contents: [] }]

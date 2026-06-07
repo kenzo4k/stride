@@ -20,6 +20,7 @@ import metricRoutes from "./routes/metricRoutes.js";
 import recommenderRoutes from "./routes/recommenderRoutes.js";
 import dropoutRoutes from "./routes/dropoutRoutes.js";
 import timeTrackingRoutes from "./routes/timeTrackingRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 import { verifyToken } from "./middleware/auth.js";
 
 // Controllers (for some top-level routes)
@@ -117,6 +118,7 @@ app.use("/api/metrics", metricRoutes);      // /api/metrics/*
 app.use("/api/recommendations", recommenderRoutes);
 app.use("/api/dropout", dropoutRoutes);
 app.use("/api/time-tracking", timeTrackingRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // Compatibility with frontend services
 app.post("/api/register-user", registerUser);

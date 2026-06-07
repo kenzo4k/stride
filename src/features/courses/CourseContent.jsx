@@ -648,6 +648,126 @@ const CourseContent = () => {
                         </div>
                     </Motion.div>
                 );
+            case 'document': {
+                const isPdf = activeLesson.fileFormat === 'pdf' || activeLesson.content?.toLowerCase().endsWith('.pdf');
+                
+                if (isPdf) {
+                    return (
+                        <Motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="h-full flex flex-col space-y-4"
+                        >
+                            <div className="flex items-center justify-between p-4 bg-orange-900/10 rounded-xl border border-orange-500/20">
+                                <div className="flex items-center space-x-3">
+                                    <FaFilePdf className="text-orange-500 text-2xl" />
+                                    <div>
+                                        <h3 className="font-bold">{activeLesson.title}</h3>
+                                        <p className="text-xs text-gray-400">PDF Document {activeLesson.originalFileName ? `• ${activeLesson.originalFileName}` : ''}</p>
+                                    </div>
+                                </div>
+                                <a
+                                    href={activeLesson.content}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn btn-sm bg-orange-600 hover:bg-orange-700 text-white border-none rounded-lg"
+                                >
+                                    <FaFilePdf className="mr-2" /> Download
+                                </a>
+                            </div>
+
+                            <div className="flex-1 bg-gray-800 rounded-xl overflow-hidden border border-gray-700 min-h-[600px] flex flex-col items-center">
+                                <div className="p-4 w-full flex justify-center bg-gray-800 border-b border-gray-700 space-x-4">
+                                    <button
+                                        onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
+                                        disabled={pageNumber <= 1}
+                                        className="btn btn-circle btn-sm bg-gray-700 hover:bg-gray-600 border-none disabled:opacity-30"
+                                    >
+                                        <FaChevronLeft />
+                                    </button>
+                                    <div className="flex items-center px-4 bg-gray-900 rounded-lg text-sm font-medium">
+                                        Page {pageNumber} of {numPages || '--'}
+                                    </div>
+                                    <button
+                                        onClick={() => setPageNumber(prev => Math.min(prev + 1, (numPages || 1)))}
+                                        disabled={pageNumber >= (numPages || 1)}
+                                        className="btn btn-circle btn-sm bg-gray-700 hover:bg-gray-600 border-none disabled:opacity-30"
+                                    >
+                                        <FaChevronRight />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-auto w-full p-4 flex justify-center bg-gray-900/50">
+                                    <Document
+                                        file={activeLesson.content}
+                                        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                                        className="shadow-2xl"
+                                        loading={
+                                            <div className="flex flex-col items-center justify-center p-20">
+                                                <div className="loading loading-spinner loading-md text-orange-500 mb-4"></div>
+                                                <p className="text-gray-400">Loading document...</p>
+                                            </div>
+                                        }
+                                    >
+                                        <Page pageNumber={pageNumber} width={700} />
+                                    </Document>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    markLessonComplete(activeLesson.id);
+                                    toast.success('XP Earned!');
+                                }}
+                                className={`btn w-full ${completedLessons.has(activeLesson.id) ? 'bg-gray-700' : 'bg-green-600 hover:bg-green-700'} text-white border-none h-14 rounded-xl font-bold`}
+                            >
+                                {completedLessons.has(activeLesson.id) ? 'Document Read' : `Complete Document & Earn ${activeLesson.xp} XP`}
+                            </button>
+                        </Motion.div>
+                    );
+                }
+
+                // Non-PDF document (TXT etc.)
+                return (
+                    <Motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="space-y-6"
+                    >
+                        <div className="p-6 bg-orange-900/10 rounded-2xl border border-orange-500/20">
+                            <div className="flex items-center space-x-4 mb-4">
+                                <div className="p-3 bg-orange-500/20 rounded-lg">
+                                    <BsFileText className="text-orange-400 text-xl" />
+                                </div>
+                                <div>
+                                    <span className="text-xs font-bold text-orange-400 uppercase tracking-widest">Document</span>
+                                    <h2 className="text-2xl font-bold m-0">{activeLesson.title}</h2>
+                                    {activeLesson.originalFileName && (
+                                        <p className="text-sm text-gray-400">{activeLesson.originalFileName}</p>
+                                    )}
+                                </div>
+                            </div>
+                            <a
+                                href={activeLesson.content}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn bg-orange-600 hover:bg-orange-700 text-white border-none rounded-lg"
+                            >
+                                Download Document
+                            </a>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                markLessonComplete(activeLesson.id);
+                                toast.success('XP Earned!');
+                            }}
+                            className={`btn w-full ${completedLessons.has(activeLesson.id) ? 'bg-gray-700' : 'bg-green-600 hover:bg-green-700'} text-white border-none h-14 rounded-xl font-bold`}
+                        >
+                            {completedLessons.has(activeLesson.id) ? 'Document Read' : `Complete & Earn ${activeLesson.xp} XP`}
+                        </button>
+                    </Motion.div>
+                );
+            }
             default:
                 return <div>Unsupported content type</div>;
         }
@@ -659,6 +779,7 @@ const CourseContent = () => {
             case 'video': return <FaPlay className="text-blue-400" />;
             case 'article': return <BsFileText className="text-green-400" />;
             case 'pdf': return <FaFilePdf className="text-red-400" />;
+            case 'document': return <FaFilePdf className="text-orange-400" />;
             case 'quiz': return <RiQuestionAnswerFill className="text-yellow-400" />;
             case 'coding': return <FaBook className="text-purple-400" />;
             default: return <FaBook className="text-gray-400" />;

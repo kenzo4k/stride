@@ -4,8 +4,9 @@ import { AuthContext } from '../../context/AuthProvider';
 import toast from 'react-hot-toast';
 import CourseContentEditor from './CourseContentEditor';
 import CourseAssessmentEditor from './CourseAssessmentEditor';
-import { FileText, Video, List, BookOpen, Settings, CheckSquare } from 'lucide-react';
+import { FileText, Video, List, BookOpen, Settings, CheckSquare, Loader2, Upload } from 'lucide-react';
 import { courseService } from '../../services/courseService';
+import api from '../../services/api';
 
 import { API_BASE_URL } from '../../utils/constants';
 
@@ -23,9 +24,16 @@ const transformEditorToViewer = (sections) => {
             if (item.type === 'text') {
                 lesson.content = item.content || '';
             } else if (item.type === 'video') {
-                lesson.content = item.url || item.videoData || '';
+                lesson.content = item.url || '';
                 lesson.videoInputType = item.videoInputType || 'url';
-                if (item.videoData) lesson.videoData = item.videoData;
+                if (item.cloudinaryPublicId) lesson.cloudinaryPublicId = item.cloudinaryPublicId;
+                if (item.originalFileName) lesson.originalFileName = item.originalFileName;
+            } else if (item.type === 'document') {
+                lesson.content = item.url || '';
+                if (item.cloudinaryPublicId) lesson.cloudinaryPublicId = item.cloudinaryPublicId;
+                if (item.originalFileName) lesson.originalFileName = item.originalFileName;
+                if (item.fileFormat) lesson.fileFormat = item.fileFormat;
+                if (item.fileSize) lesson.fileSize = item.fileSize;
             } else if (item.type === 'quiz') {
                 const quizType = item.quizType || 'multiple-choice';
                 lesson.questions = [{
@@ -64,11 +72,15 @@ const transformViewerToEditor = (sections) => {
                 item.content = lesson.content || '';
             } else if (lesson.type === 'video') {
                 item.videoInputType = lesson.videoInputType || 'url';
-                if (item.videoInputType === 'file') {
-                    item.videoData = lesson.content || lesson.videoData || '';
-                } else {
-                    item.url = lesson.content || '';
-                }
+                item.url = lesson.content || '';
+                if (lesson.cloudinaryPublicId) item.cloudinaryPublicId = lesson.cloudinaryPublicId;
+                if (lesson.originalFileName) item.originalFileName = lesson.originalFileName;
+            } else if (lesson.type === 'document') {
+                item.url = lesson.content || '';
+                if (lesson.cloudinaryPublicId) item.cloudinaryPublicId = lesson.cloudinaryPublicId;
+                if (lesson.originalFileName) item.originalFileName = lesson.originalFileName;
+                if (lesson.fileFormat) item.fileFormat = lesson.fileFormat;
+                if (lesson.fileSize) item.fileSize = lesson.fileSize;
             } else if (lesson.type === 'quiz') {
                 const q = lesson.questions?.[0] || {};
                 item.quizType = q.quizType || (q.type === 'trueFalse' ? 'true-false' : 'multiple-choice');
@@ -378,7 +390,34 @@ const EditCourse = () => {
                         />
                     </div>
                 );
-            case 'media':
+            case 'media': {
+                const handleImageUpload = async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (!file.type.startsWith('image/')) {
+                        toast.error('Please select an image file.');
+                        return;
+                    }
+                    setCourseData(prev => ({ ...prev, _imageUploading: true }));
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const response = await api.post('/upload', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' },
+                        });
+                        setCourseData(prev => ({
+                            ...prev,
+                            image: response.data.url,
+                            _imageUploading: false,
+                        }));
+                        toast.success('Image uploaded!');
+                    } catch (error) {
+                        console.error('Image upload failed:', error);
+                        toast.error(error.response?.data?.message || 'Failed to upload image.');
+                        setCourseData(prev => ({ ...prev, _imageUploading: false }));
+                    }
+                };
+
                 return (
                     <div className="space-y-6">
                         <div>
@@ -397,25 +436,18 @@ const EditCourse = () => {
                                         className="hidden"
                                         id="course-image"
                                         accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
-                                                    setCourseData(prev => ({
-                                                        ...prev,
-                                                        image: reader.result
-                                                    }));
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }}
+                                        onChange={handleImageUpload}
+                                        disabled={courseData._imageUploading}
                                     />
                                     <label
                                         htmlFor="course-image"
-                                        className="cursor-pointer px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors"
+                                        className={`cursor-pointer px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors inline-flex items-center gap-2 ${courseData._imageUploading ? 'opacity-50 pointer-events-none' : ''}`}
                                     >
-                                        Upload Image
+                                        {courseData._imageUploading ? (
+                                            <><Loader2 size={16} className="animate-spin" /> Uploading...</>
+                                        ) : (
+                                            <><Upload size={16} /> Upload Image</>
+                                        )}
                                     </label>
                                     <p className="mt-1 text-sm text-gray-400">Recommended size: 1280x720px</p>
                                 </div>
@@ -423,6 +455,7 @@ const EditCourse = () => {
                         </div>
                     </div>
                 );
+            }
             case 'settings':
                 return (
                     <div className="space-y-6">
