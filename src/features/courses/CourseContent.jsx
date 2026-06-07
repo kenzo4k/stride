@@ -44,6 +44,7 @@ const CourseContent = () => {
     const [earnedXP, setEarnedXP] = useState(0);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState({});
+    const [checkedQuestions, setCheckedQuestions] = useState({});
     const [expandedSections, setExpandedSections] = useState(new Set([1])); // First section expanded by default
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -141,6 +142,7 @@ const CourseContent = () => {
     useEffect(() => {
         setCurrentQuestionIndex(0);
         setAnswers({});
+        setCheckedQuestions({});
     }, [activeLesson?.id]);
 
     // Record when a lesson is started (for ML dropout tracking)
@@ -233,6 +235,38 @@ const CourseContent = () => {
             ...prev,
             [questionId]: answer
         }));
+    };
+
+    // Check current question answer
+    const checkCurrentAnswer = (question) => {
+        if (answers[question.id] === undefined) return;
+
+        let isCorrect = false;
+        if (question.type === 'mcq') {
+            isCorrect = question.correctAnswers?.includes(answers[question.id]);
+        } else if (question.type === 'trueFalse') {
+            isCorrect = answers[question.id] === (question.correctAnswers?.[0] === 0);
+        } else if (question.type === 'fillInBlank') {
+            const studentAns = String(answers[question.id]).trim().toLowerCase();
+            const correctAns = String(question.correctAnswer || question.answer || '').trim().toLowerCase();
+            isCorrect = studentAns === correctAns;
+        } else {
+            isCorrect = true; // Fallback
+        }
+
+        setCheckedQuestions(prev => ({
+            ...prev,
+            [question.id]: {
+                checked: true,
+                isCorrect
+            }
+        }));
+
+        if (isCorrect) {
+            toast.success("Correct answer!");
+        } else {
+            toast.error("Incorrect answer. Check the correct option below.");
+        }
     };
 
     // Calculate course progress
@@ -483,26 +517,45 @@ const CourseContent = () => {
 
                                         {currentQuestion.type === 'mcq' && (
                                             <div className="grid grid-cols-1 gap-3">
-                                                {currentQuestion.options.map((option, idx) => (
-                                                    <label 
-                                                        key={idx} 
-                                                        className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                                                            answers[currentQuestion.id] === idx 
-                                                                ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-900/10' 
-                                                                : 'border-gray-700 hover:border-gray-600 hover:bg-gray-700/50'
-                                                        }`}
-                                                    >
-                                                        <input
-                                                            type="radio"
-                                                            name={`question-${currentQuestion.id}`}
-                                                            value={idx}
-                                                            checked={answers[currentQuestion.id] === idx}
-                                                            onChange={(e) => handleAnswer(currentQuestion.id, parseInt(e.target.value))}
-                                                            className="radio radio-primary border-gray-600"
-                                                        />
-                                                        <span className="ml-4 font-medium">{option}</span>
-                                                    </label>
-                                                ))}
+                                                {currentQuestion.options.map((option, idx) => {
+                                                    const isSelected = answers[currentQuestion.id] === idx;
+                                                    const isQuestionChecked = checkedQuestions[currentQuestion.id]?.checked;
+                                                    const isQuestionCorrect = checkedQuestions[currentQuestion.id]?.isCorrect;
+                                                    const isCorrectOption = currentQuestion.correctAnswers?.includes(idx);
+
+                                                    let borderClass = 'border-gray-700 hover:border-gray-600 hover:bg-gray-700/50';
+                                                    if (isQuestionChecked) {
+                                                        if (isSelected) {
+                                                            borderClass = isQuestionCorrect 
+                                                                ? 'border-green-500 bg-green-500/10 text-green-400 cursor-not-allowed'
+                                                                : 'border-red-500 bg-red-500/10 text-red-400 cursor-not-allowed';
+                                                        } else if (isCorrectOption) {
+                                                            borderClass = 'border-green-500 bg-green-500/5 text-green-400 cursor-not-allowed';
+                                                        } else {
+                                                            borderClass = 'border-gray-800 opacity-40 cursor-not-allowed';
+                                                        }
+                                                    } else if (isSelected) {
+                                                        borderClass = 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-900/10';
+                                                    }
+
+                                                    return (
+                                                        <label 
+                                                            key={idx} 
+                                                            className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${borderClass}`}
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name={`question-${currentQuestion.id}`}
+                                                                value={idx}
+                                                                checked={isSelected}
+                                                                disabled={isQuestionChecked}
+                                                                onChange={(e) => handleAnswer(currentQuestion.id, parseInt(e.target.value))}
+                                                                className="radio radio-primary border-gray-600 disabled:opacity-50"
+                                                            />
+                                                            <span className="ml-4 font-medium">{option}</span>
+                                                        </label>
+                                                    );
+                                                })}
                                             </div>
                                         )}
 
@@ -512,34 +565,78 @@ const CourseContent = () => {
                                                     type="text"
                                                     placeholder="Type your answer here..."
                                                     value={answers[currentQuestion.id] || ''}
+                                                    disabled={checkedQuestions[currentQuestion.id]?.checked}
                                                     onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
-                                                    className="w-full p-4 bg-gray-900 border-2 border-gray-700 rounded-xl text-white focus:border-cyan-500 focus:outline-none transition-all font-medium"
+                                                    className="w-full p-4 bg-gray-900 border-2 border-gray-700 rounded-xl text-white focus:border-cyan-500 focus:outline-none transition-all font-medium disabled:opacity-50"
                                                 />
                                             </div>
                                         )}
 
                                         {currentQuestion.type === 'trueFalse' && (
                                             <div className="flex gap-4 max-w-md">
-                                                <button
-                                                    onClick={() => handleAnswer(currentQuestion.id, true)}
-                                                    className={`flex-1 p-6 rounded-2xl font-bold transition-all border-2 ${
-                                                        answers[currentQuestion.id] === true
-                                                            ? 'bg-green-600 border-green-400 text-white shadow-lg shadow-green-900/20'
-                                                            : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-green-600/50'
-                                                    }`}
-                                                >
-                                                    True
-                                                </button>
-                                                <button
-                                                    onClick={() => handleAnswer(currentQuestion.id, false)}
-                                                    className={`flex-1 p-6 rounded-2xl font-bold transition-all border-2 ${
-                                                        answers[currentQuestion.id] === false
-                                                            ? 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-900/20'
-                                                            : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-red-600/50'
-                                                    }`}
-                                                >
-                                                    False
-                                                </button>
+                                                {(() => {
+                                                    const isSelected = answers[currentQuestion.id] === true;
+                                                    const isQuestionChecked = checkedQuestions[currentQuestion.id]?.checked;
+                                                    const isQuestionCorrect = checkedQuestions[currentQuestion.id]?.isCorrect;
+                                                    const isCorrectOption = currentQuestion.correctAnswers?.[0] === 0;
+
+                                                    let btnClass = 'bg-gray-900 border-gray-700 text-gray-400 hover:border-green-600/50';
+                                                    if (isQuestionChecked) {
+                                                        if (isSelected) {
+                                                            btnClass = isQuestionCorrect
+                                                                ? 'bg-green-600 border-green-400 text-white shadow-lg shadow-green-900/20 cursor-not-allowed'
+                                                                : 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-900/20 cursor-not-allowed';
+                                                        } else if (isCorrectOption) {
+                                                            btnClass = 'bg-green-900/20 border-green-500 text-green-400 cursor-not-allowed';
+                                                        } else {
+                                                            btnClass = 'bg-gray-950 border-gray-800 text-gray-600 opacity-40 cursor-not-allowed';
+                                                        }
+                                                    } else if (isSelected) {
+                                                        btnClass = 'bg-green-600 border-green-400 text-white shadow-lg shadow-green-900/20';
+                                                    }
+
+                                                    return (
+                                                        <button
+                                                            disabled={isQuestionChecked}
+                                                            onClick={() => handleAnswer(currentQuestion.id, true)}
+                                                            className={`flex-1 p-6 rounded-2xl font-bold transition-all border-2 ${btnClass}`}
+                                                        >
+                                                            True
+                                                        </button>
+                                                    );
+                                                })()}
+
+                                                {(() => {
+                                                    const isSelected = answers[currentQuestion.id] === false;
+                                                    const isQuestionChecked = checkedQuestions[currentQuestion.id]?.checked;
+                                                    const isQuestionCorrect = checkedQuestions[currentQuestion.id]?.isCorrect;
+                                                    const isCorrectOption = currentQuestion.correctAnswers?.[0] === 1;
+
+                                                    let btnClass = 'bg-gray-900 border-gray-700 text-gray-400 hover:border-red-600/50';
+                                                    if (isQuestionChecked) {
+                                                        if (isSelected) {
+                                                            btnClass = isQuestionCorrect
+                                                                ? 'bg-green-600 border-green-400 text-white shadow-lg shadow-green-900/20 cursor-not-allowed'
+                                                                : 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-900/20 cursor-not-allowed';
+                                                        } else if (isCorrectOption) {
+                                                            btnClass = 'bg-green-900/20 border-green-500 text-green-400 cursor-not-allowed';
+                                                        } else {
+                                                            btnClass = 'bg-gray-950 border-gray-800 text-gray-600 opacity-40 cursor-not-allowed';
+                                                        }
+                                                    } else if (isSelected) {
+                                                        btnClass = 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-900/20';
+                                                    }
+
+                                                    return (
+                                                        <button
+                                                            disabled={isQuestionChecked}
+                                                            onClick={() => handleAnswer(currentQuestion.id, false)}
+                                                            className={`flex-1 p-6 rounded-2xl font-bold transition-all border-2 ${btnClass}`}
+                                                        >
+                                                            False
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
                                         )}
 
@@ -569,6 +666,35 @@ const CourseContent = () => {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Styled Feedback Section */}
+                                        {checkedQuestions[currentQuestion.id]?.checked && (
+                                            <div className={`mt-6 p-4 rounded-xl border flex items-center gap-3 ${
+                                                checkedQuestions[currentQuestion.id]?.isCorrect
+                                                    ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                                                    : 'bg-red-500/10 border-red-500/20 text-red-400'
+                                            }`}>
+                                                {checkedQuestions[currentQuestion.id]?.isCorrect ? (
+                                                    <>
+                                                        <FaCheckCircle className="text-lg" />
+                                                        <span className="font-semibold text-sm">Correct Answer! Great job.</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FaTimes className="text-lg text-red-500" />
+                                                        <span className="font-semibold text-sm">
+                                                            Incorrect. The correct answer was: {" "}
+                                                            <span className="underline">
+                                                                {currentQuestion.type === 'mcq' 
+                                                                    ? currentQuestion.options[currentQuestion.correctAnswers[0]]
+                                                                    : (currentQuestion.correctAnswers[0] === 0 ? 'True' : 'False')
+                                                                }
+                                                            </span>
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                     </Motion.div>
                                 </AnimatePresence>
                             </div>
@@ -585,25 +711,35 @@ const CourseContent = () => {
                                 <FaChevronLeft className="mr-2" /> Previous
                             </button>
                             
-                            {currentQuestionIndex === activeLesson.questions.length - 1 ? (
-                                <button 
-                                    onClick={() => {
-                                        markLessonComplete(activeLesson.id);
-                                        toast.success('Congratulations! Quiz completed.');
-                                    }}
-                                    className="btn px-10 bg-green-600 hover:bg-green-700 text-white border-none rounded-full shadow-lg shadow-green-900/20"
+                            {!checkedQuestions[currentQuestion.id]?.checked ? (
+                                <button
+                                    onClick={() => checkCurrentAnswer(currentQuestion)}
+                                    disabled={answers[currentQuestion.id] === undefined}
+                                    className="btn px-10 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-800 disabled:text-gray-600 disabled:opacity-50 text-white border-none rounded-full shadow-lg shadow-cyan-900/20"
                                 >
-                                    Finish Quiz & Claim XP
+                                    Check Answer
                                 </button>
                             ) : (
-                                <button 
-                                    onClick={() => {
-                                        setCurrentQuestionIndex(Math.min(activeLesson.questions.length - 1, currentQuestionIndex + 1));
-                                    }}
-                                    className="btn px-10 bg-cyan-600 hover:bg-cyan-700 text-white border-none rounded-full shadow-lg shadow-cyan-900/20"
-                                >
-                                    Next Question <FaChevronRight className="ml-2" />
-                                </button>
+                                currentQuestionIndex === activeLesson.questions.length - 1 ? (
+                                    <button 
+                                        onClick={() => {
+                                            markLessonComplete(activeLesson.id);
+                                            toast.success('Congratulations! Quiz completed.');
+                                        }}
+                                        className="btn px-10 bg-green-600 hover:bg-green-700 text-white border-none rounded-full shadow-lg shadow-green-900/20"
+                                    >
+                                        Finish Quiz & Claim XP
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => {
+                                            setCurrentQuestionIndex(Math.min(activeLesson.questions.length - 1, currentQuestionIndex + 1));
+                                        }}
+                                        className="btn px-10 bg-cyan-600 hover:bg-cyan-700 text-white border-none rounded-full shadow-lg shadow-cyan-900/20"
+                                    >
+                                        Next Question <FaChevronRight className="ml-2" />
+                                    </button>
+                                )
                             )}
                         </div>
                     </Motion.div>
