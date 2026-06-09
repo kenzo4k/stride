@@ -22,6 +22,7 @@ import dropoutRoutes from "./routes/dropoutRoutes.js";
 import timeTrackingRoutes from "./routes/timeTrackingRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { verifyToken } from "./middleware/auth.js";
+import { evaluateCodeSubmission } from "./controllers/codeEvaluationController.js";
 
 // Controllers (for some top-level routes)
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
@@ -144,6 +145,9 @@ app.post("/api/execute", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Execution engine failed. Please try again." });
   }
 });
+
+// === JUDGE0: Code Evaluation against Test Cases ===
+app.post("/api/execute-tests", verifyToken, evaluateCodeSubmission);
 
 // === STRIPE: Create Payment Intent ===
 app.post("/api/create-payment-intent", verifyToken, async (req, res) => {

@@ -37,12 +37,19 @@ const assessmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
     required: true,
-    unique: true,
+  },
+  type: {
+    type: String,
+    enum: ['pre-assessment', 'final-exam'],
+    required: true,
+    default: 'final-exam',
   },
   topics: [topicSchema],
 }, {
   timestamps: true,
 });
+
+assessmentSchema.index({ courseId: 1, type: 1 }, { unique: true });
 
 const Assessment = mongoose.model('Assessment', assessmentSchema);
 export default Assessment;

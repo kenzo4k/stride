@@ -3,6 +3,11 @@ import MLFeature from '../models/MLFeature.js';
 // GET /api/metrics/student/:studentId
 export const getStudentMetrics = async (req, res) => {
   try {
+    // Prevent BOLA: only allow self access, instructors, or admins
+    if (req.user.role !== 'admin' && req.user.role !== 'instructor' && req.user.id !== req.params.studentId) {
+      return res.status(403).json({ message: 'Access denied. You can only view your own metrics.' });
+    }
+
     const metrics = await MLFeature.find({ studentId: req.params.studentId })
       .populate('courseId', 'title category');
 

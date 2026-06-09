@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import useAuth from '../../hooks/useAuth';
 
 const CourseAssessment = () => {
-    const { id: courseId } = useParams();
+    const { id: courseId, type } = useParams();
     const navigate = useNavigate();
     const { refreshUser } = useAuth();
 
@@ -18,7 +18,7 @@ const CourseAssessment = () => {
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        api.get(`/courses/${courseId}/assessment`)
+        api.get(`/courses/${courseId}/assessment/${type}`)
             .then(res => {
                 setAssessment(res.data);
                 setLoading(false);
@@ -61,7 +61,7 @@ const CourseAssessment = () => {
         }));
 
         try {
-            const res = await api.post(`/courses/${courseId}/assessment/submit`, { answers: formattedAnswers });
+            const res = await api.post(`/courses/${courseId}/assessment/${type}/submit`, { answers: formattedAnswers });
             setAssessmentResult(res.data);
             if (refreshUser) refreshUser();
             toast.success("Assessment graded successfully!");
@@ -100,7 +100,9 @@ const CourseAssessment = () => {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 p-8">
                 <div className="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-8">
-                    <h1 className="text-3xl font-bold text-white mb-6">Assessment Complete!</h1>
+                    <h1 className="text-3xl font-bold text-white mb-6">
+                        {type === 'pre-assessment' ? 'Pre-Assessment Complete!' : 'Final Exam Complete!'}
+                    </h1>
                     
                     <div className="bg-gray-700 p-6 rounded-lg mb-8 text-center border-t-4 border-t-cyan-500">
                         <h2 className="text-2xl font-bold mb-2">Final Score</h2>

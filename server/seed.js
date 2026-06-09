@@ -710,32 +710,53 @@ async function seed() {
     // === CREATE ASSESSMENTS ===
     console.log('Creating assessments...');
     
-    const assessmentData = courses.map((course) => ({
-      courseId: course._id,
-      topics: [
-        {
-          name: 'Fundamentals',
-          questions: [
-            { type: 'mcq', question: `What is the primary target of ${course.title}?`, options: ['To build production apps', 'To learn theoretical models', 'To configure environments', 'All of the above'], correctAnswer: 3, points: 10 },
-            { type: 'true_false', question: 'Prerequisites must be met before taking this course.', correctAnswer: true, points: 5 },
-            { type: 'fill_blank', question: 'The main library we use is called ________.', answer: 'core', points: 5 },
-          ],
-        },
-        {
-          name: 'Intermediate Concepts',
-          questions: [
-            { type: 'mcq', question: 'Which methodology guarantees standard security?', options: ['Authentication token validation', 'Bypassing credentials', 'Storing raw passwords', 'No security needed'], correctAnswer: 0, points: 15 },
-            { type: 'matching', question: 'Match the modules with their respective goals.', pairs: [
-              { left: 'Security', right: 'Hashing', correct: true },
-              { left: 'Storage', right: 'Database', correct: true },
-            ], points: 10 },
-          ],
-        },
-      ],
-    }));
+    const assessmentData = [];
+    courses.forEach((course) => {
+      // 1. Pre-Assessment
+      assessmentData.push({
+        courseId: course._id,
+        type: 'pre-assessment',
+        topics: [
+          {
+            name: 'Initial Skill Check',
+            questions: [
+              { type: 'mcq', question: `Which of the following is a key prerequisite for learning ${course.title}?`, options: ['Basic computer literacy', '10 years programming experience', 'PhD in computer science', 'No prior knowledge needed'], correctAnswer: 0, points: 10 },
+              { type: 'true_false', question: 'A pre-assessment measures baseline knowledge before the course starts.', correctAnswer: true, points: 5 },
+              { type: 'fill_blank', question: `What is the main subject of ${course.title}?`, answer: course.category || 'technology', points: 5 },
+            ]
+          }
+        ]
+      });
+
+      // 2. Final Exam
+      assessmentData.push({
+        courseId: course._id,
+        type: 'final-exam',
+        topics: [
+          {
+            name: 'Fundamentals',
+            questions: [
+              { type: 'mcq', question: `What is the primary target of ${course.title}?`, options: ['To build production apps', 'To learn theoretical models', 'To configure environments', 'All of the above'], correctAnswer: 3, points: 10 },
+              { type: 'true_false', question: 'Prerequisites must be met before taking this course.', correctAnswer: true, points: 5 },
+              { type: 'fill_blank', question: 'The main library we use is called ________.', answer: 'core', points: 5 },
+            ],
+          },
+          {
+            name: 'Intermediate Concepts',
+            questions: [
+              { type: 'mcq', question: 'Which methodology guarantees standard security?', options: ['Authentication token validation', 'Bypassing credentials', 'Storing raw passwords', 'No security needed'], correctAnswer: 0, points: 15 },
+              { type: 'matching', question: 'Match the modules with their respective goals.', pairs: [
+                { left: 'Security', right: 'Hashing', correct: true },
+                { left: 'Storage', right: 'Database', correct: true },
+              ], points: 10 },
+            ],
+          },
+        ],
+      });
+    });
 
     await Assessment.create(assessmentData);
-    console.log(`Created ${courses.length} assessments`);
+    console.log(`Created ${assessmentData.length} assessments`);
 
     // === CREATE ML FEATURES ===
     console.log('Creating student ML features...');

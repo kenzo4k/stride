@@ -134,7 +134,9 @@ const EditCourse = () => {
     });
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [assessmentData, setAssessmentData] = useState({ topics: [] });
+    const [preAssessmentData, setPreAssessmentData] = useState({ topics: [] });
+    const [finalAssessmentData, setFinalAssessmentData] = useState({ topics: [] });
+    const [activeAssessmentTab, setActiveAssessmentTab] = useState('final-exam');
 
     useEffect(() => {
         if (!id) {
@@ -147,14 +149,18 @@ const EditCourse = () => {
                 setLoading(true);
                 
                 // Fetch course details and content concurrently
-                const [courseDataResult, courseContentResult, assessmentResult] = await Promise.all([
+                const [courseDataResult, courseContentResult, finalAssessmentResult, preAssessmentResult] = await Promise.all([
                     courseService.getCourseById(id),
                     courseService.getCourseContent(id).catch(err => {
                         console.warn("No course content found yet or failed to fetch:", err.message);
                         return null;
                     }),
-                    courseService.getCourseAssessment(id).catch(err => {
-                        console.warn("No course assessment found yet or failed to fetch:", err.message);
+                    courseService.getCourseAssessment(id, 'final-exam').catch(err => {
+                        console.warn("No final assessment found yet or failed to fetch:", err.message);
+                        return { topics: [] };
+                    }),
+                    courseService.getCourseAssessment(id, 'pre-assessment').catch(err => {
+                        console.warn("No pre assessment found yet or failed to fetch:", err.message);
                         return { topics: [] };
                     })
                 ]);
@@ -165,8 +171,11 @@ const EditCourse = () => {
                     return;
                 }
 
-                if (assessmentResult && assessmentResult.topics) {
-                    setAssessmentData(assessmentResult);
+                if (finalAssessmentResult && finalAssessmentResult.topics) {
+                    setFinalAssessmentData(finalAssessmentResult);
+                }
+                if (preAssessmentResult && preAssessmentResult.topics) {
+                    setPreAssessmentData(preAssessmentResult);
                 }
 
                 // Verify ownership: Instructors can only edit their own courses
@@ -261,11 +270,25 @@ const EditCourse = () => {
                     toast.error("Basic info saved, but content failed to save.");
                 });
             }
-            if (assessmentData && assessmentData.topics) {
-                await courseService.updateCourseAssessment(courseId, assessmentData).catch(err => {
-                    console.error("Failed to save course assessment:", err);
-                    toast.error("Saved, but assessment failed to save.");
-                });
+            const savePromises = [];
+            if (preAssessmentData) {
+                savePromises.push(
+                    courseService.updateCourseAssessment(courseId, preAssessmentData, 'pre-assessment').catch(err => {
+                        console.error("Failed to save pre-assessment:", err);
+                        toast.error("Saved, but pre-assessment failed to save.");
+                    })
+                );
+            }
+            if (finalAssessmentData) {
+                savePromises.push(
+                    courseService.updateCourseAssessment(courseId, finalAssessmentData, 'final-exam').catch(err => {
+                        console.error("Failed to save final assessment:", err);
+                        toast.error("Saved, but final exam failed to save.");
+                    })
+                );
+            }
+            if (savePromises.length > 0) {
+                await Promise.all(savePromises);
             }
         }
         return savedCourse;
@@ -383,11 +406,46 @@ const EditCourse = () => {
                 );
             case 'assessment':
                 return (
-                    <div className="bg-gray-700 p-6 rounded-lg">
-                        <CourseAssessmentEditor 
-                            assessmentData={assessmentData} 
-                            onChange={setAssessmentData} 
-                        />
+                    <div className="bg-gray-700 p-6 rounded-lg space-y-6">
+                        {/* Sub-tabs for Pre-Assessment vs Final Exam */}
+                        <div className="flex border-b border-gray-600 pb-2 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setActiveAssessmentTab('pre-assessment')}
+                                className={`px-4 py-2 font-semibold text-sm transition-all border-b-2 mr-4 ${
+                                    activeAssessmentTab === 'pre-assessment'
+                                        ? 'border-teal-500 text-teal-400 font-bold'
+                                        : 'border-transparent text-gray-400 hover:text-gray-300'
+                                }`}
+                            >
+                                Pre-Assessment
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveAssessmentTab('final-exam')}
+                                className={`px-4 py-2 font-semibold text-sm transition-all border-b-2 ${
+                                    activeAssessmentTab === 'final-exam'
+                                        ? 'border-blue-500 text-cyan-400 font-bold'
+                                        : 'border-transparent text-gray-400 hover:text-gray-300'
+                                }`}
+                            >
+                                Final Exam
+                            </button>
+                        </div>
+
+                        {activeAssessmentTab === 'pre-assessment' ? (
+                            <CourseAssessmentEditor 
+                                assessmentData={preAssessmentData} 
+                                onChange={setPreAssessmentData} 
+                                type="pre-assessment"
+                            />
+                        ) : (
+                            <CourseAssessmentEditor 
+                                assessmentData={finalAssessmentData} 
+                                onChange={setFinalAssessmentData} 
+                                type="final-exam"
+                            />
+                        )}
                     </div>
                 );
             case 'media': {

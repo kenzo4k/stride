@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import toast from "react-hot-toast";
 import { FaChevronDown, FaChevronUp, FaPlay, FaUndo } from "react-icons/fa";
+import { useParams } from "react-router-dom";
 import api from "../../services/api";
+import { courseService } from "../../services/courseService";
 
 const PISTON_ENDPOINT = "https://emkc.org/api/v2/piston/execute";
 
@@ -93,6 +95,8 @@ const formatSeconds = (value) => {
 };
 
 const CodingExerciseEditor = ({ exercise, lesson }) => {
+  const { id: courseId } = useParams();
+
   const initialLanguage = useMemo(() => {
     const normalized = normalizeLanguage(exercise?.language);
     const found = LANGUAGE_OPTIONS.find((l) => l.id === normalized);
@@ -112,12 +116,18 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
   const [history, setHistory] = useState([]);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
 
+  const [rightPanelTab, setRightPanelTab] = useState('console'); // 'console' | 'tests'
+  const [testResults, setTestResults] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     setSelectedLanguage(initialLanguage);
     setCodeByLanguage(starterByLanguage);
     setHistory([]);
     setActiveHistoryId(null);
     setIsOutputOpen(true);
+    setRightPanelTab('console');
+    setTestResults(null);
   }, [lesson?.id, initialLanguage, starterByLanguage]);
 
   const languageConfig =
@@ -125,6 +135,31 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
     LANGUAGE_OPTIONS[0];
 
   const code = codeByLanguage[selectedLanguage] ?? "";
+
+  const hasTestCases = exercise?.testCases && exercise.testCases.length > 0;
+
+  const submitCode = async () => {
+    setRightPanelTab('tests');
+    setIsOutputOpen(true);
+    setIsSubmitting(true);
+
+    const toastId = toast.loading("Submitting solution and running test suite…");
+
+    try {
+      const data = await courseService.submitCodingSolution(courseId, lesson?.id, code, selectedLanguage);
+      setTestResults(data);
+      if (data.passed) {
+        toast.success("All test cases passed!", { id: toastId });
+      } else {
+        toast.error("Some test cases failed.", { id: toastId });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to submit solution", { id: toastId });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const activeEntry = useMemo(() => {
     if (!history.length) return null;
@@ -263,7 +298,7 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
             type="button"
             onClick={runCode}
             className="btn btn-sm bg-cyan-600 hover:bg-cyan-700 text-white border-none rounded-xl"
-            disabled={isRunning}
+            disabled={isRunning || isSubmitting}
           >
             {isRunning ? (
               <span className="flex items-center gap-2">
@@ -276,6 +311,24 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
               </>
             )}
           </button>
+
+          {hasTestCases && (
+            <button
+              type="button"
+              onClick={submitCode}
+              className="btn btn-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-none rounded-xl shadow-lg"
+              disabled={isRunning || isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="loading loading-spinner loading-xs"></span>
+                  Submitting…
+                </span>
+              ) : (
+                'Submit Solution'
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -324,130 +377,225 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
         </div>
 
         <div className="lg:col-span-3 bg-gray-950 rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
-          <button
-            type="button"
-            onClick={() => setIsOutputOpen((v) => !v)}
-            className="w-full bg-gray-900 px-4 py-3 border-b border-gray-800 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-purple-300 uppercase tracking-widest">
-                Output
-              </span>
-              <span className="text-[10px] text-gray-500 font-mono">
-                Last 5 runs
-              </span>
+          <div className="w-full bg-gray-900 border-b border-gray-800 flex items-center justify-between">
+            <div className="flex border-b border-transparent">
+              <button
+                type="button"
+                onClick={() => {
+                  setRightPanelTab('console');
+                  setIsOutputOpen(true);
+                }}
+                className={`px-4 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${
+                  rightPanelTab === 'console'
+                    ? 'border-purple-500 text-purple-300 font-extrabold'
+                    : 'border-transparent text-gray-500 hover:text-gray-400'
+                }`}
+              >
+                Console
+              </button>
+              {hasTestCases && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRightPanelTab('tests');
+                    setIsOutputOpen(true);
+                  }}
+                  className={`px-4 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${
+                    rightPanelTab === 'tests'
+                      ? 'border-teal-500 text-teal-300 font-extrabold'
+                      : 'border-transparent text-gray-500 hover:text-gray-400'
+                  }`}
+                >
+                  Test Cases
+                </button>
+              )}
             </div>
-            <span className="text-gray-400">
+            <button
+              type="button"
+              onClick={() => setIsOutputOpen((v) => !v)}
+              className="px-4 text-gray-400 hover:text-white"
+            >
               {isOutputOpen ? <FaChevronUp /> : <FaChevronDown />}
-            </span>
-          </button>
+            </button>
+          </div>
 
           <div
             className={`transition-all duration-300 overflow-hidden ${
-              isOutputOpen ? "max-h-[900px] opacity-100" : "max-h-0 opacity-0"
+              isOutputOpen ? "max-h-[900px] opacity-100 overflow-y-auto" : "max-h-0 opacity-0"
             }`}
           >
-            <div className="p-4 space-y-4">
-              {!activeEntry ? (
-                <div className="p-4 rounded-xl border border-dashed border-gray-800 bg-gray-900/30 text-gray-400 text-sm">
-                  Run your code to see output here.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs text-gray-400 font-mono truncate">
-                      {activeEntry.fileName}
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] font-mono">
-                      <span className="px-2 py-1 rounded-full bg-gray-900 border border-gray-800 text-gray-400">
-                        Exit: {activeEntry.exitCode ?? "—"}
-                      </span>
-                      <span className="px-2 py-1 rounded-full bg-gray-900 border border-gray-800 text-gray-400">
-                        Time: {formatSeconds(activeEntry.time) ?? "—"}
-                      </span>
-                    </div>
+            {rightPanelTab === 'console' ? (
+              <div className="p-4 space-y-4">
+                {!activeEntry ? (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-800 bg-gray-900/30 text-gray-400 text-sm">
+                    Run your code to see output here.
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs text-gray-400 font-mono truncate">
+                        {activeEntry.fileName}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono">
+                        <span className="px-2 py-1 rounded-full bg-gray-900 border border-gray-800 text-gray-400">
+                          Exit: {activeEntry.exitCode ?? "—"}
+                        </span>
+                        <span className="px-2 py-1 rounded-full bg-gray-900 border border-gray-800 text-gray-400">
+                          Time: {formatSeconds(activeEntry.time) ?? "—"}
+                        </span>
+                      </div>
+                    </div>
 
-                  {activeEntry.compile && (activeEntry.compile.stderr || activeEntry.compile.stdout) && (
+                    {activeEntry.compile && (activeEntry.compile.stderr || activeEntry.compile.stdout) && (
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                          Compile
+                        </div>
+                        <pre className="text-xs font-mono bg-gray-900/60 border border-gray-800 rounded-xl p-3 overflow-x-auto text-gray-200">
+                          {activeEntry.compile.stderr || activeEntry.compile.stdout}
+                        </pre>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                        Compile
+                        Stdout
                       </div>
-                      <pre className="text-xs font-mono bg-gray-900/60 border border-gray-800 rounded-xl p-3 overflow-x-auto text-gray-200">
-                        {activeEntry.compile.stderr || activeEntry.compile.stdout}
+                      <pre className="text-xs font-mono bg-gray-900/60 border border-gray-800 rounded-xl p-3 overflow-x-auto text-cyan-100 min-h-16">
+                        {activeEntry.stdout || "(empty)"}
                       </pre>
                     </div>
-                  )}
 
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                      Stdout
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        Stderr
+                      </div>
+                      <pre className="text-xs font-mono bg-gray-900/60 border border-gray-800 rounded-xl p-3 overflow-x-auto text-red-200 min-h-16">
+                        {activeEntry.stderr || "(empty)"}
+                      </pre>
                     </div>
-                    <pre className="text-xs font-mono bg-gray-900/60 border border-gray-800 rounded-xl p-3 overflow-x-auto text-cyan-100 min-h-16">
-                      {activeEntry.stdout || "(empty)"}
-                    </pre>
                   </div>
+                )}
 
+                {history.length > 0 && (
                   <div className="space-y-2">
-                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                      Stderr
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        History
+                      </span>
+                      <span className="text-[10px] text-gray-600 font-mono">
+                        Click to view
+                      </span>
                     </div>
-                    <pre className="text-xs font-mono bg-gray-900/60 border border-gray-800 rounded-xl p-3 overflow-x-auto text-red-200 min-h-16">
-                      {activeEntry.stderr || "(empty)"}
-                    </pre>
-                  </div>
-                </div>
-              )}
 
-              {history.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                      History
-                    </span>
-                    <span className="text-[10px] text-gray-600 font-mono">
-                      Click to view
-                    </span>
+                    <div className="space-y-2">
+                      {history.map((item, idx) => {
+                        const isActive = item.id === (activeEntry?.id || "");
+                        return (
+                          <button
+                            type="button"
+                            key={item.id}
+                            onClick={() => setActiveHistoryId(item.id)}
+                            className={`w-full text-left p-3 rounded-xl border transition-all ${
+                              isActive
+                                ? "bg-purple-900/20 border-purple-500/30"
+                                : "bg-gray-900/30 border-gray-800 hover:border-cyan-600/40"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-xs font-mono text-gray-300 truncate">
+                                Run {idx + 1} · {item.language.toUpperCase()}
+                              </div>
+                              <div
+                                className={`text-[10px] font-mono px-2 py-1 rounded-full border ${
+                                  item.exitCode === 0
+                                    ? "text-green-300 border-green-500/20 bg-green-500/10"
+                                    : "text-red-300 border-red-500/20 bg-red-500/10"
+                                }`}
+                              >
+                                {item.exitCode === 0 ? "OK" : "ERR"}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-mono mt-1">
+                              {new Date(item.createdAt).toLocaleTimeString()}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {!testResults ? (
+                  <div className="p-6 rounded-xl border border-dashed border-gray-800 bg-gray-900/30 text-gray-400 text-sm text-center">
+                    Submit your solution to execute the test suite.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className={`p-4 rounded-xl border ${
+                      testResults.passed 
+                        ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400' 
+                        : 'bg-red-950/20 border-red-500/30 text-red-400'
+                    }`}>
+                      <div className="font-bold text-sm">
+                        {testResults.passed ? '🎉 All Tests Passed!' : '❌ Some Tests Failed'}
+                      </div>
+                      {testResults.passed && (
+                        <div className="text-xs text-gray-300 mt-1">
+                          Congratulations! You earned +{testResults.xpAwarded} XP.
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    {history.map((item, idx) => {
-                      const isActive = item.id === (activeEntry?.id || "");
-                      return (
-                        <button
-                          type="button"
-                          key={item.id}
-                          onClick={() => setActiveHistoryId(item.id)}
-                          className={`w-full text-left p-3 rounded-xl border transition-all ${
-                            isActive
-                              ? "bg-purple-900/20 border-purple-500/30"
-                              : "bg-gray-900/30 border-gray-800 hover:border-cyan-600/40"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-xs font-mono text-gray-300 truncate">
-                              Run {idx + 1} · {item.language.toUpperCase()}
-                            </div>
-                            <div
-                              className={`text-[10px] font-mono px-2 py-1 rounded-full border ${
-                                item.exitCode === 0
-                                  ? "text-green-300 border-green-500/20 bg-green-500/10"
-                                  : "text-red-300 border-red-500/20 bg-red-500/10"
-                              }`}
-                            >
-                              {item.exitCode === 0 ? "OK" : "ERR"}
-                            </div>
+                    <div className="space-y-3">
+                      {testResults.results.map((result, idx) => (
+                        <div key={idx} className={`p-3 rounded-xl border ${
+                          result.passed ? 'bg-gray-900/50 border-emerald-500/20' : 'bg-gray-900/50 border-red-500/20'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-300">
+                              Test Case {idx + 1} {result.isHidden && '(Hidden)'}
+                            </span>
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                              result.passed 
+                                ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' 
+                                : 'text-red-400 border-red-500/20 bg-red-500/10'
+                            }`}>
+                              {result.statusDescription}
+                            </span>
                           </div>
-                          <div className="text-[10px] text-gray-500 font-mono mt-1">
-                            {new Date(item.createdAt).toLocaleTimeString()}
-                          </div>
-                        </button>
-                      );
-                    })}
+
+                          {!result.isHidden ? (
+                            <div className="mt-2 space-y-1.5 text-[11px] font-mono">
+                              <div>
+                                <span className="text-gray-500">Input:</span>
+                                <pre className="bg-gray-950 p-1.5 rounded mt-0.5 text-gray-300 whitespace-pre-wrap">{result.input}</pre>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Expected:</span>
+                                <pre className="bg-gray-950 p-1.5 rounded mt-0.5 text-gray-300 whitespace-pre-wrap">{result.expectedOutput}</pre>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Actual Output:</span>
+                                <pre className={`bg-gray-950 p-1.5 rounded mt-0.5 whitespace-pre-wrap ${result.passed ? 'text-emerald-300' : 'text-red-300'}`}>
+                                  {result.stdout || result.stderr || '(empty)'}
+                                </pre>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-gray-500 italic mt-1">
+                              Inputs and outputs are hidden for this test case.
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

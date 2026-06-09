@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, photoURL, role } = req.body;
+    const { name, email, password, photoURL } = req.body;
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -14,7 +14,7 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    user = new User({ name, email, password, photoURL, role: role || 'student', lastLogin: new Date() });
+    user = new User({ name, email, password, photoURL, role: 'student', lastLogin: new Date() });
     const saved = await user.save();
     const userResponse = saved.toObject();
     delete userResponse.password;

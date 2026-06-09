@@ -113,8 +113,8 @@ const Dashboard = () => {
                         
                         {enrolledCourses.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {enrolledCourses.slice(0, 4).map((course) => (
-                                    <CourseCard key={course.enrollmentId} course={course} />
+                                {enrolledCourses.slice(0, 4).map((enrollment) => (
+                                    <CourseCard key={enrollment._id} course={enrollment.courseId} />
                                 ))}
                             </div>
                         ) : (

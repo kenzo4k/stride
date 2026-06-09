@@ -30,13 +30,14 @@ const MyEnrolledCourses = () => {
     React.useEffect(() => {
         if (!user?.email) return;
         
-        api.get(`/my-enrollments?email=${user.email}`)
+        api.get('/my-enrollments')
             .then(res => {
                 // Map the backend data to the format expected by the UI
                 const mappedCourses = res.data.map(enrollment => {
                     const course = enrollment.courseId || {};
                     return {
                         _id: course._id,
+                        enrollmentId: enrollment._id,
                         title: course.title,
                         description: course.description,
                         image: course.image,
@@ -56,7 +57,7 @@ const MyEnrolledCourses = () => {
             });
     }, [user]);
 
-    const handleRemoveEnrollment = (courseId, courseTitle) => {
+    const handleRemoveEnrollment = (enrollmentId, courseTitle, courseId) => {
         Swal.fire({
             title: 'Are you sure?',
             text: `You are about to remove your enrollment from "${courseTitle}".`,
@@ -70,7 +71,7 @@ const MyEnrolledCourses = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await api.post(`/enrollments/${courseId}/unenroll`, {
+                    await api.post(`/enrollments/${enrollmentId}/unenroll`, {
                         reason: 'Removed by student from My Courses page'
                     });
                     Swal.fire({
@@ -184,7 +185,7 @@ const MyEnrolledCourses = () => {
                                     onClick={(e) => { 
                                         e.preventDefault(); 
                                         e.stopPropagation();
-                                        handleRemoveEnrollment(course._id, course.title); 
+                                        handleRemoveEnrollment(course.enrollmentId, course.title, course._id); 
                                     }}
                                     className="absolute top-2 right-2 p-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 z-10"
                                     title="Remove Enrollment"

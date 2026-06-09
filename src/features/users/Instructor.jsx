@@ -302,7 +302,7 @@ import api from '../../services/api';
                         </div>
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => navigate(`/course/${course._id}/view`)}
+                            onClick={() => navigate(`/course/${course._id}`)}
                             className="p-2 text-cyan-400 hover:bg-gray-700 rounded"
                           >
                             <Eye className="w-4 h-4" />

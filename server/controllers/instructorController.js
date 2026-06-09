@@ -153,6 +153,7 @@ export const getAtRiskStudents = async (req, res) => {
 
     const atRisk = enrollments.filter(e => {
         const user = e.userId;
+        if (!user) return false; // Skip if student account is deleted
         const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
         return lastLogin < sevenDaysAgo || e.grade < 60;
     }).map(e => ({
@@ -161,7 +162,7 @@ export const getAtRiskStudents = async (req, res) => {
         email: e.userId.email,
         photoURL: e.userId.photoURL,
         lastLogin: e.userId.lastLogin,
-        course: e.courseId.title,
+        course: e.courseId ? e.courseId.title : 'Deleted Course',
         grade: e.grade,
         progress: e.progress,
         status: e.grade < 50 ? 'Failing' : 'At Risk'

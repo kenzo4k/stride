@@ -354,7 +354,6 @@ const AllCourses = () => {
       {/* Recommended Courses Section */}
       <div className="border-t border-gray-800 mt-8">
         <RecommendedCourses 
-          scenario="python" 
           title="Related To Your Interests" 
           description="Based on what other students are learning in this category" 
         />

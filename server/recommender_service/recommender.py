@@ -8,6 +8,9 @@ from datetime import datetime, timezone
 class RecommenderSystem:
     def __init__(self, db):
         self.db = db
+        self._cached_course_ids = None
+        self._cached_texts = None
+        self._cached_cosine_sim = None
 
     def get_data(self):
         courses = list(self.db.courses.find({"status": "active"}))
@@ -25,16 +28,27 @@ class RecommenderSystem:
         if not user_courses_ids:
             return {str(c["_id"]): 0.0 for c in courses}
         
-        texts = [self._get_course_text(c) for c in courses]
         course_ids = [str(c["_id"]) for c in courses]
+        texts = [self._get_course_text(c) for c in courses]
         
-        vectorizer = TfidfVectorizer(stop_words='english')
-        try:
-            tfidf_matrix = vectorizer.fit_transform(texts)
-            cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
-        except ValueError:
-            # Vocabulary empty
-            return {str(c["_id"]): 0.0 for c in courses}
+        # Check cache to avoid TF-IDF fit/transform overhead (Bug F)
+        if (self._cached_course_ids == course_ids and 
+            self._cached_texts == texts and 
+            self._cached_cosine_sim is not None):
+            cosine_sim = self._cached_cosine_sim
+        else:
+            vectorizer = TfidfVectorizer(stop_words='english')
+            try:
+                tfidf_matrix = vectorizer.fit_transform(texts)
+                cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+                
+                # Update cache
+                self._cached_course_ids = course_ids
+                self._cached_texts = texts
+                self._cached_cosine_sim = cosine_sim
+            except ValueError:
+                # Vocabulary empty
+                return {str(c["_id"]): 0.0 for c in courses}
 
         scores = {cid: 0.0 for cid in course_ids}
         

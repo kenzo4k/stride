@@ -1,6 +1,6 @@
 import express from 'express';
 import { getLeaderboard, getBadges, awardXP } from '../controllers/gamificationController.js';
-import { verifyToken } from '../middleware/auth.js';
+import { verifyToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -10,7 +10,7 @@ router.get('/leaderboard', getLeaderboard);
 // Badges require auth (need to look up user by email)
 router.get('/student/badges', verifyToken, getBadges);
 
-// XP award requires auth
-router.post('/users/award-xp', verifyToken, awardXP);
+// XP award requires admin role
+router.post('/users/award-xp', verifyToken, requireRole('admin'), awardXP);
 
 export default router;

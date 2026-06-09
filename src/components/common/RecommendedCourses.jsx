@@ -34,6 +34,13 @@ const RecommendedCourses = ({
         if (courseId) {
           list = list.filter(c => (c._id || c.id) !== courseId);
         }
+        if (list.length === 0 && category) {
+          response = await api.get('/courses');
+          list = response.data || [];
+          if (courseId) {
+            list = list.filter(c => (c._id || c.id) !== courseId);
+          }
+        }
         setRecommendations(list);
       } catch (err) {
         console.error("Error fetching fallback database courses:", err);

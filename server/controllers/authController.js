@@ -8,7 +8,7 @@ const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || 'secret';
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, photoURL } = req.body;
+    const { name, email, password, photoURL } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -21,7 +21,7 @@ export const register = async (req, res) => {
       name,
       email,
       password,
-      role: role || 'student',
+      role: 'student',
       photoURL,
     });
 

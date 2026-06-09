@@ -95,7 +95,7 @@ const CourseContent = () => {
                 const [courseRes, contentRes, enrollmentsRes] = await Promise.all([
                     api.get(`/courses/${courseId}`),
                     api.get(`/courses/${courseId}/content`),
-                    api.get(`/my-enrollments?email=${user.email}`)
+                    api.get('/my-enrollments')
                 ]);
 
                 const fetchedCourse = courseRes.data;
@@ -110,8 +110,8 @@ const CourseContent = () => {
                 setCourse(combinedCourse);
 
                 const enrollment = enrollmentsRes.data.find(e => {
-                    // Handle both populated course and unpopulated course ID
-                    const eCourseId = e.courseId._id || e.courseId;
+                    // Handle both populated course and unpopulated course ID (Bug #2)
+                    const eCourseId = e.courseId?._id || e.courseId;
                     return eCourseId === courseId;
                 });
 
@@ -202,36 +202,38 @@ const CourseContent = () => {
 
     // Handle lesson completion
     const markLessonComplete = async (lessonId) => {
-        setCompletedLessons(prev => {
-            const newSet = new Set(prev);
-            newSet.add(lessonId);
-            
-            // Calculate new progress
-            const totalLessons = course.sections.reduce(
-                (total, section) => total + (section.lessons?.length || 0), 0
-            );
-            const newProgress = totalLessons === 0 ? 0 : Math.round((newSet.size / totalLessons) * 100);
+        // Prevent infinite XP exploit by checking if already completed (Bug #1)
+        if (completedLessons.has(lessonId)) {
+            return;
+        }
 
-            // Save to backend
-            if (enrollmentId) {
-                api.patch(`/enrollments/${enrollmentId}/progress`, {
-                    completedLessons: Array.from(newSet),
-                    progress: newProgress
-                }).catch(console.error);
-            }
+        // Calculate new progress
+        const totalLessons = course?.sections?.reduce(
+            (total, section) => total + (section.lessons?.length || 0), 0
+        ) || 0;
+        const updatedCompleted = new Set(completedLessons);
+        updatedCompleted.add(lessonId);
+        const newProgress = totalLessons === 0 ? 0 : Math.round((updatedCompleted.size / totalLessons) * 100);
 
-            return newSet;
-        });
+        // Update local state
+        setCompletedLessons(updatedCompleted);
 
-        // Add XP for completed lesson
+        // Save progress to backend (moved outside of the state updater pure function - Bug #3)
+        if (enrollmentId) {
+            api.patch(`/enrollments/${enrollmentId}/progress`, {
+                completedLessons: Array.from(updatedCompleted),
+                progress: newProgress
+            })
+            .then(() => {
+                if (refreshUser) refreshUser();
+            })
+            .catch(err => console.error("Failed to update progress:", err));
+        }
+
+        // Add XP for completed lesson (only if not previously earned)
         const lesson = course?.sections?.flatMap(s => s.lessons)?.find(l => l.id === lessonId);
         if (lesson && lesson.xp) {
             setEarnedXP(prevXP => prevXP + lesson.xp);
-            api.post('/users/award-xp', { amount: lesson.xp, reason: `Completed lesson: ${lesson.title}` })
-                .then(() => {
-                    if (refreshUser) refreshUser();
-                })
-                .catch(console.error);
         }
     };
 
@@ -483,7 +485,7 @@ const CourseContent = () => {
             case 'quiz': {
                 const currentQuestion = activeLesson.questions?.[currentQuestionIndex];
                 if (!currentQuestion) return null;
-                const quizProgress = ((currentQuestionIndex + 1) / activeLesson.questions.length) * 100;
+                const quizProgress = ((currentQuestionIndex + 1) / (activeLesson.questions?.length || 1)) * 100;
                 
                 return (
                     <Motion.div 
@@ -748,7 +750,7 @@ const CourseContent = () => {
                                     Check Answer
                                 </button>
                             ) : (
-                                currentQuestionIndex === activeLesson.questions.length - 1 ? (
+                                currentQuestionIndex === (activeLesson.questions?.length || 0) - 1 ? (
                                     <button 
                                         onClick={() => {
                                             markLessonComplete(activeLesson.id);
@@ -761,7 +763,7 @@ const CourseContent = () => {
                                 ) : (
                                     <button 
                                         onClick={() => {
-                                            setCurrentQuestionIndex(Math.min(activeLesson.questions.length - 1, currentQuestionIndex + 1));
+                                            setCurrentQuestionIndex(Math.min((activeLesson.questions?.length || 1) - 1, currentQuestionIndex + 1));
                                         }}
                                         className="btn px-10 bg-cyan-600 hover:bg-cyan-700 text-white border-none rounded-full shadow-lg shadow-cyan-900/20"
                                     >
@@ -1153,13 +1155,20 @@ const CourseContent = () => {
                             );
                         })}
                     </div>
-                    <div className="p-4 bg-gray-900 border-t border-gray-800">
+                    <div className="p-4 bg-gray-900 border-t border-gray-800 flex flex-col gap-2">
                         <button 
-                            onClick={() => navigate(`/course/${courseId}/assessment`)}
+                            onClick={() => navigate(`/course/${courseId}/assessment/pre-assessment`)}
+                            className="btn btn-block bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none rounded-xl shadow-lg"
+                        >
+                            <RiQuestionAnswerFill className="mr-2" />
+                            Pre-Assessment
+                        </button>
+                        <button 
+                            onClick={() => navigate(`/course/${courseId}/assessment/final-exam`)}
                             className="btn btn-block bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-none rounded-xl shadow-lg"
                         >
                             <RiQuestionAnswerFill className="mr-2" />
-                            Final Assessment
+                            Final Exam
                         </button>
                     </div>
                 </aside>

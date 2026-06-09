@@ -4,11 +4,32 @@ import User from '../models/User.js';
 import Course from '../models/Course.js';
 import { recordAssessmentAttempt } from '../services/mlMetricsService.js';
 
-// GET /api/courses/:courseId/assessment
-// Returns assessment questions with correct answers STRIPPED for security
 export const getAssessment = async (req, res) => {
   try {
-    const assessment = await Assessment.findOne({ courseId: req.params.courseId });
+    const { courseId, type = 'final-exam' } = req.params;
+
+    // Verify course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check if user is admin, the course instructor, or enrolled
+    const isInstructor = course.instructorId 
+      ? course.instructorId.toString() === req.user.id
+      : course.instructor?.email === req.user.email;
+
+    const isEnrolled = await Enrollment.findOne({
+      userId: req.user.id,
+      courseId: courseId,
+      status: { $in: ['active', 'completed'] }
+    });
+
+    if (req.user.role !== 'admin' && !isInstructor && !isEnrolled) {
+      return res.status(403).json({ message: 'Access denied. You must be enrolled in this course to view its assessment.' });
+    }
+
+    const assessment = await Assessment.findOne({ courseId, type });
     if (!assessment) {
       return res.status(404).json({ message: 'No assessment found for this course' });
     }
@@ -46,14 +67,12 @@ export const getAssessment = async (req, res) => {
   }
 };
 
-// POST /api/courses/:courseId/assessment/submit
-// Auto-grades and updates enrollment
 export const submitAssessment = async (req, res) => {
   try {
-    const { courseId } = req.params;
+    const { courseId, type = 'final-exam' } = req.params;
     const { answers } = req.body; // Array of { questionId, answer }
 
-    const assessment = await Assessment.findOne({ courseId });
+    const assessment = await Assessment.findOne({ courseId, type });
     if (!assessment) {
       return res.status(404).json({ message: 'No assessment found for this course' });
     }
@@ -61,6 +80,12 @@ export const submitAssessment = async (req, res) => {
     // Find the student
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Verify user is enrolled in this course
+    const enrollment = await Enrollment.findOne({ userId: user._id, courseId });
+    if (!enrollment) {
+      return res.status(403).json({ message: 'Access denied. You must be enrolled in this course to submit assessments.' });
+    }
 
     // Build a flat list of all questions with answers for grading
     let totalPoints = 0;
@@ -123,11 +148,8 @@ export const submitAssessment = async (req, res) => {
     const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
     // Update enrollment grade
-    const enrollment = await Enrollment.findOne({ userId: user._id, courseId });
-    if (enrollment) {
-      enrollment.grade = score;
-      await enrollment.save();
-    }
+    enrollment.grade = score;
+    await enrollment.save();
 
     // Record ML metrics (non-blocking)
     recordAssessmentAttempt(user._id, courseId, score, assessment._id.toString())
@@ -162,7 +184,7 @@ export const submitAssessment = async (req, res) => {
 // Create or update assessment (instructor/admin only)
 export const upsertAssessment = async (req, res) => {
   try {
-    const { courseId } = req.params;
+    const { courseId, type = 'final-exam' } = req.params;
     const { topics } = req.body;
 
     const course = await Course.findById(courseId);
@@ -175,8 +197,8 @@ export const upsertAssessment = async (req, res) => {
     }
 
     const assessment = await Assessment.findOneAndUpdate(
-      { courseId },
-      { courseId, topics },
+      { courseId, type },
+      { courseId, type, topics },
       { new: true, upsert: true, runValidators: true }
     );
 

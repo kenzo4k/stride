@@ -38,15 +38,21 @@ export const courseService = {
     return response.data;
   },
 
+  // Submit coding solution for grading
+  submitCodingSolution: async (courseId, lessonId, code, language) => {
+    const response = await api.post('/execute-tests', { courseId, lessonId, code, language });
+    return response.data;
+  },
+
   // Get course assessment
-  getCourseAssessment: async (id) => {
-    const response = await api.get(`/courses/${id}/assessment`);
+  getCourseAssessment: async (id, type = 'final-exam') => {
+    const response = await api.get(`/courses/${id}/assessment/${type}`);
     return response.data;
   },
 
   // Update course assessment
-  updateCourseAssessment: async (id, assessmentData) => {
-    const response = await api.put(`/courses/${id}/assessment`, assessmentData);
+  updateCourseAssessment: async (id, assessmentData, type = 'final-exam') => {
+    const response = await api.put(`/courses/${id}/assessment/${type}`, assessmentData);
     return response.data;
   },
 

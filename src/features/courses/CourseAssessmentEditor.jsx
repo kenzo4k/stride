@@ -252,7 +252,7 @@ const AssessmentTopic = ({ topic, onUpdate, onRemove, topicIndex }) => {
   );
 };
 
-const CourseAssessmentEditor = ({ assessmentData, onChange }) => {
+const CourseAssessmentEditor = ({ assessmentData, onChange, type = 'final-exam' }) => {
   const topics = assessmentData?.topics || [];
 
   const addTopic = () => {
@@ -281,14 +281,20 @@ const CourseAssessmentEditor = ({ assessmentData, onChange }) => {
     });
   };
 
+  const isPre = type === 'pre-assessment';
+
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/20 p-6 rounded-xl flex items-start gap-4">
-        <CheckCircle className="text-cyan-400 flex-shrink-0 mt-1" size={24} />
+      <div className={`bg-gradient-to-r ${isPre ? 'from-teal-900/25 to-emerald-900/25 border-teal-500/20' : 'from-blue-900/20 to-purple-900/20 border-blue-500/20'} border p-6 rounded-xl flex items-start gap-4`}>
+        <CheckCircle className={`${isPre ? 'text-teal-400' : 'text-cyan-400'} flex-shrink-0 mt-1`} size={24} />
         <div>
-          <h3 className="text-lg font-bold text-white mb-1">Final Course Assessment</h3>
+          <h3 className="text-lg font-bold text-white mb-1">
+            {isPre ? 'Baseline Pre-Assessment' : 'Final Course Assessment'}
+          </h3>
           <p className="text-gray-400 text-sm leading-relaxed">
-            Create a final assessment that students must pass to complete the course. 
+            {isPre 
+              ? 'Create a pre-assessment to establish student baseline knowledge before they begin.' 
+              : 'Create a final assessment that students must pass to complete the course.'}{' '}
             Organize questions into topics. Students will be graded automatically upon submission.
           </p>
         </div>
@@ -298,10 +304,12 @@ const CourseAssessmentEditor = ({ assessmentData, onChange }) => {
         {topics.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-xl bg-gray-800/30">
             <h4 className="text-xl font-bold text-white mb-2">No Assessment Created</h4>
-            <p className="text-gray-400 mb-6 max-w-md mx-auto">Add your first topic to start building the final assessment for this course.</p>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Add your first topic to start building the {isPre ? 'pre-assessment' : 'final assessment'} for this course.
+            </p>
             <button
               onClick={addTopic}
-              className="btn bg-cyan-600 hover:bg-cyan-700 text-white border-none"
+              className={`btn ${isPre ? 'bg-teal-600 hover:bg-teal-700' : 'bg-cyan-600 hover:bg-cyan-700'} text-white border-none`}
             >
               <Plus className="mr-2" /> Add First Topic
             </button>

@@ -49,7 +49,7 @@ const Student = () => {
       })
       .catch(err => console.error("Failed to fetch weekly activity:", err));
 
-    api.get(`/my-enrollments?email=${user.email}`)
+    api.get('/my-enrollments')
       .then(res => {
         const enrollments = res.data || [];
         const mappedCourses = enrollments.map(e => {
@@ -355,7 +355,7 @@ const Student = () => {
                         <button 
                           onClick={() => {
                             if (item.action === 'Take Quiz') {
-                              navigate(`/course/${item.id}/assessment`);
+                              navigate(`/course/${item.id}/assessment/final-exam`);
                             } else {
                               navigate(`/course/${item.id}/learn`);
                             }
@@ -480,14 +480,49 @@ const Student = () => {
 
         {/* Courses Tab */}
         {activeTab === 'courses' && (
-          <div className="bg-gray-800 rounded-xl border border-gray-700">
-            <div className="p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold">My Courses</h2>
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-6 border-b border-gray-700 pb-4">
+              <h2 className="text-xl font-semibold">My Enrolled Courses</h2>
+              <span className="bg-gray-700 text-cyan-400 px-3 py-1 rounded-full text-xs font-semibold">
+                {courses.length} Course{courses.length !== 1 ? 's' : ''}
+              </span>
             </div>
-            <div className="p-6">
-              {/* Display the student's enrolled courses */}
-              <MyEnrolledCourses />
-            </div>
+            {courses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {courses.map((course) => (
+                  <div
+                    key={course.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleCourseClick(course.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCourseClick(course.id);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <ProgressCard
+                      {...course}
+                      actionText="Continue Learning"
+                      onAction={(e) => {
+                        e?.stopPropagation?.();
+                        handleContinueCourse(course.id);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-xl">
+                <BookOpen className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                <p className="text-gray-400">You are not enrolled in any courses yet.</p>
+                <button
+                  onClick={() => navigate('/courses')}
+                  className="mt-4 btn bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none"
+                >
+                  Browse Catalog
+                </button>
+              </div>
+            )}
           </div>
         )}
 

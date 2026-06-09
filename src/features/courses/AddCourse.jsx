@@ -187,7 +187,6 @@ const AddCourse = () => {
                                     <option>Beginner</option>
                                     <option>Intermediate</option>
                                     <option>Advanced</option>
-                                    <option>All Levels</option>
                                 </select>
                                 {errors.level && <p className="text-red-400 text-sm mt-1">{errors.level.message}</p>}
                             </div>

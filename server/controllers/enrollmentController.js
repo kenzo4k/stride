@@ -1,6 +1,7 @@
 import Enrollment from '../models/Enrollment.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
+import CourseContent from '../models/CourseContent.js';
 import { recordLessonCompleted } from '../services/mlMetricsService.js';
 
 export const enrollInCourse = async (req, res) => {
@@ -55,6 +56,11 @@ export const updateProgress = async (req, res) => {
         const enrollment = await Enrollment.findById(req.params.id);
         if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
 
+        // Enforce ownership
+        if (enrollment.userId.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Not authorized to update this enrollment progress" });
+        }
+
         const previouslyCompleted = enrollment.completedLessons || [];
         const newlyCompleted = (completedLessons || []).filter(
             l => !previouslyCompleted.includes(l)
@@ -66,6 +72,33 @@ export const updateProgress = async (req, res) => {
             enrollment.grade = grade;
         }
         await enrollment.save();
+
+        // Award XP securely on backend for newly completed lessons
+        if (newlyCompleted.length > 0) {
+            try {
+                const content = await CourseContent.findOne({ courseId: enrollment.courseId });
+                if (content) {
+                    const lessons = content.sections.flatMap(s => s.lessons || []);
+                    let totalXpToAward = 0;
+                    for (const lessonId of newlyCompleted) {
+                        const lesson = lessons.find(l => (l.id || l._id?.toString()) === lessonId);
+                        if (lesson && lesson.xp) {
+                            totalXpToAward += lesson.xp;
+                        }
+                    }
+                    if (totalXpToAward > 0) {
+                        const studentUser = await User.findById(enrollment.userId);
+                        if (studentUser) {
+                            studentUser.xp = (studentUser.xp || 0) + totalXpToAward;
+                            studentUser.level = Math.floor(studentUser.xp / 100) + 1;
+                            await studentUser.save();
+                        }
+                    }
+                }
+            } catch (xpErr) {
+                console.error("Failed to calculate or award secure XP:", xpErr);
+            }
+        }
 
         // Record metrics for newly completed lessons (non-blocking)
         for (const lessonId of newlyCompleted) {

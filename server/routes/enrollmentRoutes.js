@@ -24,7 +24,8 @@ router.post('/', verifyToken, [
   body('courseId').notEmpty().withMessage('Course ID is required')
 ], validate, enrollInCourse);
 
-router.get('/my-enrollments', verifyToken, getMyEnrollments);
+// Duplicate: This endpoint is already registered at the top-level app in index.js: app.get("/api/my-enrollments", verifyToken, getMyEnrollments)
+// router.get('/my-enrollments', verifyToken, getMyEnrollments);
 
 router.patch('/:id/progress', verifyToken, [
   body('progress').isNumeric().withMessage('Progress must be a number'),

@@ -223,9 +223,9 @@ const CourseDetails = () => {
                             <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6">
                                 <h2 className="text-2xl font-semibold mb-4 text-white">Instructor</h2>
                                 <div className="flex items-start gap-4">
-                                    {course.instructor.avatar && (
+                                    {(course.instructor.photoURL || course.instructor.avatar) && (
                                         <img
-                                            src={course.instructor.avatar}
+                                            src={course.instructor.photoURL || course.instructor.avatar}
                                             alt={course.instructor.name}
                                             className="w-16 h-16 rounded-full object-cover border-2 border-gray-600"
                                         />
@@ -360,17 +360,6 @@ const CourseDetails = () => {
                                 )}
                             </div>
 
-                            {/* Assessment Button */}
-                            {isEnrolled && (
-                                <div className="mt-4">
-                                    <button
-                                        onClick={() => navigate(`/course/${id}/assessment`)}
-                                        className="btn bg-green-600 hover:bg-green-700 text-white border-none btn-wide w-full"
-                                    >
-                                        Take Assessment
-                                    </button>
-                                </div>
-                            )}
                             {course?.tags && course.tags.length > 0 && (
                                 <div className="mt-6">
                                     <h3 className="text-sm font-medium text-gray-400 mb-2">Tags:</h3>
