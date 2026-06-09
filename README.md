@@ -48,6 +48,23 @@ graph TD
 
 ---
 
+## Recommender System Architecture
+
+Stride features an advanced, multi-layer hybrid recommendation pipeline running on a dedicated FastAPI microservice. The service analyzes course metadata, peer enrollment graphs, and user history to output personalized suggestions complete with dynamic, human-readable explanations directly in the UI.
+
+### Recommendation Pipeline Layers:
+1. **Layer 1: Content-Based Similarity (TF-IDF)**: Calculates cosine similarities between courses based on their text profiles (titles, descriptions, categories, and tags). The system tracks the exact course that triggered a recommendation to provide explainable feedback: *"Similar to [Completed Course Title]"*.
+2. **Layer 2: Collaborative Filtering (Jaccard Similarity)**: Evaluates user-to-user similarity graphs based on mutual course enrollments. Courses taken by peers with similar learning patterns are boosted, with the explanation: *"Highly rated by students with similar profiles"*.
+3. **Layer 3: Rule-Based Engine (Progression & Prerequisites)**:
+   - **Prerequisite Validation**: Case-insensitively checks course prerequisites against student course completion history to recommend suitable next steps: *"Building on your study of [Prerequisite Course Title]"*.
+   - **Progression Controls**: Restricts intermediate and advanced recommendations to ensure logical progression, while automatically protecting against deadlocks for newly-created custom categories.
+4. **Layer 4: Hybrid Ranking & Explanations**: Blends content scores, collaborative scores, popularity metrics (log-scaled enrollment and ratings), and exponential freshness decay to prioritize and label the top recommendations:
+   - *"Top-rated [Level] course in [Category]"*
+   - *"Popular introductory course in [Category]"*
+   - *"Trending course in [Category]"*
+
+---
+
 ## Technology Stack
 
 | Component | Technologies & Libraries |
