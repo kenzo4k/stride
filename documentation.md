@@ -2,7 +2,7 @@
 
 ## 1. ABSTRACT
 
-Stride is a modern, full-stack course management and learning platform designed to bridge the gap between instructors and students in digital education. The platform addresses the lack of unified, interactive learning experiences by providing a comprehensive ecosystem where students can discover, enroll in, and complete courses while instructors can create and manage course content efficiently. Our motivation stems from the increasing demand for accessible online learning tools that combine flexibility with structured educational delivery. Stride leverages a modern technology stack including React 18 for responsive user interfaces, a REST API backend for scalable data management, Firebase for secure authentication, and MongoDB/PostgreSQL for flexible data storage. The platform implements role-based access control, interactive course content with quizzes and coding exercises, progress tracking, and personalized course recommendations, making it a complete solution for online education delivery.
+Stride is a modern, full-stack course management and learning platform designed to bridge the gap between instructors and students in digital education. The platform addresses the lack of unified, interactive learning experiences by providing a comprehensive ecosystem where students can discover, enroll in, and complete courses while instructors can create and manage course content efficiently. Our motivation stems from the increasing demand for accessible online learning tools that combine flexibility with structured educational delivery. Stride leverages a modern technology stack including React 18 for responsive user interfaces, a REST API backend for scalable data management, Firebase for secure authentication, and MongoDB for flexible document-oriented data storage. The platform implements role-based access control, interactive course content with quizzes and coding exercises, progress tracking, and personalized course recommendations, making it a complete solution for online education delivery.
 
 ## 2. BACKGROUND
 
@@ -101,14 +101,14 @@ How can we design and implement a unified, interactive course management platfor
 - **Frontend**: React 18 SPA with Vite bundler, Tailwind CSS + Daisy UI for styling
 - **Backend**: REST API (Node.js/Express)
 - **Authentication**: Firebase Auth + JWT tokens
-- **Database**: MongoDB (flexible schema for courses), PostgreSQL (structured user/enrollment data)
-- **External Services**: Piston API (code execution), YouTube (video content)
+- **Database**: MongoDB (document-oriented database storing courses, content, users, enrollments, assessments, and metrics)
+- **External Services**: Judge0 API (sandboxed code execution / automated grading with local Python subprocess fallback), YouTube (video content)
 
 **Key Architectural Layers:**
 1. **Presentation Layer**: React components organized by features (auth, courses, dashboard, users, assessment)
 2. **API Layer**: Axios interceptors for secure requests, centralized service layer
 3. **Business Logic**: Hooks for reusable logic, context API for state management
-4. **Data Layer**: Firebase for auth, MongoDB/PostgreSQL for persistence
+4. **Data Layer**: Firebase for auth, MongoDB for persistence
 
 ### 5.2 Stakeholders
 
@@ -129,14 +129,14 @@ How can we design and implement a unified, interactive course management platfor
 | FR-2.1.3 | The system must maintain a secure session for authenticated users (using JWT or similar). | System |
 | FR-2.1.4 | The system must provide a central Course Dashboard displaying enrolled courses and overall progress. | Student |
 
-#### FR 2.2. Adaptive Learning Engine (ALE)
+#### FR 2.2. AI Recommendation & Dropout Prediction Engine
 
 | ID | Requirement Description | Actor |
 |----|------------------------|-------|
 | FR-2.2.1 | The system must administer a pre-assessment quiz to gauge the student's initial knowledge level upon course enrollment. | Student |
-| FR-2.2.2 | The system must execute the Adaptive Learning Algorithm to dynamically recommend the next module or lesson based on performance. | System |
-| FR-2.2.3 | The system must implement real-time difficulty scaling for practice problems within a module based on the student's previous three attempts. | System |
-| FR-2.2.4 | The system must store a detailed performance history (scores, time taken, error rates) for every student. | System |
+| FR-2.2.2 | The system must execute a hybrid 4-layer recommendation engine (content-based, collaborative, rule-based, ranking) to offer personalized suggestions. | System |
+| FR-2.2.3 | The system must display dynamic, human-readable explanations (e.g., "Similar to HTML & CSS Foundations") for recommendations. | System |
+| FR-2.2.4 | The system must analyze weekly behavioral data (logins, progress, active time) using an ML model to flag at-risk students for instructors. | System |
 
 #### FR 2.3. Interactive Content Players
 
@@ -173,7 +173,7 @@ How can we design and implement a unified, interactive course management platfor
 |----|------------------------|----------|
 | NFR-3.1.1 | The system must load all key dashboard and course pages in acceptable time | High |
 | NFR-3.1.2 | The real-time code execution and feedback (via Judge0) must return results | High |
-| NFR-3.1.3 | The Adaptive Learning Algorithm logic must process and return the next recommended content | High |
+| NFR-3.1.3 | The Hybrid Recommendation Engine must generate personalized course suggestions within acceptable time limits | High |
 
 #### NFR 3.2. Security
 
@@ -194,7 +194,7 @@ How can we design and implement a unified, interactive course management platfor
 
 | ID | Requirement Description | Priority |
 |----|------------------------|----------|
-| NFR-3.4.1 | The system architecture (Node.js/PostgreSQL) must be able to support 10,000 concurrent active student sessions. | High |
+| NFR-3.4.1 | The system architecture (Node.js/Express/MongoDB) must be able to support 10,000 concurrent active student sessions. | High |
 | NFR-3.4.2 | The codebase must use modular, component-based architecture (React) to facilitate easy maintenance and feature expansion. | High |
 | NFR-3.4.3 | The system must be deployable via Docker containers | High |
 
@@ -265,7 +265,20 @@ To improve student retention, Stride incorporates an ML model that provides "Ear
 
 #### 6.2.3 Feature List
 
-*(Feature list placeholder)*
+The student retention ML model utilizes **12 raw behavioral features** aggregated over a rolling 7-day window:
+
+1.  **`login_count`**: Frequency of user logins during the week.
+2.  **`days_active`**: Total unique days of active platform engagement.
+3.  **`total_session_time_minutes`**: Cumulative learning session duration.
+4.  **`avg_session_time_minutes`**: Mean session length per login.
+5.  **`median_session_time_minutes`**: Median session length.
+6.  **`lessons_started`**: Total lessons opened.
+7.  **`lessons_completed`**: Total lessons completed.
+8.  **`assessments_attempted`**: Total quiz and exam submissions.
+9.  **`avg_assessment_score`**: Average grading score achieved on assessments.
+10. **`num_failed_attempts`**: Count of attempts scoring below passing threshold (60%).
+11. **`num_repeated_attempts`**: Count of assessment retries.
+12. **`no_improvement_attempts`**: Count of retries showing no score gain.
 
 ## 7. WORK PLAN
 
@@ -274,7 +287,7 @@ To improve student retention, Stride incorporates an ML model that provides "Ear
 | Task # | Task Title | Description | Status | Timeline |
 |--------|------------|-------------|--------|----------|
 | 1 | Project Kickoff & Requirements Gathering | Define project scope, stakeholders, and initial requirements | Completed | Week 1 |
-| 2 | Technology Stack Selection | Evaluate and select React, Firebase, MongoDB, PostgreSQL | Completed | Week 2 |
+| 2 | Technology Stack Selection | Evaluate and select React, Firebase, and MongoDB | Completed | Week 2 |
 | 3 | System Architecture Design | Design overall system architecture and component structure | Completed | Week 2-3 |
 | 4 | Authentication Module | Firebase Auth integration, login/register pages | Completed | Week 3 |
 | 5 | Home page | Landing page with latest courses and footer | Completed | Week 4 |
@@ -291,7 +304,7 @@ To improve student retention, Stride incorporates an ML model that provides "Ear
 | 16 | Machine learning model | Build an ML model to predict drop-out students | Completed | Week 14 |
 | 17 | Recommendation Engine | Hybrid 4-layer recommendation service | Completed | Week 15 |
 | 18 | Backend Architecture Setup | Node.js/Express project initialization | Completed | Week 16-17 |
-| 19 | Database Setup | MongoDB and PostgreSQL configuration | Completed | Week 18 |
+| 19 | Database Setup | MongoDB configuration and connection | Completed | Week 18 |
 | 20 | Authentication API | JWT token generation, auth middleware | Completed | Week 19 |
 | 21 | User Management API | User CRUD operations and profile management | Completed | Week 20-21 |
 | 22 | Course Management API | Course CRUD, sections, lessons endpoints | Completed | Week 21-22 |
