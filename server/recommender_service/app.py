@@ -53,6 +53,7 @@ class CourseRecommendation(BaseModel):
     tags: Optional[List[str]] = []
     status: Optional[str] = "pending"
     recommendation_score: Optional[float] = None
+    reason: Optional[str] = None
 
 class RecommendationsResponse(BaseModel):
     recommendations: List[CourseRecommendation]

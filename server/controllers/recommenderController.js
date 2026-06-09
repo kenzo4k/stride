@@ -49,7 +49,19 @@ export const getRecommendations = async (req, res) => {
         .sort({ enrollmentCount: -1, createdAt: -1 })
         .limit(4);
       }
-      return res.status(200).json({ recommendations: courses });
+      const recommendations = courses.map(c => {
+        let reason = "Related course";
+        if (category && c.category === category) {
+          reason = `Similar course in ${category}`;
+        } else if (tags.some(t => c.tags && c.tags.includes(t))) {
+          reason = "Related by tags";
+        }
+        return {
+          ...c.toObject(),
+          reason
+        };
+      });
+      return res.status(200).json({ recommendations });
     } catch (dbError) {
       return res.status(500).json({ message: "Failed to get similar courses", error: dbError.message });
     }
@@ -70,7 +82,11 @@ export const getRecommendations = async (req, res) => {
         query.category = category;
       }
       const courses = await Course.find(query).limit(4);
-      res.status(200).json({ recommendations: courses });
+      const recommendations = courses.map(c => ({
+        ...c.toObject(),
+        reason: category ? `Popular in ${category}` : "Trending introductory course"
+      }));
+      res.status(200).json({ recommendations });
     } catch (dbError) {
       res.status(500).json({ message: "Failed to get recommendations", error: dbError.message });
     }

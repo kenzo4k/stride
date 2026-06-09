@@ -26,7 +26,7 @@ class RecommenderSystem:
 
     def layer1_content_based(self, courses, user_courses_ids):
         if not user_courses_ids:
-            return {str(c["_id"]): 0.0 for c in courses}
+            return {str(c["_id"]): 0.0 for c in courses}, {}
         
         course_ids = [str(c["_id"]) for c in courses]
         texts = [self._get_course_text(c) for c in courses]
@@ -48,9 +48,10 @@ class RecommenderSystem:
                 self._cached_cosine_sim = cosine_sim
             except ValueError:
                 # Vocabulary empty
-                return {str(c["_id"]): 0.0 for c in courses}
+                return {str(c["_id"]): 0.0 for c in courses}, {}
 
         scores = {cid: 0.0 for cid in course_ids}
+        similar_to = {}
         
         user_indices = [i for i, cid in enumerate(course_ids) if cid in user_courses_ids]
         
@@ -60,13 +61,17 @@ class RecommenderSystem:
             
             # Max similarity with any course the user has taken
             max_sim = 0
+            best_match_cid = None
             for u_idx in user_indices:
                 sim = cosine_sim[i][u_idx]
                 if sim > max_sim:
                     max_sim = sim
+                    best_match_cid = course_ids[u_idx]
             scores[cid] = max_sim
+            if best_match_cid and max_sim > 0.1:
+                similar_to[cid] = best_match_cid
             
-        return scores
+        return scores, similar_to
 
     def layer2_collaborative(self, courses, enrollments, target_user_id):
         # Build user-course matrix
@@ -119,10 +124,10 @@ class RecommenderSystem:
             # Check prerequisites
             prereqs = c.get("prerequisites", [])
             prereqs_met = True
-            completed_titles = {str(rc.get("title", "")).strip() for rc in courses if str(rc["_id"]) in user_courses_ids}
+            completed_titles = {str(rc.get("title", "")).strip().lower() for rc in courses if str(rc["_id"]) in user_courses_ids}
             for p in prereqs:
-                p_str = str(p).strip()
-                if p_str.lower() == "none" or not p_str:
+                p_str = str(p).strip().lower()
+                if p_str == "none" or not p_str:
                     continue
                 if p_str not in completed_titles:
                     prereqs_met = False
@@ -135,24 +140,41 @@ class RecommenderSystem:
             level = c.get("level", "Beginner")
             category = c.get("category", "")
             
+            # Check if there are any beginner/intermediate courses in this category in the database
+            db_has_beginner = any(
+                (rc.get("level", "Beginner") == "Beginner") 
+                for rc in courses 
+                if rc.get("category") == category
+            )
+            db_has_intermediate = any(
+                (rc.get("level", "Beginner") == "Intermediate") 
+                for rc in courses 
+                if rc.get("category") == category
+            )
+
             if level == "Advanced":
-                # Check if they have beginner or intermediate in this category
-                has_lower = category_levels.get(category, set())
-                if "Beginner" not in has_lower and "Intermediate" not in has_lower:
-                    continue # Skip advanced if no prior experience in category
+                # Only check if there actually are lower level courses in the system for this category
+                if db_has_beginner or db_has_intermediate:
+                    has_lower = category_levels.get(category, set())
+                    if "Beginner" not in has_lower and "Intermediate" not in has_lower:
+                        continue # Skip advanced if no prior experience in category but lower ones exist
             elif level == "Intermediate":
-                has_lower = category_levels.get(category, set())
-                if "Beginner" not in has_lower:
-                    # Allowed for now, could be stricter
-                    pass
+                if db_has_beginner:
+                    has_lower = category_levels.get(category, set())
+                    if "Beginner" not in has_lower:
+                        # Allowed for now, could be stricter
+                        pass
             
             valid_courses.append(c)
             
         return valid_courses
 
-    def layer4_ranking(self, valid_courses, l1_scores, l2_scores):
+    def layer4_ranking(self, valid_courses, l1_scores, l2_scores, similar_to, courses, user_courses_ids):
         ranked = []
         now = datetime.now(timezone.utc)
+        
+        # Build a lookup for course titles by id
+        course_title_by_id = {str(c["_id"]): c.get("title", "") for c in courses}
         
         for c in valid_courses:
             cid = str(c["_id"])
@@ -179,8 +201,42 @@ class RecommenderSystem:
             else:
                 final_score = (content_score * 0.5) + (pop_score * 0.3) + (fresh_score * 0.2)
                 
+            # Determine best recommendation reason
+            reason = "Trending course in " + c.get("category", "Stride")
+            
+            # 1. Prerequisite progression reason
+            completed_prereqs = []
+            for p in c.get("prerequisites", []):
+                p_str = str(p).strip().lower()
+                for rc_id, rc_title in course_title_by_id.items():
+                    if rc_title.strip().lower() == p_str and rc_id in user_courses_ids:
+                        completed_prereqs.append(rc_title)
+            
+            if completed_prereqs:
+                reason = f"Building on your study of {completed_prereqs[0]}"
+            # 2. Content similarity reason
+            elif cid in similar_to and content_score > 0.1:
+                prev_course_id = similar_to[cid]
+                prev_title = course_title_by_id.get(prev_course_id, "")
+                if prev_title:
+                    reason = f"Similar to {prev_title}"
+                else:
+                    reason = f"Based on your interest in {c.get('category')}"
+            # 3. Collaborative filtering reason
+            elif collab_score > 0.3:
+                reason = "Highly rated by students with similar profiles"
+            # 4. Fallback based on category / popularity
+            else:
+                if rating >= 4.5:
+                    reason = f"Top-rated {c.get('level')} course in {c.get('category')}"
+                elif enrollment_count > 10:
+                    reason = f"Popular introductory course in {c.get('category')}"
+                else:
+                    reason = f"Recommended Beginner course in {c.get('category')}"
+                
             c_copy = c.copy()
             c_copy["recommendation_score"] = final_score
+            c_copy["reason"] = reason
             ranked.append(c_copy)
             
         # Sort descending
@@ -209,7 +265,7 @@ class RecommenderSystem:
                         break
                         
         # Layer 1
-        l1_scores = self.layer1_content_based(courses, user_courses_ids)
+        l1_scores, similar_to = self.layer1_content_based(courses, user_courses_ids)
         
         # Layer 2
         l2_scores = self.layer2_collaborative(courses, enrollments, user_id)
@@ -218,6 +274,6 @@ class RecommenderSystem:
         valid_courses = self.layer3_rule_based(courses, user_courses_ids, category_levels)
         
         # Layer 4
-        ranked = self.layer4_ranking(valid_courses, l1_scores, l2_scores)
+        ranked = self.layer4_ranking(valid_courses, l1_scores, l2_scores, similar_to, courses, user_courses_ids)
         
         return ranked[:limit]

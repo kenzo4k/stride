@@ -24,5 +24,5 @@ for user in students:
     
     print("Top Recommendations:")
     for i, rec in enumerate(recommendations[:3]):
-        print(f"  {i+1}. {rec.get('title', 'Unknown')} - Score: {rec.get('recommendation_score', 0):.4f} (Cat: {rec.get('category')}, Lvl: {rec.get('level')})")
+        print(f"  {i+1}. {rec.get('title', 'Unknown')} - Score: {rec.get('recommendation_score', 0):.4f} - Reason: {rec.get('reason')} (Cat: {rec.get('category')}, Lvl: {rec.get('level')})")
 
