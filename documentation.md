@@ -335,8 +335,8 @@ All test cases run and pass successfully:
 | 28 | Integration Testing | API and feature integration tests | Completed | Week 25-26 |
 | 29 | User Acceptance Testing (UAT) | End-to-end testing with stakeholders | Planned | Week 26 |
 | 30 | Deployment | Deploy frontend and backend to cloud | Planned | Week 27-28 |
-| 31 | Documentation | Setup guides, architecture docs | Planned | Week 28 |
-| 32 | Final Project Report | Comprehensive project documentation | Planned | Week 28 |
+| 31 | Documentation | Setup guides, architecture docs | Completed | Week 28 |
+| 32 | Final Project Report | Comprehensive project documentation | Completed | Week 28 |
 
 ### 7.2 Technologies Learned/To Learn
 
