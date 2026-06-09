@@ -28,7 +28,9 @@ import { evaluateCodeSubmission } from "./controllers/codeEvaluationController.j
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
 import { registerUser } from "./controllers/userController.js";
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const app = express();
 

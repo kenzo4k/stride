@@ -3,7 +3,9 @@ import dotenv from 'dotenv';
 import Course from './models/Course.js';
 import CourseContent from './models/CourseContent.js';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/stride';
 
