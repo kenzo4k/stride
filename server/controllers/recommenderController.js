@@ -13,14 +13,41 @@ export const getRecommendations = async (req, res) => {
         ? new mongoose.Types.ObjectId(courseId)
         : courseId;
 
-      const query = { status: { $in: ['active', 'published'] }, _id: { $ne: targetId } };
-      if (category) {
-        query.category = category;
+      const targetCourse = await Course.findById(targetId);
+      if (!targetCourse) {
+        return res.status(404).json({ message: "Course not found" });
       }
+
+      const category = targetCourse.category;
+      const tags = targetCourse.tags || [];
+
+      // Query similar courses by matching category (case-insensitive) OR sharing any tags
+      const query = {
+        status: { $in: ['active', 'published'] },
+        _id: { $ne: targetId },
+        $or: []
+      };
+
+      if (category) {
+        query.$or.push({ category: { $regex: category, $options: 'i' } });
+      }
+      if (tags.length > 0) {
+        query.$or.push({ tags: { $in: tags } });
+      }
+
+      if (query.$or.length === 0) {
+        delete query.$or;
+      }
+
       let courses = await Course.find(query).limit(4);
       if (courses.length === 0) {
-        // Fallback to any active/published courses if no other courses in same category
-        courses = await Course.find({ status: { $in: ['active', 'published'] }, _id: { $ne: targetId } }).limit(4);
+        // Fallback to popular and fresh courses if no matching similarity exists
+        courses = await Course.find({ 
+          status: { $in: ['active', 'published'] }, 
+          _id: { $ne: targetId } 
+        })
+        .sort({ enrollmentCount: -1, createdAt: -1 })
+        .limit(4);
       }
       return res.status(200).json({ recommendations: courses });
     } catch (dbError) {
