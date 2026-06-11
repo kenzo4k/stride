@@ -98,10 +98,26 @@ const runLocalSubprocess = async (language, code, stdin = '') => {
       args = [filePath];
     }
 
-    const processInstance = spawn(command, args);
     let stdout = '';
     let stderr = '';
     const startTime = Date.now();
+    let processInstance;
+
+    try {
+      processInstance = spawn(command, args);
+    } catch (err) {
+      fs.promises.unlink(filePath).catch(() => {});
+      resolve({
+        run: {
+          stdout: '',
+          stderr: `Execution error: ${err.message}`,
+          code: -1,
+          time: 0,
+          output: `Execution error: ${err.message}`
+        }
+      });
+      return;
+    }
 
     processInstance.stdout.on('data', (data) => {
       stdout += data.toString();
@@ -134,7 +150,25 @@ const runLocalSubprocess = async (language, code, stdin = '') => {
       
       if (err.code === 'ENOENT' && command === 'python') {
         const fallbackCommand = 'py';
-        const fallbackProcess = spawn(fallbackCommand, args);
+        let fallbackProcess;
+        try {
+          fallbackProcess = spawn(fallbackCommand, args);
+        } catch (fErr) {
+          try {
+            await fs.promises.unlink(filePath);
+          } catch (e) {}
+          resolve({
+            run: {
+              stdout: '',
+              stderr: `Execution error: Python runner not found. (${fErr.message})`,
+              code: -1,
+              time: 0,
+              output: `Execution error: Python runner not found. (${fErr.message})`
+            }
+          });
+          return;
+        }
+
         let fStdout = '';
         let fStderr = '';
 
