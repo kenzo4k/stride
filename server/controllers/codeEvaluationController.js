@@ -2,6 +2,7 @@ import axios from 'axios';
 import CourseContent from '../models/CourseContent.js';
 import Enrollment from '../models/Enrollment.js';
 import User from '../models/User.js';
+import { executeCodeLocally } from '../services/localRunner.js';
 
 // Helper function to dynamically generate Python test wrapper
 const getPythonWrapper = (lessonId) => {
@@ -53,13 +54,7 @@ except Exception as e:
 };
 
 const runPistonTestCase = async (wrappedCode, stdin) => {
-  const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
-    language: "python3",
-    version: "*",
-    files: [{ content: wrappedCode }],
-    stdin: stdin
-  });
-  return response.data;
+  return await executeCodeLocally('python3', wrappedCode, stdin);
 };
 
 export const evaluateCodeSubmission = async (req, res) => {

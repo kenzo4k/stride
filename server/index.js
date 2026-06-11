@@ -23,6 +23,7 @@ import timeTrackingRoutes from "./routes/timeTrackingRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { verifyToken } from "./middleware/auth.js";
 import { evaluateCodeSubmission } from "./controllers/codeEvaluationController.js";
+import { executeCodeLocally } from "./services/localRunner.js";
 
 // Controllers (for some top-level routes)
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
@@ -167,6 +168,17 @@ app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => 
   }
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ error: "Code content is required." });
+  }
+
+  // Execute JavaScript and Python locally to avoid public Piston API restrictions
+  if (language === 'javascript' || language === 'python3') {
+    try {
+      const result = await executeCodeLocally(language, code);
+      return res.json(result);
+    } catch (error) {
+      console.error("Local Execution Error:", error.message);
+      return res.status(500).json({ error: "Execution engine failed. Please try again." });
+    }
   }
 
   const executionData = {
