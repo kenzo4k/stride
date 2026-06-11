@@ -52,6 +52,7 @@ def fix_obvious_mislabels(row):
         row['lessons_completed'] >= 2):
         return 0
 
+    # Intended logic: User has high session time or login count, AND completed enough lessons and assessments with passing scores.
     if (row['total_session_time_minutes'] >= 250 or
         row['login_count'] >= 8) and \
        (row['lessons_completed'] >= 5 and

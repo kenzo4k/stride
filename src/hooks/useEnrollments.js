@@ -32,7 +32,12 @@ export const useEnrollments = () => {
   };
 
   useEffect(() => {
-    fetchEnrollments();
+    const token = localStorage.getItem('access-token');
+    if (token) {
+      fetchEnrollments();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   return {

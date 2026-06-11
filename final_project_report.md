@@ -6,7 +6,7 @@
 
 **Stride** is a modern, full-stack course management and gamified learning platform designed to bridge the gap between instructors and students in digital education. The platform addresses the lack of unified, interactive learning experiences by providing a comprehensive ecosystem where students can discover, enroll in, and complete courses while instructors can build and manage course content efficiently. 
 
-Leveraging a modern technology stack including React 18 for responsive client interfaces, a Node.js/Express backend API gateway, Firebase Authentication, and MongoDB for document-oriented data storage, Stride integrates real-time sandboxed code execution (using Judge0 API and local fallbacks), gamified learning loops (XP, levels, and public leaderboards), and Python-based machine learning microservices (recommender system and weekly student dropout risk prediction). This report outlines the system design, UML architecture, AI implementations, verification test suites, and final project outcomes.
+Leveraging a modern technology stack including React 18 for responsive client interfaces, a Node.js/Express backend API gateway with custom credentials authentication, and MongoDB for document-oriented data storage, Stride integrates real-time sandboxed code execution (using Judge0 API and local fallbacks), gamified learning loops (XP, levels, and public leaderboards), and Python-based machine learning microservices (recommender system and weekly student dropout risk prediction). This report outlines the system design, UML architecture, AI implementations, verification test suites, and final project outcomes.
 
 ---
 
@@ -179,6 +179,36 @@ sequenceDiagram
 
     API-->>Student: Return results JSON (passed, xpAwarded, test results)
 ```
+
+---
+
+### 3.5 Security & Sandbox Isolation
+
+Stride adopts a defense-in-depth approach to platform security, addressing user authentication, data transmission, access control, and untrusted code execution.
+
+1. **Authentication & Session Tokens**:
+   - **Custom Credentials Authentication**: User registration and login flow are handled natively by custom backend Express endpoints. Passwords are securely hashed with bcrypt before storing them in MongoDB.
+   - **JWT Guards**: Successful logins generate cryptographically signed JWT tokens on the Node.js backend. This token is passed via the `Authorization: Bearer <token>` header, verified by Express middleware (`verifyToken`), and protected in transit by HTTPS/TLS.
+
+2. **Role-Based Access Control (RBAC)**:
+   - Specific user roles (`Student`, `Instructor`, `Admin`) are mapped to endpoints.
+   - Access to course creation, student dropout alerts, and platform metrics is enforced via the `requireRole` backend middleware to prevent unauthorized API requests (e.g., preventing a student from updating course content or accessing another user's ML predictions).
+
+3. **Coding Sandbox Isolation**:
+   - Stride executes code written in the Monaco editor in a multi-tiered environment:
+     - **Containerized Judge0 API (Primary)**: Code is evaluated inside isolated sandboxes with strict execution timeouts (5s limits) and restricted memory allocations to prevent CPU/memory exploitation.
+     - **Piped Subprocess Runner (Fallback)**: When Judge0 is offline, local execution routes inputs and outputs purely via piped stdin/stdout, isolating code logic inside specific Python wrapper functions rather than shell commands.
+
+4. **Input Sanitization & DDoS Protection**:
+   - **SQL Injection Prevention**: Using MongoDB (NoSQL) with Mongoose prevents SQL compilation attacks. Mongoose enforces strict schema matching and automatically sanitizes/casts parameters, blocking NoSQL parameter manipulation (e.g. stripping unexpected queries like `$ne`).
+   - **DDoS Mitigation**: By routing requests through Vercel Edge networks or CDN platforms like Cloudflare, volumetric DDoS attacks are mitigated at the network layer. Size limits on Express payloads (50MB cap) and code sandbox run-times (5s timeout) prevent Denial of Service (DoS) by resource exhaustion.
+
+### 3.6 Production Hardening & Risks
+
+Before deploying Stride to a production setting, the following development-time risks must be hardened:
+1. **Arbitrary Code Execution in Fallback Runner**: The local Python subprocess fallback (`child_process.spawn`) must be disabled in production. Otherwise, a lack of connection to Judge0 will cause untrusted code to run directly on the host server without container sandboxing.
+2. **Default JWT Secrets**: The fallback token secret (`'secret'`) must be disabled, and the server must crash at startup if `ACCESS_TOKEN_SECRET` is not set to a secure, long string.
+3. **Mock Billing**: Disable mock Stripe payments in production to prevent fake checkout bypasses.
 
 ---
 

@@ -60,7 +60,7 @@ const AuthProvider = ({ children }) => {
         window.location.href = '/Auth/login';
     };
 
-    // Keep for compatibility if needed, but it might not work without Firebase
+    // Keep for compatibility if needed
     const googleSignIn = () => {
         console.warn('Google Sign-In is not implemented for custom MongoDB auth.');
         return Promise.reject(new Error('Google Sign-In not implemented.'));

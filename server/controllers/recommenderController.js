@@ -1,3 +1,4 @@
+/* global process */
 import axios from 'axios';
 import mongoose from 'mongoose';
 import Course from '../models/Course.js';
@@ -18,7 +19,7 @@ export const getRecommendations = async (req, res) => {
         return res.status(404).json({ message: "Course not found" });
       }
 
-      const category = targetCourse.category;
+      const targetCategory = targetCourse.category;
       const tags = targetCourse.tags || [];
 
       // Query similar courses by matching category (case-insensitive) OR sharing any tags
@@ -28,8 +29,8 @@ export const getRecommendations = async (req, res) => {
         $or: []
       };
 
-      if (category) {
-        query.$or.push({ category: { $regex: category, $options: 'i' } });
+      if (targetCategory) {
+        query.$or.push({ category: { $regex: targetCategory, $options: 'i' } });
       }
       if (tags.length > 0) {
         query.$or.push({ tags: { $in: tags } });
@@ -51,8 +52,8 @@ export const getRecommendations = async (req, res) => {
       }
       const recommendations = courses.map(c => {
         let reason = "Related course";
-        if (category && c.category === category) {
-          reason = `Similar course in ${category}`;
+        if (targetCategory && c.category === targetCategory) {
+          reason = `Similar course in ${targetCategory}`;
         } else if (tags.some(t => c.tags && c.tags.includes(t))) {
           reason = "Related by tags";
         }
@@ -74,7 +75,7 @@ export const getRecommendations = async (req, res) => {
     // Call Python microservice
     const response = await axios.get(`${pythonServiceUrl}/api/recommendations/${userId}`);
     res.status(200).json(response.data);
-  } catch (error) {
+  } catch {
     console.warn("Python service unreachable, falling back to database query recommendation...");
     try {
       const query = { status: { $in: ['active', 'published'] } };

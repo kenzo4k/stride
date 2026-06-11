@@ -21,6 +21,11 @@ export const enrollInCourse = async (req, res) => {
       return res.status(400).json({ message: "Already enrolled in this course" });
     }
 
+    // Check seat limit
+    if (course.seats && (course.enrollmentCount || 0) >= course.seats) {
+      return res.status(400).json({ message: "Course is full. No seats remaining." });
+    }
+
     const enrollment = new Enrollment({
       userId: student._id,
       courseId: course._id,
@@ -28,9 +33,8 @@ export const enrollInCourse = async (req, res) => {
 
     await enrollment.save();
 
-    // Increment enrollment count in course
-    course.enrollmentCount = (course.enrollmentCount || 0) + 1;
-    await course.save();
+    // Increment enrollment count in course atomically
+    await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1 } });
 
     res.status(201).json(enrollment);
   } catch (err) {
@@ -61,10 +65,8 @@ export const updateProgress = async (req, res) => {
             return res.status(403).json({ message: "Not authorized to update this enrollment progress" });
         }
 
-        const previouslyCompleted = enrollment.completedLessons || [];
-        const newlyCompleted = (completedLessons || []).filter(
-            l => !previouslyCompleted.includes(l)
-        );
+        const previousSet = new Set((enrollment.completedLessons || []).map(String));
+        const newlyCompleted = (completedLessons || []).filter(l => !previousSet.has(String(l)));
 
         enrollment.progress = progress;
         enrollment.completedLessons = completedLessons;
@@ -101,7 +103,7 @@ export const updateProgress = async (req, res) => {
         }
 
         // Record metrics for newly completed lessons (non-blocking)
-        for (const lessonId of newlyCompleted) {
+        for (const _lessonId of newlyCompleted) {
             recordLessonCompleted(enrollment.userId, enrollment.courseId)
                 .catch(err => console.error('ML metrics recordLessonCompleted error:', err));
         }
@@ -157,12 +159,11 @@ export const processRefund = async (req, res) => {
       enrollment.refundProcessedAt = new Date();
       await enrollment.save();
 
-      // Also decrement enrollmentCount in course
-      const course = await Course.findById(enrollment.courseId);
-      if (course) {
-        course.enrollmentCount = Math.max(0, (course.enrollmentCount || 1) - 1);
-        await course.save();
-      }
+      // Decrement enrollmentCount in course atomically, preventing negative values
+      await Course.findOneAndUpdate(
+        { _id: enrollment.courseId, enrollmentCount: { $gte: 1 } },
+        { $inc: { enrollmentCount: -1 } }
+      );
 
       // Delete the Enrollment record on approval to fully unenroll the student
       await Enrollment.findByIdAndDelete(id);

@@ -13,7 +13,7 @@ class RecommenderSystem:
         self._cached_cosine_sim = None
 
     def get_data(self):
-        courses = list(self.db.courses.find({"status": "active"}))
+        courses = list(self.db.courses.find({"status": {"$in": ["active", "published"]}}))
         enrollments = list(self.db.enrollments.find({"status": {"$in": ["active", "completed"]}}))
         return courses, enrollments
 

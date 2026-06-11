@@ -1,4 +1,5 @@
 import MLFeature from '../models/MLFeature.js';
+import Course from '../models/Course.js';
 
 // GET /api/metrics/student/:studentId
 export const getStudentMetrics = async (req, res) => {
@@ -20,6 +21,19 @@ export const getStudentMetrics = async (req, res) => {
 // GET /api/metrics/course/:courseId
 export const getCourseMetrics = async (req, res) => {
   try {
+    const course = await Course.findById(req.params.courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    if (req.user.role === 'instructor') {
+      const isOwner = course.instructorId?.toString() === req.user.id
+        || course.instructor?.email === req.user.email;
+      if (!isOwner) {
+        return res.status(403).json({ message: 'Access denied. You can only view metrics for your own courses.' });
+      }
+    }
+
     const metrics = await MLFeature.find({ courseId: req.params.courseId })
       .populate('studentId', 'name email photoURL');
 

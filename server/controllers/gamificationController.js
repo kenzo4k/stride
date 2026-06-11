@@ -118,6 +118,10 @@ export const awardXP = async (req, res) => {
       return res.status(400).json({ message: 'Valid XP amount is required' });
     }
 
+    if (amount > 1000) {
+      return res.status(400).json({ message: 'XP award amount exceeds maximum limit of 1000' });
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

@@ -8,7 +8,6 @@ export const getAdminStats = async (req, res) => {
         const totalCourses = await Course.countDocuments();
         const totalEnrollments = await Enrollment.countDocuments();
         
-        const courses = await Course.find();
         const enrollments = await Enrollment.find().populate('courseId');
         
         const totalRevenue = enrollments.reduce((acc, e) => {
@@ -22,20 +21,39 @@ export const getAdminStats = async (req, res) => {
         // Calculate User Growth
         const allUsers = await User.find({}, 'createdAt').sort({ createdAt: 1 });
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        // Generate last 12 month keys in order: YYYY-Month
+        const last12Months = [];
+        const today = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            last12Months.push({
+                key: `${d.getFullYear()}-${months[d.getMonth()]}`,
+                year: d.getFullYear(),
+                monthIndex: d.getMonth(),
+                label: `${months[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`
+            });
+        }
+
+        // Count users created before our 12-month window
+        const firstWindowMonth = last12Months[0];
+        const windowStartLimit = new Date(firstWindowMonth.year, firstWindowMonth.monthIndex, 1);
+        let cumulative = await User.countDocuments({ createdAt: { $lt: windowStartLimit } });
+
+        // Map users created within the window
         const growthMap = {};
         allUsers.forEach(u => {
-            if (u.createdAt) {
+            if (u.createdAt && u.createdAt >= windowStartLimit) {
                 const date = new Date(u.createdAt);
-                const monthStr = months[date.getMonth()];
-                growthMap[monthStr] = (growthMap[monthStr] || 0) + 1;
+                const key = `${date.getFullYear()}-${months[date.getMonth()]}`;
+                growthMap[key] = (growthMap[key] || 0) + 1;
             }
         });
 
-        let cumulative = 0;
-        const userGrowthData = months.map(m => {
-            cumulative += (growthMap[m] || 0);
-            return { month: m, users: cumulative };
-        }).filter(item => item.users > 0);
+        const userGrowthData = last12Months.map(m => {
+            cumulative += (growthMap[m.key] || 0);
+            return { month: m.label, users: cumulative };
+        });
 
         // Calculate Enrollment Trends
         const courseEnrollmentMap = {};
@@ -82,7 +100,7 @@ export const getRecentCourses = async (req, res) => {
         const courses = await Course.find().sort({ createdAt: -1 }).limit(10);
         res.json(courses.map(c => ({
             ...c.toObject(),
-            instructor: c.instructor?.name || 'Unknown'
+            instructorName: c.instructor?.name || 'Unknown'
         })));
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
@@ -200,6 +218,100 @@ export const getAllCoursesAdmin = async (req, res) => {
     try {
         const courses = await Course.find();
         res.json(courses);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
+
+export const getAtRiskStudentsAdmin = async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find()
+      .populate('userId', 'name email photoURL lastLogin')
+      .populate('courseId', 'title');
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const atRisk = enrollments.filter(e => {
+        const user = e.userId;
+        if (!user) return false;
+        const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
+        return lastLogin < sevenDaysAgo || e.grade < 60;
+    }).map(e => ({
+        id: e.userId._id,
+        name: e.userId.name,
+        email: e.userId.email,
+        photoURL: e.userId.photoURL,
+        lastLogin: e.userId.lastLogin,
+        course: e.courseId ? e.courseId.title : 'Deleted Course',
+        grade: e.grade,
+        progress: e.progress,
+        status: e.grade < 50 ? 'Failing' : 'At Risk'
+    }));
+
+    res.json(atRisk);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const sendReminderAdmin = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { message } = req.body || {};
+
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        const enrollment = await Enrollment.findOne({
+            userId: studentId
+        }).populate('courseId');
+
+        const courseTitle = enrollment && enrollment.courseId ? enrollment.courseId.title : "Unknown Course";
+        const reminderMsg = message || `Hi ${student.name}, please remember to check back into your course: ${courseTitle}.`;
+
+        console.log(`[Admin Reminder Sent]
+Recipient ID: ${student._id}
+Recipient Email: ${student.email}
+Course Title: ${courseTitle}
+Message: ${reminderMsg}
+`);
+
+        res.json({ message: "Reminder sent successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
+
+export const sendBulkReminderAdmin = async (req, res) => {
+    try {
+        const { studentIds, message } = req.body || {};
+        if (!studentIds || !Array.isArray(studentIds)) {
+            return res.status(400).json({ message: "studentIds array is required" });
+        }
+
+        for (const studentId of studentIds) {
+            const student = await User.findById(studentId);
+            if (!student) continue;
+
+            const enrollment = await Enrollment.findOne({
+                userId: studentId
+            }).populate('courseId');
+
+            const courseTitle = enrollment && enrollment.courseId ? enrollment.courseId.title : "Unknown Course";
+            const reminderMsg = message || `Hi ${student.name}, please remember to check back into your course: ${courseTitle}.`;
+
+            console.log(`[Admin Bulk Reminder Sent]
+Recipient ID: ${student._id}
+Recipient Email: ${student.email}
+Course Title: ${courseTitle}
+Message: ${reminderMsg}
+`);
+        }
+
+        res.json({ message: "Bulk reminders sent successfully" });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }

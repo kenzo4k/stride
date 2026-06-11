@@ -48,7 +48,8 @@ const transformEditorToViewer = (sections) => {
                 lesson.exercise = {
                     description: item.description || '',
                     starterCode: item.starterCode || '',
-                    language: item.language || 'javascript'
+                    language: item.language || 'javascript',
+                    testCases: item.testCases || []
                 };
             }
             return lesson;
@@ -91,6 +92,7 @@ const transformViewerToEditor = (sections) => {
                 item.description = lesson.exercise?.description || '';
                 item.starterCode = lesson.exercise?.starterCode || '';
                 item.language = lesson.exercise?.language || 'javascript';
+                item.testCases = lesson.exercise?.testCases || [];
             }
             return item;
         })

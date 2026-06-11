@@ -7,7 +7,10 @@ import {
     handleUserAction,
     handleCourseAction,
     handleInstructorAction,
-    getAllCoursesAdmin
+    getAllCoursesAdmin,
+    getAtRiskStudentsAdmin,
+    sendReminderAdmin,
+    sendBulkReminderAdmin
 } from '../controllers/adminController.js';
 import { getRefundRequests, processRefund } from '../controllers/enrollmentController.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
@@ -23,6 +26,9 @@ router.get('/recent-courses', getRecentCourses);
 router.get('/instructors', getInstructors);
 router.get('/courses', getAllCoursesAdmin);
 router.get('/refund-requests', getRefundRequests);
+router.get('/at-risk-students', getAtRiskStudentsAdmin);
+router.post('/send-reminder/:studentId', sendReminderAdmin);
+router.post('/send-bulk-reminder', sendBulkReminderAdmin);
 router.post('/enrollments/:id/refund', processRefund);
 router.post('/users/:id/:action', handleUserAction);
 router.post('/courses/:id/:action', handleCourseAction);

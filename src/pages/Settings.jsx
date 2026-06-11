@@ -13,11 +13,6 @@ const defaultSettings = {
     profileVisible: true,
   },
   language: 'English',
-  account: {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  },
 };
 
 const ToggleSwitch = ({ enabled, onToggle }) => (
@@ -41,6 +36,7 @@ const Settings = () => {
   const { user } = useAuth();
   const userKey = user?.email || 'default';
   const [settings, setSettings] = useState(defaultSettings);
+  const [account, setAccount] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [hasLoaded, setHasLoaded] = useState(false);
   const [skipSave, setSkipSave] = useState(false);
 
@@ -61,10 +57,6 @@ const Settings = () => {
             privacy: {
               ...defaultSettings.privacy,
               ...savedSettings.privacy,
-            },
-            account: {
-              ...defaultSettings.account,
-              ...savedSettings.account,
             },
           });
         }
@@ -89,13 +81,12 @@ const Settings = () => {
     } catch {
       parsedSettings = {};
     }
-    const { account, ...settingsWithoutPasswords } = settings;
-    parsedSettings[userKey] = settingsWithoutPasswords;
+    parsedSettings[userKey] = settings;
     localStorage.setItem('userSettings', JSON.stringify(parsedSettings));
     toast.success('Settings saved', { id: 'settings-saved' });
   }, [settings, userKey, hasLoaded, skipSave]);
 
-  const handleThemeToggle = () => {
+  const _handleThemeToggle = () => {
     setSettings(prev => ({
       ...prev,
       theme: prev.theme === 'dark' ? 'light' : 'dark',
@@ -149,12 +140,9 @@ const Settings = () => {
   };
 
   const handleAccountChange = (key, value) => {
-    setSettings(prev => ({
+    setAccount(prev => ({
       ...prev,
-      account: {
-        ...prev.account,
-        [key]: value,
-      },
+      [key]: value,
     }));
   };
 
@@ -162,26 +150,25 @@ const Settings = () => {
     localStorage.removeItem('userSettings');
     setSettings(defaultSettings);
     setSkipSave(true);
+    setAccount({ currentPassword: '', newPassword: '', confirmPassword: '' });
     toast.success('Settings reset to defaults', { id: 'settings-reset' });
   };
 
   const handlePasswordUpdate = async () => {
-    const { currentPassword, newPassword, confirmPassword } = settings.account;
+    const { currentPassword, newPassword, confirmPassword } = account;
     if (!currentPassword || !newPassword || !confirmPassword) {
       return toast.error('Please fill in all password fields.', { id: 'password-error' });
     }
     if (newPassword !== confirmPassword) {
       return toast.error('New passwords do not match.', { id: 'password-error' });
     }
-    if (newPassword.length < 8) {
-      return toast.error('Password must be at least 8 characters.', { id: 'password-error' });
+    if (newPassword.length < 6) {
+      return toast.error('Password must be at least 6 characters.', { id: 'password-error' });
     }
     try {
       await api.put('/users/change-password', { currentPassword, newPassword });
       toast.success('Password updated successfully!', { icon: '🔒', id: 'password-update' });
-      handleAccountChange('currentPassword', '');
-      handleAccountChange('newPassword', '');
-      handleAccountChange('confirmPassword', '');
+      setAccount({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update password.', { id: 'password-error' });
     }
@@ -306,21 +293,21 @@ const Settings = () => {
                 <input
                   type="password"
                   placeholder="Current Password"
-                  value={settings.account.currentPassword}
+                  value={account.currentPassword}
                   onChange={(event) => handleAccountChange('currentPassword', event.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"
                 />
                 <input
                   type="password"
                   placeholder="New Password"
-                  value={settings.account.newPassword}
+                  value={account.newPassword}
                   onChange={(event) => handleAccountChange('newPassword', event.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"
                 />
                 <input
                   type="password"
                   placeholder="Confirm New Password"
-                  value={settings.account.confirmPassword}
+                  value={account.confirmPassword}
                   onChange={(event) => handleAccountChange('confirmPassword', event.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"
                 />

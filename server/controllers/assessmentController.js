@@ -34,6 +34,11 @@ export const getAssessment = async (req, res) => {
       return res.status(404).json({ message: 'No assessment found for this course' });
     }
 
+    // If instructor or admin, return full assessment with answers
+    if (req.user.role === 'admin' || isInstructor) {
+      return res.json(assessment);
+    }
+
     // Strip correct answers before sending to student
     const sanitized = {
       _id: assessment._id,
@@ -147,24 +152,30 @@ export const submitAssessment = async (req, res) => {
 
     const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
-    // Update enrollment grade
-    enrollment.grade = score;
+    // Update enrollment grade: on re-submission, update grade if higher
+    const isUpdate = enrollment.grade > 0;
+    if (score > enrollment.grade) {
+      enrollment.grade = score;
+    }
     await enrollment.save();
 
     // Record ML metrics (non-blocking)
     recordAssessmentAttempt(user._id, courseId, score, assessment._id.toString())
       .catch(err => console.error('ML metrics recordAssessmentAttempt error:', err));
 
-    // Award XP based on score
-    let xpAwarded = 10;
-    if (score >= 90) xpAwarded = 50;
-    else if (score >= 80) xpAwarded = 40;
-    else if (score >= 60) xpAwarded = 30;
-    else if (score >= 40) xpAwarded = 20;
+    // Award XP based on score: only if not already submitted
+    let xpAwarded = 0;
+    if (!isUpdate) {
+      xpAwarded = 10;
+      if (score >= 90) xpAwarded = 50;
+      else if (score >= 80) xpAwarded = 40;
+      else if (score >= 60) xpAwarded = 30;
+      else if (score >= 40) xpAwarded = 20;
 
-    user.xp = (user.xp || 0) + xpAwarded;
-    user.level = Math.floor(user.xp / 100) + 1;
-    await user.save();
+      user.xp = (user.xp || 0) + xpAwarded;
+      user.level = Math.floor(user.xp / 100) + 1;
+      await user.save();
+    }
 
     res.json({
       score,

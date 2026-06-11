@@ -127,9 +127,48 @@ app.use("/api/upload", uploadRoutes);
 app.post("/api/register-user", registerUser);
 app.get("/api/my-enrollments", verifyToken, getMyEnrollments);
 
+// In-memory rate limiter: ~10 requests per minute per user/IP
+const rateLimitWindowMs = 60 * 1000;
+const rateLimitMaxRequests = 10;
+const requestCounts = new Map();
+
+const codeExecutionLimiter = (req, res, next) => {
+  const userId = req.user?.id || req.ip;
+  const now = Date.now();
+  
+  if (!requestCounts.has(userId)) {
+    requestCounts.set(userId, []);
+  }
+  
+  const timestamps = requestCounts.get(userId);
+  const activeTimestamps = timestamps.filter(t => now - t < rateLimitWindowMs);
+  
+  if (activeTimestamps.length >= rateLimitMaxRequests) {
+    return res.status(429).json({
+      message: "Too many code execution requests. Please try again in a minute."
+    });
+  }
+  
+  activeTimestamps.push(now);
+  requestCounts.set(userId, activeTimestamps);
+  next();
+};
+
 // === PISTON: Code Execution Route ===
-app.post("/api/execute", verifyToken, async (req, res) => {
+app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => {
   const { code, language, version } = req.body;
+
+  const allowedLanguages = ['javascript', 'python3', 'java', 'cpp', 'sqlite3'];
+  if (!language || !allowedLanguages.includes(language)) {
+    return res.status(400).json({ error: "Unsupported or invalid language." });
+  }
+  if (!version || typeof version !== 'string' || version.trim() === '') {
+    return res.status(400).json({ error: "Invalid language version." });
+  }
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: "Code content is required." });
+  }
+
   const executionData = {
     language: language,
     version: version,
@@ -149,7 +188,7 @@ app.post("/api/execute", verifyToken, async (req, res) => {
 });
 
 // === JUDGE0: Code Evaluation against Test Cases ===
-app.post("/api/execute-tests", verifyToken, evaluateCodeSubmission);
+app.post("/api/execute-tests", verifyToken, codeExecutionLimiter, evaluateCodeSubmission);
 
 // === STRIPE: Create Payment Intent ===
 app.post("/api/create-payment-intent", verifyToken, async (req, res) => {

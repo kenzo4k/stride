@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, X, FileText, Video, FileCode, ListChecks, Play, Upload, File, Loader2, CheckCircle } from 'lucide-react';
+import { Plus, X, FileText, Video, FileCode, ListChecks, Play, Upload, File, Loader2, CheckCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -43,14 +43,14 @@ const UploadProgress = ({ progress, fileName }) => (
 // ─── Simple Code Editor (JS/Python) ─────────────────────────────────────────
 const CodeExerciseEditor = ({ content, onUpdate }) => {
   const [output, setOutput] = useState('');
-  const [language, setLanguage] = useState(content.language || 'javascript');
-  const [code, setCode] = useState(content.starterCode || '');
   const [pyodideReady, setPyodideReady] = useState(false);
   const pyodideRef = useRef(null);
 
-  useEffect(() => {
-    onUpdate({ ...content, language, starterCode: code });
-  }, [language, code, content, onUpdate]);
+  const title = content.title || '';
+  const description = content.description || '';
+  const language = content.language || 'javascript';
+  const code = content.starterCode || '';
+  const testCases = content.testCases || [];
 
   // Load pyodide when Python is selected
   useEffect(() => {
@@ -98,37 +98,175 @@ const CodeExerciseEditor = ({ content, onUpdate }) => {
     }
   };
 
+  const handleFieldChange = (key, value) => {
+    onUpdate({
+      ...content,
+      [key]: value
+    });
+  };
+
+  const addTestCase = () => {
+    const newTestCases = [
+      ...testCases,
+      { input: '', expectedOutput: '', isHidden: false }
+    ];
+    handleFieldChange('testCases', newTestCases);
+  };
+
+  const updateTestCase = (index, updatedTc) => {
+    const newTestCases = testCases.map((tc, idx) => 
+      idx === index ? { ...tc, ...updatedTc } : tc
+    );
+    handleFieldChange('testCases', newTestCases);
+  };
+
+  const removeTestCase = (index) => {
+    const newTestCases = testCases.filter((_, idx) => idx !== index);
+    handleFieldChange('testCases', newTestCases);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 items-center">
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-        >
-          <option value="javascript">JavaScript</option>
-          <option value="python">Python</option>
-        </select>
-        <button
-          onClick={runCode}
-          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-md hover:from-blue-600 hover:to-purple-700 flex items-center space-x-1"
-        >
-          <Play className="w-4 h-4" />
-          <span>Run Code</span>
-        </button>
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wider">Exercise Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => handleFieldChange('title', e.target.value)}
+            className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700 focus:outline-none focus:border-blue-500"
+            placeholder="e.g., Sum of Two Numbers"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wider">Problem Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => handleFieldChange('description', e.target.value)}
+            className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700 focus:outline-none focus:border-blue-500"
+            rows={3}
+            placeholder="Describe the challenge rules, function signature, parameters, and return value..."
+          />
+        </div>
       </div>
-      <textarea
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        className="w-full h-40 bg-gray-900 border border-gray-600 rounded p-4 text-green-400 font-mono text-sm"
-        placeholder="Write code here..."
-      />
+
+      <div className="flex gap-4 items-center pt-2">
+        <div className="flex flex-col">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Language</label>
+          <select
+            value={language}
+            onChange={(e) => handleFieldChange('language', e.target.value)}
+            className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+          >
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+          </select>
+        </div>
+        <div className="flex items-end h-full pt-5">
+          <button
+            onClick={runCode}
+            type="button"
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-md hover:from-blue-600 hover:to-purple-700 flex items-center space-x-1"
+          >
+            <Play className="w-4 h-4" />
+            <span>Run Code</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wider">Starter Code</label>
+        <textarea
+          value={code}
+          onChange={(e) => handleFieldChange('starterCode', e.target.value)}
+          className="w-full h-40 bg-gray-900 border border-gray-600 rounded p-4 text-green-400 font-mono text-sm focus:outline-none focus:border-blue-500"
+          placeholder="Write starter code/template here..."
+        />
+      </div>
+
       {output && (
         <div className="bg-gray-900 border border-gray-600 rounded p-4">
           <h4 className="text-white font-semibold mb-2">Output:</h4>
-          <pre className="text-blue-400 font-mono text-sm">{output}</pre>
+          <pre className="text-blue-400 font-mono text-sm whitespace-pre-wrap">{output}</pre>
         </div>
       )}
+
+      <div className="space-y-4 pt-4 border-t border-gray-700">
+        <div className="flex justify-between items-center">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-200">Test Cases</h4>
+            <p className="text-xs text-gray-400">Define expected outputs for standard inputs. Python functions are tested by running standard inputs into parameters or stdin.</p>
+          </div>
+          <button
+            type="button"
+            onClick={addTestCase}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-md flex items-center gap-1 text-xs font-medium transition-colors"
+          >
+            <Plus size={14} /> Add Test Case
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {testCases.map((tc, idx) => (
+            <div key={idx} className="p-4 bg-gray-900/40 border border-gray-700 rounded-xl space-y-3 relative">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-400">Test Case #{idx + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeTestCase(idx)}
+                  className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-gray-800 transition-colors"
+                  title="Remove test case"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Input (stdin)</label>
+                  <textarea
+                    value={tc.input || ''}
+                    onChange={(e) => updateTestCase(idx, { input: e.target.value })}
+                    className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700 font-mono text-xs focus:outline-none focus:border-blue-500"
+                    rows={2}
+                    placeholder="e.g. 2\n3"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Expected Output (stdout)</label>
+                  <textarea
+                    value={tc.expectedOutput || ''}
+                    onChange={(e) => updateTestCase(idx, { expectedOutput: e.target.value })}
+                    className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700 font-mono text-xs focus:outline-none focus:border-blue-500"
+                    rows={2}
+                    placeholder="e.g. 5"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-gray-300">
+                <input
+                  type="checkbox"
+                  id={`isHidden-${idx}`}
+                  checked={tc.isHidden || false}
+                  onChange={(e) => updateTestCase(idx, { isHidden: e.target.checked })}
+                  className="checkbox checkbox-xs border-gray-600 rounded bg-gray-800"
+                />
+                <label htmlFor={`isHidden-${idx}`} className="cursor-pointer font-medium select-none">
+                  Hidden Test Case (results are evaluated but hidden from students)
+                </label>
+              </div>
+            </div>
+          ))}
+
+          {testCases.length === 0 && (
+            <div className="text-center p-6 border border-dashed border-gray-700 rounded-xl bg-gray-900/10 text-gray-400 text-sm">
+              No test cases defined. Click "Add Test Case" to add one.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -520,6 +658,7 @@ const Section = ({ section, onUpdate, onRemove }) => {
       newContent.description = '';
       newContent.starterCode = '';
       newContent.solutionCode = '';
+      newContent.testCases = [];
     } else if (type === 'video') {
       newContent.title = '';
       newContent.url = '';

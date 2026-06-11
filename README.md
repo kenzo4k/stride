@@ -122,14 +122,10 @@ PORT=5000
 MONGODB_URI=mongodb://localhost:27017/stride
 ```
 
-Create a `client/.env.local` or copy values into your environment for Firebase configurations:
+Create a `client/.env.local` for frontend environment options (Stripe payments and backend API base URL):
 ```env
-apiKey=YOUR_FIREBASE_API_KEY
-authDomain=YOUR_FIREBASE_AUTH_DOMAIN
-projectId=YOUR_PROJECT_ID
-storageBucket=YOUR_STORAGE_BUCKET
-messagingSenderId=YOUR_MESSAGING_SENDER_ID
-appId=YOUR_APP_ID
+VITE_API_URL=http://localhost:5000/api
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_... # Optional: Stripe publishable key
 ```
 
 ### 2. Express Backend Server Configurations (`server/.env`)
@@ -239,3 +235,17 @@ Stride defines Mongoose collections inside `server/models/`:
 5.  **Assessment**: Houses topic-based Pre-Assessments and Final Exams, separated by the `type` field, containing multiple-choice, true/false, fill-in-the-blanks, and concept-matching questions. Unique constraints are enforced via `{ courseId, type }`.
 6.  **MLFeature / StudentMetric**: Aggregates login counts, active days, session lengths, lessons completed, and assessment scores that feed into the ML dropout prediction engine.
 
+---
+
+## Security & Data Isolation
+
+Stride implements multiple layers of security to guarantee data privacy, safe request routing, and protected code execution:
+
+1. **Secure Session States**: User credentials (email/password) are submitted securely to custom authentication backend endpoints, where registration and logins are validated using bcrypt password hashing. Successful logins generate cryptographically signed JWT tokens passed via HTTP headers and encrypted in transit by HTTPS/TLS.
+2. **Backend Route Guards (RBAC)**: All API routes (such as dropout predictions or course modifications) are protected by a chain of Express authentication and authorization middlewares (`verifyToken`, `requireRole`) verifying roles (`Student`, `Instructor`, `Admin`).
+3. **Execution Sandbox**: Student code submissions are executed within isolated, resource-constrained container environments (using Judge0 CE API) or structured fallback subprocess pipes to prevent arbitrary shell command injections or execution exploits on server hosts.
+4. **NoSQL Injection & Sanitization**: Using MongoDB with Mongoose natively prevents traditional SQL injections. Mongoose enforces strict schema matching and automatically sanitizes/casts query fields, while `express-validator` middleware filters out illegal parameters before processing.
+5. **DDoS Mitigation**: Production deployment is optimized for cloud platforms (e.g. Vercel/Cloudflare Edge networks) that mitigate volumetric DDoS attacks. Application-level limits on body parser payloads (50MB) and Monaco sandbox runtime timeouts (5s) prevent resource exhaustion attacks.
+
+> [!WARNING]
+> **Production Hardening**: For production deployment, you must: (1) disable the local subprocess python execution fallback (which executes code directly on the host machine if the Judge0 key is missing), (2) enforce a strong `ACCESS_TOKEN_SECRET` key and disable default `'secret'` fallbacks, and (3) disable mock billing fallouts on Stripe endpoints.

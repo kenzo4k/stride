@@ -1,4 +1,3 @@
-import { spawn } from 'child_process';
 import axios from 'axios';
 import CourseContent from '../models/CourseContent.js';
 import Enrollment from '../models/Enrollment.js';
@@ -53,62 +52,14 @@ except Exception as e:
   return '';
 };
 
-// Local Python Execution Fallback
-const runPythonLocally = (code, stdin) => {
-  return new Promise((resolve) => {
-    // Try 'python', fall back to 'py' or 'python3' if failed
-    const command = process.platform === 'win32' ? 'python' : 'python3';
-    const pyProcess = spawn(command, ['-c', code]);
-    
-    let stdout = '';
-    let stderr = '';
-    
-    pyProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    
-    pyProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-    
-    pyProcess.on('close', (code) => {
-      resolve({
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
-        exitCode: code
-      });
-    });
-    
-    pyProcess.on('error', (err) => {
-      // If 'python' is not found, fallback to 'py'
-      if (err.code === 'ENOENT' && command === 'python') {
-        const fallbackProcess = spawn('py', ['-c', code]);
-        let fStdout = '';
-        let fStderr = '';
-        
-        fallbackProcess.stdout.on('data', (data) => { fStdout += data.toString(); });
-        fallbackProcess.stderr.on('data', (data) => { fStderr += data.toString(); });
-        
-        fallbackProcess.on('close', (fCode) => {
-          resolve({ stdout: fStdout.trim(), stderr: fStderr.trim(), exitCode: fCode });
-        });
-        
-        fallbackProcess.on('error', (fallbackErr) => {
-          resolve({ stdout: '', stderr: `Python runner not found: ${fallbackErr.message}`, exitCode: -1 });
-        });
-        
-        fallbackProcess.stdin.write(stdin);
-        fallbackProcess.stdin.end();
-      } else {
-        resolve({ stdout: '', stderr: `Execution error: ${err.message}`, exitCode: -1 });
-      }
-    });
-
-    if (pyProcess.stdin) {
-      pyProcess.stdin.write(stdin);
-      pyProcess.stdin.end();
-    }
+const runPistonTestCase = async (wrappedCode, stdin) => {
+  const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
+    language: "python3",
+    version: "*",
+    files: [{ content: wrappedCode }],
+    stdin: stdin
   });
+  return response.data;
 };
 
 export const evaluateCodeSubmission = async (req, res) => {
@@ -152,109 +103,78 @@ export const evaluateCodeSubmission = async (req, res) => {
     const wrapper = getPythonWrapper(lessonId);
     const wrappedCode = `${code}\n${wrapper}`;
 
-    const results = [];
-    let passedAll = true;
-
-    // Check if RapidAPI Judge0 is configured
-    const apiKey = process.env.JUDGE0_API_KEY;
-    const apiUrl = process.env.JUDGE0_API_URL || 'https://judge0-ce.p.rapidapi.com';
-    const apiHost = process.env.JUDGE0_API_HOST || 'judge0-ce.p.rapidapi.com';
-
-    if (apiKey && apiKey.trim() !== '') {
-      // === JUDGE0 API BATCH FLOW ===
-      const submissions = testCases.map((tc) => ({
-        language_id: 71, // Python (3.8.1)
-        source_code: Buffer.from(wrappedCode).toString('base64'),
-        stdin: Buffer.from(tc.input).toString('base64'),
-        expected_output: Buffer.from(tc.expectedOutput).toString('base64')
-      }));
-
+    const promises = testCases.map(async (tc) => {
       try {
-        const response = await axios.post(
-          `${apiUrl}/submissions/batch?base64_encoded=true&wait=true`,
-          { submissions },
-          {
-            headers: {
-              'content-type': 'application/json',
-              'X-RapidAPI-Key': apiKey,
-              'X-RapidAPI-Host': apiHost
-            }
-          }
-        );
+        const runRes = await runPistonTestCase(wrappedCode, tc.input);
+        const stdout = (runRes.run?.stdout || '').trim();
+        const stderr = (runRes.run?.stderr || '').trim();
+        const compileStderr = (runRes.compile?.stderr || '').trim();
+        const exitCode = runRes.run?.code ?? 0;
 
-        const subResults = response.data.submissions || response.data || [];
-        
-        testCases.forEach((tc, idx) => {
-          const runRes = subResults[idx] || {};
-          const statusId = runRes.status?.id || runRes.status_id;
-          const passed = statusId === 3; // status 3 is Accepted/Correct
+        const passed = stdout === tc.expectedOutput.trim() && exitCode === 0 && !stderr && !compileStderr;
+        const statusDescription = passed 
+          ? 'Accepted' 
+          : (exitCode !== 0 || stderr || compileStderr ? 'Runtime Error' : 'Wrong Answer');
 
-          if (!passed) passedAll = false;
-
-          const stdout = runRes.stdout ? Buffer.from(runRes.stdout, 'base64').toString('utf-8').trim() : '';
-          const stderr = runRes.stderr ? Buffer.from(runRes.stderr, 'base64').toString('utf-8').trim() : '';
-          const compileOutput = runRes.compile_output ? Buffer.from(runRes.compile_output, 'base64').toString('utf-8').trim() : '';
-
-          results.push({
-            input: tc.input,
-            expectedOutput: tc.expectedOutput,
-            stdout,
-            stderr: stderr || compileOutput,
-            passed,
-            isHidden: tc.isHidden,
-            statusDescription: runRes.status?.description || 'Failed'
-          });
-        });
-      } catch (apiErr) {
-        console.error('Judge0 RapidAPI Request Error:', apiErr.response?.data || apiErr.message);
-        return res.status(502).json({
-          message: 'Error calling execution engine. Please verify RapidAPI settings.',
-          error: apiErr.message
-        });
-      }
-    } else {
-      // === LOCAL RUNNER FALLBACK FLOW ===
-      console.log('No JUDGE0_API_KEY set, falling back to local Python runtime');
-      for (const tc of testCases) {
-        const runRes = await runPythonLocally(wrappedCode, tc.input);
-        const actualOut = runRes.stdout.trim();
-        const expectedOut = tc.expectedOutput.trim();
-        const passed = actualOut === expectedOut && runRes.exitCode === 0;
-
-        if (!passed) passedAll = false;
-
-        results.push({
+        return {
           input: tc.input,
           expectedOutput: tc.expectedOutput,
-          stdout: actualOut,
-          stderr: runRes.stderr,
+          stdout,
+          stderr: stderr || compileStderr,
           passed,
           isHidden: tc.isHidden,
-          statusDescription: passed ? 'Accepted' : (runRes.exitCode !== 0 ? 'Runtime Error' : 'Wrong Answer')
-        });
+          statusDescription
+        };
+      } catch (err) {
+        return {
+          input: tc.input,
+          expectedOutput: tc.expectedOutput,
+          stdout: '',
+          stderr: `Execution engine error: ${err.message}`,
+          passed: false,
+          isHidden: tc.isHidden,
+          statusDescription: 'Failed'
+        };
       }
-    }
+    });
+
+    const results = await Promise.all(promises);
+    const passedAll = results.every(r => r.passed);
 
     // If passed all, record completion & award XP
     let xpAwarded = 0;
     if (passedAll) {
-      xpAwarded = targetLesson.xp || 20;
-
-      // Find user
-      const user = await User.findById(req.user.id);
-      if (user) {
-        user.xp = (user.xp || 0) + xpAwarded;
-        user.level = Math.floor(user.xp / 100) + 1;
-        await user.save();
-      }
-
-      // Update enrollment progress
       const enrollment = await Enrollment.findOne({ userId: req.user.id, courseId });
       if (enrollment) {
-        // Calculate new progress: find how many lessons are completed.
-        // For simplicity, we can increase progress slightly or mark this lesson as completed.
-        // Stride usually has simple progress updates.
-        enrollment.progress = Math.min((enrollment.progress || 0) + 10, 100);
+        const alreadyCompleted = (enrollment.completedLessons || []).includes(lessonId);
+        
+        if (!alreadyCompleted) {
+          xpAwarded = targetLesson.xp || 20;
+
+          // Find user and award XP
+          const user = await User.findById(req.user.id);
+          if (user) {
+            user.xp = (user.xp || 0) + xpAwarded;
+            user.level = Math.floor(user.xp / 100) + 1;
+            await user.save();
+          }
+
+          // Add lesson to completedLessons
+          if (!enrollment.completedLessons) {
+            enrollment.completedLessons = [];
+          }
+          enrollment.completedLessons.push(lessonId);
+        }
+
+        // Calculate progress based on actual lesson count from CourseContent
+        const totalLessons = courseContent.sections.reduce(
+          (acc, section) => acc + (section.lessons?.length || 0),
+          0
+        );
+        enrollment.progress = totalLessons > 0 
+          ? Math.min(Math.round((enrollment.completedLessons.length / totalLessons) * 100), 100)
+          : 0;
+
         await enrollment.save();
       }
     }

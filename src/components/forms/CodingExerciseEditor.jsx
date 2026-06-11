@@ -141,6 +141,7 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
   const submitCode = async () => {
     setRightPanelTab('tests');
     setIsOutputOpen(true);
+    setTestResults(null);
     setIsSubmitting(true);
 
     const toastId = toast.loading("Submitting solution and running test suite…");

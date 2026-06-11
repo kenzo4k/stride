@@ -2,7 +2,7 @@
 
 ## 1. ABSTRACT
 
-Stride is a modern, full-stack course management and learning platform designed to bridge the gap between instructors and students in digital education. The platform addresses the lack of unified, interactive learning experiences by providing a comprehensive ecosystem where students can discover, enroll in, and complete courses while instructors can create and manage course content efficiently. Our motivation stems from the increasing demand for accessible online learning tools that combine flexibility with structured educational delivery. Stride leverages a modern technology stack including React 18 for responsive user interfaces, a REST API backend for scalable data management, Firebase for secure authentication, and MongoDB for flexible document-oriented data storage. The platform implements role-based access control, interactive course content with quizzes and coding exercises, progress tracking, and personalized course recommendations, making it a complete solution for online education delivery.
+Stride is a modern, full-stack course management and learning platform designed to bridge the gap between instructors and students in digital education. The platform addresses the lack of unified, interactive learning experiences by providing a comprehensive ecosystem where students can discover, enroll in, and complete courses while instructors can create and manage course content efficiently. Our motivation stems from the increasing demand for accessible online learning tools that combine flexibility with structured educational delivery. Stride leverages a modern technology stack including React 18 for responsive user interfaces, a REST API backend for scalable data management, custom Node.js/Express authentication with bcrypt password hashing, and MongoDB for flexible document-oriented data storage. The platform implements role-based access control, interactive course content with quizzes and coding exercises, progress tracking, and personalized course recommendations, making it a complete solution for online education delivery.
 
 ## 2. BACKGROUND
 
@@ -28,7 +28,7 @@ The primary motivation for developing Stride is to create a unified platform tha
 
 ### 2.4 Main Techniques & Features
 
-- **Authentication & Security**: Firebase Authentication with JWT token management
+- **Authentication & Security**: Custom credentials authentication (bcrypt) with JWT token management
 - **Interactive Content**: Article lessons, video tutorials, quizzes, and coding exercises
 - **Progress Tracking**: XP-based progression system and course completion metrics
 - **Recommendation Engine**: Hybrid 4-layer recommendation system (content-based, collaborative, rule-based, and ranking) with dynamic explainability reasons (XAI)
@@ -100,7 +100,7 @@ How can we design and implement a unified, interactive course management platfor
 **Architecture Overview:**
 - **Frontend**: React 18 SPA with Vite bundler, Tailwind CSS + Daisy UI for styling
 - **Backend**: REST API (Node.js/Express)
-- **Authentication**: Firebase Auth + JWT tokens
+- **Authentication**: Custom Auth (bcrypt) + JWT tokens
 - **Database**: MongoDB (document-oriented database storing courses, content, users, enrollments, assessments, and metrics)
 - **External Services**: Judge0 API (sandboxed code execution / automated grading with local Python subprocess fallback), YouTube (video content)
 
@@ -108,7 +108,7 @@ How can we design and implement a unified, interactive course management platfor
 1. **Presentation Layer**: React components organized by features (auth, courses, dashboard, users, assessment)
 2. **API Layer**: Axios interceptors for secure requests, centralized service layer
 3. **Business Logic**: Hooks for reusable logic, context API for state management
-4. **Data Layer**: Firebase for auth, MongoDB for persistence
+4. **Data Layer**: MongoDB for authentication (bcrypt) and persistence
 
 ### 5.2 Stakeholders
 
@@ -220,6 +220,52 @@ How can we design and implement a unified, interactive course management platfor
 
 *(Diagram placeholder)*
 
+### 5.10 Security Implementation
+
+Stride implements a multi-layered security strategy to protect user data, secure session states, control role-based permissions, and sandbox user code execution:
+
+1. **Authentication & Session Management**:
+   - **Custom Credentials Authentication**: User credentials and registrations are processed directly by the backend REST API. Passwords are securely hashed using bcrypt prior to database storage, ensuring sensitive data is protected.
+   - **JWT Tokens (JSON Web Tokens)**: Upon successful authentication, the Express backend issues a cryptographically signed JSON Web Token (JWT) using `jsonwebtoken` that contains the user's ID, email, and role.
+   - **Transmission Security**: The token is passed via HTTP headers (`Authorization: Bearer <token>`) for all subsequent requests to the Express gateway and is encrypted in transit using HTTPS/TLS.
+
+2. **Role-Based Access Control (RBAC)**:
+   - Three specific roles are defined: `Student`, `Instructor`, and `Admin`.
+   - **Backend Authorization Middleware**: The backend enforces access control using an Express middleware pipeline. The `verifyToken` middleware decodes and validates the JWT, and the `requireRole` middleware checks if the decoded user role matches the authorized roles (e.g. `requireRole('admin')`, `requireRole('instructor')`).
+   - **Frontend Adaptations**: The React router and dashboard navigation dynamically adjust views based on the active role, but all key mutation operations are blocked by API-level guards.
+
+3. **Coding Sandbox Isolation & Safe Execution**:
+   - Running arbitrary user code presents a security hazard (file access, infinite loops, memory leaks). Stride employs a dual execution model to mitigate this:
+     - **Primary Sandbox (Judge0 CE)**: User-submitted code is sent to the Judge0 CE API. Judge0 runs the untrusted script within a strictly isolated, containerized sandbox with resource limitations on execution time (e.g., 5 seconds), CPU usage, and RAM.
+     - **Fallback Local Execution**: When Judge0 is unavailable, Stride spawns a local subprocess (`child_process.spawn`) configured with input/output piping (stdin/stdout). Code is checked against precise test assertions and wrapped within isolated wrappers.
+
+4. **Input Sanitization & Data Safety (SQL/NoSQL Injection)**:
+   - **SQL Injection Immunity**: Because Stride utilizes a NoSQL document database (MongoDB via Mongoose), it does not compile SQL queries or concatenate database strings, making it structurally immune to traditional SQL injection attacks.
+   - **NoSQL Injection & Casting**: Mongoose schemas enforce strict type validation. Request parameters are cast automatically (e.g., validating ObjectIds); query parameters containing unpermitted objects (like query operators `{"$ne": null}`) are either cast to strings or stripped, preventing NoSQL injection.
+   - **Validation Middleware**: All inputs are checked using `express-validator` middleware to block improperly formed payloads before they can reach the database or backend logic.
+   - **CORS Configuration**: Cross-Origin Resource Sharing (CORS) is restricted to allowed origins (local development and registered Vercel domains), protecting routes from cross-site scripts.
+
+5. **DDoS & Infrastructure Protection**:
+   - **Edge Network Mitigations**: Stride is designed to be deployed behind CDNs and hosting edges (like Cloudflare or Vercel). These platforms automatically intercept and filter volumetric DDoS traffic at the DNS and reverse proxy level.
+   - **Request Sizing & Resource Limits**: Payload size limits on HTTP requests (e.g., Express JSON bodies capped at 50MB) and strict sandbox resource constraints (5-second timeout on Judge0 execution) prevent resource starvation and buffer overflow Denial of Service (DoS) attempts.
+
+### 5.11 Production Hardening & Security Risk Disclaimers
+
+While Stride implements standard web security models, several vulnerabilities exist in development configurations that must be hardened prior to production deployment:
+
+1. **Local Subprocess Code Execution Fallback**:
+   - **Risk**: If the Judge0 API key is not configured, Stride falls back to executing user-submitted Python code using the host machine's Python compiler via `child_process.spawn`. In a production environment, this allows malicious users to execute arbitrary code (e.g., read files, delete data, consume unlimited CPU/RAM resources, or spawn reverse shells) directly on the host machine.
+   - **Hardening Recommendation**: Disable the local subprocess fallback in production. The system should throw an error and halt execution if the Judge0 API configuration is missing or invalid.
+
+2. **Weak JWT Secret Fallback**:
+   - **Risk**: In `auth.js` and `index.js`, the JWT token secret defaults to a hardcoded string `'secret'` if the `ACCESS_TOKEN_SECRET` environment variable is not defined. Attackers can forge administrative tokens using this default key to compromise any user account on the platform.
+   - **Hardening Recommendation**: Enforce application failure at start-up if `ACCESS_TOKEN_SECRET` is missing, weak, or set to the default value in a production environment.
+
+3. **Mock Stripe Payment Handling**:
+   - **Risk**: In `index.js`, Stride automatically falls back to generating mock Stripe client secrets and successful mock checkouts if `STRIPE_SECRET_KEY` is not set. 
+   - **Hardening Recommendation**: Force Stripe connection checks and fail API start-up if the key is missing in production to prevent bypasses or billing oversights.
+
+
 ## 6. AI PLAN
 
 ### 6.1 RECOMMENDER SYSTEM: DETAILED DESIGN
@@ -306,9 +352,9 @@ All test cases run and pass successfully:
 | Task # | Task Title | Description | Status | Timeline |
 |--------|------------|-------------|--------|----------|
 | 1 | Project Kickoff & Requirements Gathering | Define project scope, stakeholders, and initial requirements | Completed | Week 1 |
-| 2 | Technology Stack Selection | Evaluate and select React, Firebase, and MongoDB | Completed | Week 2 |
+| 2 | Technology Stack Selection | Evaluate and select React, Express, and MongoDB | Completed | Week 2 |
 | 3 | System Architecture Design | Design overall system architecture and component structure | Completed | Week 2-3 |
-| 4 | Authentication Module | Firebase Auth integration, login/register pages | Completed | Week 3 |
+| 4 | Authentication Module | Custom Auth integration, login/register pages | Completed | Week 3 |
 | 5 | Home page | Landing page with latest courses and footer | Completed | Week 4 |
 | 6 | Navbar & Navigation | Responsive navbar with role-based menus | Completed | Week 4-5 |
 | 7 | Course Catalog Page | Course listing with search, filter, and sorting | Completed | Week 6 |
@@ -348,5 +394,5 @@ All test cases run and pass successfully:
 | DaisyUI | UI Component library | Learned | Week 4-5 |
 | Python – scikit-learn | ML model – Recommender system | Learned | Week 5 |
 | React Router | Client-side routing | Learned | Week 5 |
-| Firebase | Authentication & Hosting | Learned | Week 16 |
+| Node.js / Express | Backend API & Custom Auth | Learned | Week 16 |
 | Axios | HTTP client | Learned | Week 16 |

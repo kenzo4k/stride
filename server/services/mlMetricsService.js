@@ -7,8 +7,7 @@ export const getWindowBounds = (date = new Date()) => {
   // day: 0 (Sun), 1 (Mon), ..., 6 (Sat)
   // If today is Sun (0), we need to go back 6 days to get Mon.
   // Otherwise, we subtract (day - 1) days.
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const window_start = new Date(now.setDate(diff));
+  const window_start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + (day === 0 ? -6 : 1));
   window_start.setHours(0, 0, 0, 0);
 
   const window_end = new Date(window_start);

@@ -101,9 +101,22 @@ export const updateCourse = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to update this course. You can only manage your own courses." });
     }
 
+    const allowedFields = [
+      'title', 'short_description', 'detailed_description', 'price', 
+      'discount_price', 'category', 'image', 'seats', 'level', 
+      'language', 'duration', 'featured', 'completion_certificate', 
+      'prerequisites', 'learning_outcomes', 'curriculum', 'topics', 'tags'
+    ];
+    const sanitizedBody = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        sanitizedBody[key] = req.body[key];
+      }
+    }
+
     const updatedCourse = await Course.findByIdAndUpdate(
       id,
-      req.body,
+      sanitizedBody,
       { new: true }
     );
     res.json(updatedCourse);
