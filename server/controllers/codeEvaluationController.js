@@ -107,8 +107,8 @@ export const evaluateCodeSubmission = async (req, res) => {
         const exitCode = runRes.run?.code ?? 0;
 
         const passed = stdout === tc.expectedOutput.trim() && exitCode === 0 && !stderr && !compileStderr;
-        const statusDescription = passed 
-          ? 'Accepted' 
+        const statusDescription = passed
+          ? 'Accepted'
           : (exitCode !== 0 || stderr || compileStderr ? 'Runtime Error' : 'Wrong Answer');
 
         return {
@@ -142,7 +142,7 @@ export const evaluateCodeSubmission = async (req, res) => {
       const enrollment = await Enrollment.findOne({ userId: req.user.id, courseId });
       if (enrollment) {
         const alreadyCompleted = (enrollment.completedLessons || []).includes(lessonId);
-        
+
         if (!alreadyCompleted) {
           xpAwarded = targetLesson.xp || 20;
 
@@ -166,7 +166,7 @@ export const evaluateCodeSubmission = async (req, res) => {
           (acc, section) => acc + (section.lessons?.length || 0),
           0
         );
-        enrollment.progress = totalLessons > 0 
+        enrollment.progress = totalLessons > 0
           ? Math.min(Math.round((enrollment.completedLessons.length / totalLessons) * 100), 100)
           : 0;
 

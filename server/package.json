@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@vercel/sandbox": "^2.2.0",
     "axios": "^1.15.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
