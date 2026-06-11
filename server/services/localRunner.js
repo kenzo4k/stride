@@ -200,7 +200,7 @@ const runLocalSubprocess = async (language, code, stdin = '') => {
 };
 
 export const executeCodeLocally = async (language, code, stdin = '') => {
-  const hasToken = process.env.VERCEL_API_TOKEN || process.env.VERCEL_TOKEN;
+  const hasToken = process.env.VERCEL_API_TOKEN || process.env.VERCEL_TOKEN || process.env.VERCEL_OIDC_TOKEN;
   if (Sandbox && (process.env.VERCEL || hasToken)) {
     try {
       console.log('Running code execution in Vercel Sandbox Firecracker microVM...');
