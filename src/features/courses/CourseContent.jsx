@@ -26,6 +26,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 import api from '../../services/api';
 import { courseService } from '../../services/courseService';
 
+const stripHtml = (html) => {
+    if (!html) return '';
+    return html
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<\/h[1-6]>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+};
+
 const CourseContent = () => {
     const { id: courseId } = useParams();
     const navigate = useNavigate();
@@ -388,7 +398,9 @@ const CourseContent = () => {
                             </div>
                         </div>
                         
-                        <div className="px-2" dangerouslySetInnerHTML={{ __html: activeLesson.content }} />
+                        <div className="px-2 whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
+                            {stripHtml(activeLesson.content || '')}
+                        </div>
                         
                         <div className="mt-12 p-8 bg-gray-800/50 rounded-2xl border border-gray-700 text-center">
                             <h4 className="text-xl font-bold mb-4">Finished reading?</h4>

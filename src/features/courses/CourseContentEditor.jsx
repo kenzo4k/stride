@@ -623,19 +623,31 @@ const ContentItem = ({ type, content, onUpdate, onRemove }) => {
 
   return (
     <div className="p-4 mb-4 border rounded-lg bg-gray-800 border-gray-700">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
         <div className="flex items-center space-x-2">
           {getIcon()}
           <span className="font-medium text-gray-200">
             {type.charAt(0).toUpperCase() + type.slice(1)} Content
           </span>
         </div>
-        <button
-          onClick={onRemove}
-          className="text-gray-400 hover:text-red-400"
-        >
-          <X size={18} />
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1.5">
+            <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider">XP Award:</span>
+            <input
+              type="number"
+              value={content.xp ?? (type === 'quiz' ? 20 : (type === 'code' ? 30 : 10))}
+              onChange={(e) => onUpdate({ ...content, xp: parseInt(e.target.value) || 0 })}
+              className="w-16 p-1 text-xs border rounded bg-gray-900 text-yellow-400 border-gray-700 text-center font-bold focus:outline-none focus:border-yellow-500"
+              min="0"
+            />
+          </div>
+          <button
+            onClick={onRemove}
+            className="text-gray-400 hover:text-red-400 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
       {renderContentInput()}
     </div>

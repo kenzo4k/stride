@@ -684,8 +684,8 @@ async function seed() {
           title: 'Introduction',
           lessons: [
             { id: `video-${course._id}-1`, title: `Welcome to ${course.title}`, type: 'video', content: 'https://example.com/video1.mp4', xp: 10 },
-            { id: `article-${course._id}-2`, title: 'Course overview & syllabus', type: 'article', content: `<h1>Overview</h1><p>Welcome to ${course.title}. In this module, we will explore key concepts.</p>`, xp: 5 },
-            { id: `article-${course._id}-3`, title: 'Setting up your dev tools', type: 'article', content: '<h1>Environment Setup</h1><p>Download your editor and configure variables.</p>', xp: 10 },
+            { id: `article-${course._id}-2`, title: 'Course overview & syllabus', type: 'article', content: `Overview\n\nWelcome to ${course.title}. In this module, we will explore key concepts.`, xp: 5 },
+            { id: `article-${course._id}-3`, title: 'Setting up your dev tools', type: 'article', content: 'Environment Setup\n\nDownload your editor and configure variables.', xp: 10 },
           ],
         },
         {
@@ -699,7 +699,7 @@ async function seed() {
         {
           title: 'Advanced Modules',
           lessons: [
-            { id: `article-${course._id}-7`, title: 'Deep dive details', type: 'article', content: '<h1>Advanced Topics</h1><p>Let us master standard libraries and scalability.</p>', xp: 15 },
+            { id: `article-${course._id}-7`, title: 'Deep dive details', type: 'article', content: 'Advanced Topics\n\nLet us master standard libraries and scalability.', xp: 15 },
             { id: `coding-${course._id}-8`, title: 'Final project execution', type: 'coding', content: '// Build your final solution', xp: 50 },
           ],
         },

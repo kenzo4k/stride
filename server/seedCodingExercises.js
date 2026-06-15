@@ -86,7 +86,7 @@ async function seedCodingExercises() {
         title: 'Introduction to Python',
         lessons: [
           { id: `video-${course._id}-1`, title: 'Welcome to Python Basics', type: 'video', content: 'https://example.com/video1.mp4', xp: 10 },
-          { id: `article-${course._id}-2`, title: 'Python syntax overview', type: 'article', content: '<h1>Python Basics</h1><p>Python is known for clean readability.</p>', xp: 5 },
+          { id: `article-${course._id}-2`, title: 'Python syntax overview', type: 'article', content: 'Python Basics\n\nPython is known for clean readability.', xp: 5 },
           pythonLessons[0] // Add Sum of Two Numbers here
         ]
       },
@@ -100,7 +100,7 @@ async function seedCodingExercises() {
       {
         title: 'Data Structures and Strings',
         lessons: [
-          { id: `article-${course._id}-7`, title: 'Working with Python strings', type: 'article', content: '<h1>Strings</h1><p>Strings are immutable sequences in Python.</p>', xp: 15 },
+          { id: `article-${course._id}-7`, title: 'Working with Python strings', type: 'article', content: 'Strings\n\nStrings are immutable sequences in Python.', xp: 15 },
           pythonLessons[2] // Add Is Palindrome here
         ]
       }

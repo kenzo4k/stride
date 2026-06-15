@@ -8,7 +8,15 @@ import { FileText, Video, List, BookOpen, Settings, CheckSquare, Loader2, Upload
 import { courseService } from '../../services/courseService';
 import api from '../../services/api';
 
-import { API_BASE_URL } from '../../utils/constants';
+const stripHtml = (html) => {
+    if (!html) return '';
+    return html
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<\/h[1-6]>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+};
 
 const transformEditorToViewer = (sections) => {
     return (sections || []).map(section => ({
@@ -18,7 +26,7 @@ const transformEditorToViewer = (sections) => {
                 id: item.id ? String(item.id) : `lesson-${Date.now()}-${Math.random()}`,
                 title: item.title || item.question || 'Untitled Lesson',
                 type: item.type === 'code' ? 'coding' : (item.type === 'text' ? 'article' : item.type),
-                xp: item.type === 'quiz' ? 20 : (item.type === 'code' ? 30 : 10),
+                xp: Number(item.xp) || (item.type === 'quiz' ? 20 : (item.type === 'code' ? 30 : 10)),
             };
 
             if (item.type === 'text') {
@@ -67,10 +75,11 @@ const transformViewerToEditor = (sections) => {
                 id: lesson.id,
                 title: lesson.title,
                 type: lesson.type === 'coding' ? 'code' : (lesson.type === 'article' ? 'text' : lesson.type),
+                xp: lesson.xp || (lesson.type === 'quiz' ? 20 : (lesson.type === 'coding' ? 30 : 10)),
             };
 
             if (lesson.type === 'article') {
-                item.content = lesson.content || '';
+                item.content = stripHtml(lesson.content || '');
             } else if (lesson.type === 'video') {
                 item.videoInputType = lesson.videoInputType || 'url';
                 item.url = lesson.content || '';
@@ -79,7 +88,7 @@ const transformViewerToEditor = (sections) => {
             } else if (lesson.type === 'document') {
                 item.url = lesson.content || '';
                 if (lesson.cloudinaryPublicId) item.cloudinaryPublicId = lesson.cloudinaryPublicId;
-                if (lesson.originalFileName) item.originalFileName = lesson.originalFileName;
+                if (lesson.originalFileName) lesson.originalFileName = lesson.originalFileName;
                 if (lesson.fileFormat) item.fileFormat = lesson.fileFormat;
                 if (lesson.fileSize) item.fileSize = lesson.fileSize;
             } else if (lesson.type === 'quiz') {
