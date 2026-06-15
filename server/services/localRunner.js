@@ -45,18 +45,38 @@ const runVercelSandbox = async (language, code, stdin = '') => {
   const filename = getFilename(language);
   const { cmd, args } = getCommand(language, filename);
 
-  const sandbox = await Sandbox.create();
-  try {
-    await sandbox.writeFile(filename, code);
+  // Choose the right runtime for the language
+  const raw = (language || '').toLowerCase().trim();
+  const isPython = ['python', 'python3', 'py', 'py3'].includes(raw);
+  const runtime = isPython ? 'python3.13' : 'node24';
 
-    const result = await sandbox.runCommand({
-      cmd,
-      args,
-      stdin,
-      timeout: 5000,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
+  console.log(`Creating Vercel Sandbox with runtime: ${runtime}`);
+  const sandbox = await Sandbox.create({
+    runtime,
+    timeout: 30000, // 30 second sandbox timeout
+  });
+
+  try {
+    // Write the user's code to a file in the sandbox
+    await sandbox.writeFiles([
+      { path: `/vercel/sandbox/${filename}`, content: code }
+    ]);
+
+    // If there's stdin, write it to a file and pipe it via shell
+    let result;
+    if (stdin && stdin.trim()) {
+      await sandbox.writeFiles([
+        { path: '/vercel/sandbox/stdin.txt', content: stdin }
+      ]);
+      // Use shell to pipe stdin
+      result = await sandbox.runCommand('sh', ['-c', `cat /vercel/sandbox/stdin.txt | ${cmd} ${args.join(' ')}`], {
+        timeoutMs: 10000,
+      });
+    } else {
+      result = await sandbox.runCommand(cmd, [`/vercel/sandbox/${filename}`], {
+        timeoutMs: 10000,
+      });
+    }
 
     return {
       run: {
@@ -69,9 +89,9 @@ const runVercelSandbox = async (language, code, stdin = '') => {
     };
   } finally {
     try {
-      await sandbox.destroy();
+      await sandbox.stop();
     } catch (e) {
-      console.error('Error destroying Vercel sandbox:', e);
+      console.error('Error stopping Vercel sandbox:', e);
     }
   }
 };
