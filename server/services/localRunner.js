@@ -234,17 +234,22 @@ const runLocalSubprocess = async (language, code, stdin = '') => {
 };
 
 export const executeCodeLocally = async (language, code, stdin = '') => {
+  const isVercel = !!process.env.VERCEL;
   const hasToken = process.env.VERCEL_API_TOKEN || process.env.VERCEL_TOKEN || process.env.VERCEL_OIDC_TOKEN;
-  if (Sandbox && (process.env.VERCEL || hasToken)) {
-    try {
+
+  // On Vercel: try @vercel/sandbox, and if it fails, THROW so the caller can try Piston
+  // (local subprocess won't work on Vercel — no Python/Java installed)
+  if (isVercel || hasToken) {
+    if (Sandbox) {
       console.log('Running code execution in Vercel Sandbox Firecracker microVM...');
       return await runVercelSandbox(language, code, stdin);
-    } catch (e) {
-      console.warn('Vercel Sandbox execution failed, falling back to local runner:', e.message);
-      return await runLocalSubprocess(language, code, stdin);
+      // If runVercelSandbox throws, it propagates up to the caller (index.js)
+      // which will then try the Piston API as a fallback
     }
+    // Sandbox module not loaded on Vercel — throw so caller tries Piston
+    throw new Error('Vercel Sandbox module not available; cannot run code locally on Vercel.');
   }
 
-  // Otherwise, default to local subprocess execution
+  // Local development: use subprocess (Python/Node are installed on the dev machine)
   return await runLocalSubprocess(language, code, stdin);
 };
