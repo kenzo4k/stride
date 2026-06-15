@@ -28,3 +28,5 @@ server/.env
 
 # Database & dataset files
 student_dropout_data.csv
+.vercel
+.env*

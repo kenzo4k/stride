@@ -23,6 +23,7 @@ import timeTrackingRoutes from "./routes/timeTrackingRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { verifyToken } from "./middleware/auth.js";
 import { evaluateCodeSubmission } from "./controllers/codeEvaluationController.js";
+import { executeCodeLocally } from "./services/localRunner.js";
 
 // Controllers (for some top-level routes)
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
@@ -154,7 +155,8 @@ const codeExecutionLimiter = (req, res, next) => {
   next();
 };
 
-// === PISTON: Code Execution Route ===
+// === Code Execution Route ===
+// Uses @vercel/sandbox on Vercel, local subprocess in dev, Piston as last fallback
 app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => {
   const { code, language, version } = req.body;
 
@@ -169,21 +171,30 @@ app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => 
     return res.status(400).json({ error: "Code content is required." });
   }
 
-  const executionData = {
-    language: language,
-    version: version,
-    files: [{ content: code }],
-  };
-
   try {
-    const response = await axios.post(
-      "https://emkc.org/api/v2/piston/execute",
-      executionData
-    );
-    res.json(response.data);
-  } catch (error) {
-    console.error("Piston API Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Execution engine failed. Please try again." });
+    // Primary: use @vercel/sandbox (production) or local subprocess (dev)
+    const result = await executeCodeLocally(language, code, '');
+    res.json(result);
+  } catch (primaryError) {
+    console.warn("Primary execution failed, falling back to Piston API:", primaryError.message);
+
+    // Fallback: try the public Piston API
+    const executionData = {
+      language: language,
+      version: version,
+      files: [{ content: code }],
+    };
+
+    try {
+      const response = await axios.post(
+        "https://emkc.org/api/v2/piston/execute",
+        executionData
+      );
+      res.json(response.data);
+    } catch (pistonError) {
+      console.error("Piston API also failed:", pistonError.response?.data || pistonError.message);
+      res.status(500).json({ error: "All execution engines failed. Please try again later." });
+    }
   }
 });
 
