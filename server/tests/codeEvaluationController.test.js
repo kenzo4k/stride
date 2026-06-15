@@ -70,6 +70,7 @@ test('codeEvaluationController - unit tests', async (t) => {
               type: 'coding',
               xp: 20,
               exercise: {
+                starterCode: 'def add(a, b):\n    pass\n',
                 testCases: [
                   { input: '2\n2\n', expectedOutput: '4\n', isHidden: false }
                 ]

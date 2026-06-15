@@ -4,53 +4,34 @@ import Enrollment from '../models/Enrollment.js';
 import User from '../models/User.js';
 import { executeCodeLocally } from '../services/localRunner.js';
 
-// Helper function to dynamically generate Python test wrapper
-const getPythonWrapper = (lessonId) => {
-  if (lessonId.endsWith('-1')) {
-    // Sum of two numbers
-    return `
+export const getPythonFunctionName = (starterCode) => {
+  if (!starterCode) return null;
+  const match = starterCode.match(/def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
+  return match ? match[1] : null;
+};
+
+export const getPythonWrapper = (funcName) => {
+  return `
 import sys
+import json
+
+def _parse_val(s):
+    s = s.strip()
+    if s.lower() == 'true': return True
+    if s.lower() == 'false': return False
+    try:
+        return json.loads(s)
+    except Exception:
+        return s
+
 try:
-    lines = [line.strip() for line in sys.stdin if line.strip()]
-    if len(lines) >= 2:
-        val1 = float(lines[0]) if '.' in lines[0] else int(lines[0])
-        val2 = float(lines[1]) if '.' in lines[1] else int(lines[1])
-        print(add(val1, val2))
+    _inputs = [_parse_val(line) for line in sys.stdin.read().splitlines()]
+    _result = ${funcName}(*_inputs)
+    print(_result)
 except Exception as e:
-    import sys
     print(f"Runtime error in test runner: {e}", file=sys.stderr)
     sys.exit(1)
 `;
-  } else if (lessonId.endsWith('-2')) {
-    // Factorial of a number
-    return `
-import sys
-try:
-    lines = [line.strip() for line in sys.stdin if line.strip()]
-    if len(lines) >= 1:
-        val = int(lines[0])
-        print(factorial(val))
-except Exception as e:
-    import sys
-    print(f"Runtime error in test runner: {e}", file=sys.stderr)
-    sys.exit(1)
-`;
-  } else if (lessonId.endsWith('-3')) {
-    // Is Palindrome String
-    return `
-import sys
-try:
-    lines = [line.strip() for line in sys.stdin if line.strip()]
-    if len(lines) >= 1:
-        val = lines[0]
-        print(is_palindrome(val))
-except Exception as e:
-    import sys
-    print(f"Runtime error in test runner: {e}", file=sys.stderr)
-    sys.exit(1)
-`;
-  }
-  return '';
 };
 
 const runPistonTestCase = async (wrappedCode, stdin) => {
@@ -95,8 +76,13 @@ export const evaluateCodeSubmission = async (req, res) => {
     }
 
     // Wrap the code
-    const wrapper = getPythonWrapper(lessonId);
-    const wrappedCode = `${code}\n${wrapper}`;
+    const starterCode = targetLesson.exercise.starterCode || '';
+    const funcName = getPythonFunctionName(starterCode);
+    let wrappedCode = code;
+    if (funcName) {
+      const wrapper = getPythonWrapper(funcName);
+      wrappedCode = `${code}\n${wrapper}`;
+    }
 
     const promises = testCases.map(async (tc) => {
       try {

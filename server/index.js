@@ -22,8 +22,9 @@ import dropoutRoutes from "./routes/dropoutRoutes.js";
 import timeTrackingRoutes from "./routes/timeTrackingRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { verifyToken } from "./middleware/auth.js";
-import { evaluateCodeSubmission } from "./controllers/codeEvaluationController.js";
+import { evaluateCodeSubmission, getPythonFunctionName, getPythonWrapper } from "./controllers/codeEvaluationController.js";
 import { executeCodeLocally } from "./services/localRunner.js";
+import CourseContent from "./models/CourseContent.js";
 
 // Controllers (for some top-level routes)
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
@@ -158,7 +159,7 @@ const codeExecutionLimiter = (req, res, next) => {
 // === Code Execution Route ===
 // Uses @vercel/sandbox on Vercel, local subprocess in dev, Piston as last fallback
 app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => {
-  const { code, language, version } = req.body;
+  const { code, language, version, stdin, courseId, lessonId } = req.body;
 
   const allowedLanguages = ['javascript', 'python3', 'java', 'cpp', 'sqlite3'];
   if (!language || !allowedLanguages.includes(language)) {
@@ -172,17 +173,79 @@ app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => 
   }
 
   try {
+    let codeToRun = code;
+    let stdinToRun = stdin || '';
+
+    // If it's Python, and courseId & lessonId are provided, wrap the code and use the first testcase stdin if none is provided
+    if (language === 'python3' && courseId && lessonId) {
+      const courseContent = await CourseContent.findOne({ courseId });
+      if (courseContent) {
+        let targetLesson = null;
+        for (const section of courseContent.sections) {
+          const found = section.lessons.find((l) => l.id === lessonId);
+          if (found) {
+            targetLesson = found;
+            break;
+          }
+        }
+        if (targetLesson && targetLesson.type === 'coding' && targetLesson.exercise) {
+          const starterCode = targetLesson.exercise.starterCode || '';
+          const funcName = getPythonFunctionName(starterCode);
+          if (funcName) {
+            const wrapper = getPythonWrapper(funcName);
+            codeToRun = `${code}\n${wrapper}`;
+            if (!stdinToRun && targetLesson.exercise.testCases && targetLesson.exercise.testCases.length > 0) {
+              stdinToRun = targetLesson.exercise.testCases[0].input;
+            }
+          }
+        }
+      }
+    }
+
     // Primary: use @vercel/sandbox (production) or local subprocess (dev)
-    const result = await executeCodeLocally(language, code, '');
+    const result = await executeCodeLocally(language, codeToRun, stdinToRun);
     res.json(result);
   } catch (primaryError) {
     console.warn("Primary execution failed, falling back to Piston API:", primaryError.message);
 
     // Fallback: try the public Piston API
+    let codeToRun = code;
+    let stdinToRun = stdin || '';
+
+    if (language === 'python3' && courseId && lessonId) {
+      try {
+        const courseContent = await CourseContent.findOne({ courseId });
+        if (courseContent) {
+          let targetLesson = null;
+          for (const section of courseContent.sections) {
+            const found = section.lessons.find((l) => l.id === lessonId);
+            if (found) {
+              targetLesson = found;
+              break;
+            }
+          }
+          if (targetLesson && targetLesson.type === 'coding' && targetLesson.exercise) {
+            const starterCode = targetLesson.exercise.starterCode || '';
+            const funcName = getPythonFunctionName(starterCode);
+            if (funcName) {
+              const wrapper = getPythonWrapper(funcName);
+              codeToRun = `${code}\n${wrapper}`;
+              if (!stdinToRun && targetLesson.exercise.testCases && targetLesson.exercise.testCases.length > 0) {
+                stdinToRun = targetLesson.exercise.testCases[0].input;
+              }
+            }
+          }
+        }
+      } catch (wrapErr) {
+        console.error("Error wrapping for Piston fallback:", wrapErr);
+      }
+    }
+
     const executionData = {
       language: language,
       version: version,
-      files: [{ content: code }],
+      files: [{ content: codeToRun }],
+      stdin: stdinToRun,
     };
 
     try {

@@ -78,13 +78,16 @@ const runVercelSandbox = async (language, code, stdin = '') => {
       });
     }
 
+    const stdoutStr = await result.stdout();
+    const stderrStr = await result.stderr();
+
     return {
       run: {
-        stdout: result.stdout || '',
-        stderr: result.stderr || '',
+        stdout: stdoutStr || '',
+        stderr: stderrStr || '',
         code: result.exitCode ?? 0,
         time: 0,
-        output: (result.stdout || '') + (result.stderr || '')
+        output: (stdoutStr || '') + (stderrStr || '')
       }
     };
   } finally {

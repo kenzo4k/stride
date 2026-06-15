@@ -6,8 +6,6 @@ import { useParams } from "react-router-dom";
 import api from "../../services/api";
 import { courseService } from "../../services/courseService";
 
-const PISTON_ENDPOINT = "https://emkc.org/api/v2/piston/execute";
-
 const LANGUAGE_OPTIONS = [
   {
     id: "javascript",
@@ -187,6 +185,8 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
         language: languageConfig.pistonLanguage,
         version: "*",
         code: code,
+        courseId,
+        lessonId: lesson?.id,
       };
 
       const response = await api.post('/execute', payload);
@@ -530,8 +530,39 @@ const CodingExerciseEditor = ({ exercise, lesson }) => {
             ) : (
               <div className="p-4 space-y-4">
                 {!testResults ? (
-                  <div className="p-6 rounded-xl border border-dashed border-gray-800 bg-gray-900/30 text-gray-400 text-sm text-center">
-                    Submit your solution to execute the test suite.
+                  <div className="space-y-4">
+                    {hasTestCases && (
+                      <div className="p-4 rounded-xl bg-gray-900/40 border border-gray-800">
+                        <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-3">
+                          Sample Test Cases
+                        </div>
+                        <div className="space-y-3">
+                          {exercise.testCases.map((tc, idx) => {
+                            if (tc.isHidden) return null;
+                            return (
+                              <div key={idx} className="p-3 rounded-lg bg-gray-950/60 border border-gray-800 space-y-2">
+                                <div className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                                  Case {idx + 1}
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 text-[11px] font-mono">
+                                  <div>
+                                    <span className="text-gray-500">Input:</span>
+                                    <pre className="bg-gray-950 p-1.5 rounded mt-0.5 text-gray-300 overflow-x-auto whitespace-pre-wrap">{tc.input}</pre>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Expected Output:</span>
+                                    <pre className="bg-gray-950 p-1.5 rounded mt-0.5 text-gray-300 overflow-x-auto whitespace-pre-wrap">{tc.expectedOutput}</pre>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    <div className="p-6 rounded-xl border border-dashed border-gray-800 bg-gray-900/30 text-gray-400 text-sm text-center">
+                      Submit your solution to execute the test suite.
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
