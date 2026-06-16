@@ -45,9 +45,9 @@ async function seed() {
 
     // === CREATE TEST ACCOUNTS ===
     console.log('Creating test accounts...');
-    
-    const hashedPassword = await bcrypt.hash('123456', 10);
-    
+
+    const hashedPassword = '123456';
+
     // Admin account
     const _admin = await User.create({
       name: 'Platform Admin',
@@ -624,9 +624,9 @@ async function seed() {
 
     // === CREATE ENROLLMENTS ===
     console.log('Creating enrollments...');
-    
+
     const enrollmentData = [];
-    
+
     // Maps student index (in allStudents array) to their course index enrollments and progress levels
     // allStudents = [student, alice, bob, carol, david, emma, frank, grace, henry]
     const personaEnrollments = [
@@ -676,42 +676,118 @@ async function seed() {
 
     // === CREATE COURSE CONTENT ===
     console.log('Creating course content...');
-    
-    const courseContentData = courses.map((course, index) => ({
-      courseId: course._id,
-      sections: [
-        {
-          title: 'Introduction',
-          lessons: [
-            { id: `video-${course._id}-1`, title: `Welcome to ${course.title}`, type: 'video', content: 'https://example.com/video1.mp4', xp: 10 },
-            { id: `article-${course._id}-2`, title: 'Course overview & syllabus', type: 'article', content: `Overview\n\nWelcome to ${course.title}. In this module, we will explore key concepts.`, xp: 5 },
-            { id: `article-${course._id}-3`, title: 'Setting up your dev tools', type: 'article', content: 'Environment Setup\n\nDownload your editor and configure variables.', xp: 10 },
-          ],
-        },
-        {
-          title: 'Core Concepts',
-          lessons: [
-            { id: `video-${course._id}-4`, title: 'Understanding the fundamentals', type: 'video', content: 'https://example.com/video2.mp4', xp: 15 },
-            { id: `quiz-${course._id}-5`, title: 'Module assessment quiz', type: 'quiz', content: '', xp: 20 },
-            { id: `coding-${course._id}-6`, title: 'Interactive coding lab', type: 'coding', content: '// Solve the coding challenge', xp: 25 },
-          ],
-        },
-        {
-          title: 'Advanced Modules',
-          lessons: [
-            { id: `article-${course._id}-7`, title: 'Deep dive details', type: 'article', content: 'Advanced Topics\n\nLet us master standard libraries and scalability.', xp: 15 },
-            { id: `coding-${course._id}-8`, title: 'Final project execution', type: 'coding', content: '// Build your final solution', xp: 50 },
-          ],
-        },
-      ],
-    }));
+
+    const courseContentData = courses.map((course, index) => {
+      if (course.title === 'Python Basics for Data Science') {
+        return {
+          courseId: course._id,
+          sections: [
+            {
+              title: 'Introduction to Python',
+              lessons: [
+                { id: `video-${course._id}-1`, title: 'Welcome to Python Basics', type: 'video', content: 'https://example.com/video1.mp4', xp: 10 },
+                { id: `article-${course._id}-2`, title: 'Python syntax overview', type: 'article', content: 'Python Basics\n\nPython is known for clean readability.', xp: 5 },
+                {
+                  id: `coding-${course._id}-1`,
+                  title: 'Exercise: Sum of Two Numbers',
+                  type: 'coding',
+                  xp: 25,
+                  exercise: {
+                    description: 'Write a Python function `add(a, b)` that takes two numbers and returns their sum.',
+                    starterCode: 'def add(a, b):\n    # Write your code here\n    pass\n',
+                    language: 'python',
+                    testCases: [
+                      { input: '2\n3', expectedOutput: '5', isHidden: false },
+                      { input: '-1\n5', expectedOutput: '4', isHidden: false },
+                      { input: '100\n200', expectedOutput: '300', isHidden: true }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              title: 'Control Flow and Math',
+              lessons: [
+                { id: `video-${course._id}-4`, title: 'Loops and recursion in Python', type: 'video', content: 'https://example.com/video2.mp4', xp: 15 },
+                {
+                  id: `coding-${course._id}-2`,
+                  title: 'Exercise: Factorial of a Number',
+                  type: 'coding',
+                  xp: 35,
+                  exercise: {
+                    description: 'Write a Python function `factorial(n)` that returns the factorial of a non-negative integer `n`. (e.g., factorial of 5 is 5 * 4 * 3 * 2 * 1 = 120)',
+                    starterCode: 'def factorial(n):\n    # Write your code here\n    pass\n',
+                    language: 'python',
+                    testCases: [
+                      { input: '5', expectedOutput: '120', isHidden: false },
+                      { input: '0', expectedOutput: '1', isHidden: false },
+                      { input: '3', expectedOutput: '6', isHidden: true }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              title: 'Data Structures and Strings',
+              lessons: [
+                { id: `article-${course._id}-7`, title: 'Working with Python strings', type: 'article', content: 'Strings\n\nStrings are immutable sequences in Python.', xp: 15 },
+                {
+                  id: `coding-${course._id}-3`,
+                  title: 'Exercise: Is Palindrome String',
+                  type: 'coding',
+                  xp: 40,
+                  exercise: {
+                    description: 'Write a Python function `is_palindrome(s)` that returns `True` if the string `s` is a palindrome (reads the same forward and backward), and `False` otherwise.',
+                    starterCode: 'def is_palindrome(s):\n    # Write your code here\n    pass\n',
+                    language: 'python',
+                    testCases: [
+                      { input: 'racecar', expectedOutput: 'True', isHidden: false },
+                      { input: 'hello', expectedOutput: 'False', isHidden: false },
+                      { input: 'radar', expectedOutput: 'True', isHidden: true }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        };
+      }
+      return {
+        courseId: course._id,
+        sections: [
+          {
+            title: 'Introduction',
+            lessons: [
+              { id: `video-${course._id}-1`, title: `Welcome to ${course.title}`, type: 'video', content: 'https://example.com/video1.mp4', xp: 10 },
+              { id: `article-${course._id}-2`, title: 'Course overview & syllabus', type: 'article', content: `Overview\n\nWelcome to ${course.title}. In this module, we will explore key concepts.`, xp: 5 },
+              { id: `article-${course._id}-3`, title: 'Setting up your dev tools', type: 'article', content: 'Environment Setup\n\nDownload your editor and configure variables.', xp: 10 },
+            ],
+          },
+          {
+            title: 'Core Concepts',
+            lessons: [
+              { id: `video-${course._id}-4`, title: 'Understanding the fundamentals', type: 'video', content: 'https://example.com/video2.mp4', xp: 15 },
+              { id: `quiz-${course._id}-5`, title: 'Module assessment quiz', type: 'quiz', content: '', xp: 20 },
+              { id: `coding-${course._id}-6`, title: 'Interactive coding lab', type: 'coding', content: '// Solve the coding challenge', xp: 25 },
+            ],
+          },
+          {
+            title: 'Advanced Modules',
+            lessons: [
+              { id: `article-${course._id}-7`, title: 'Deep dive details', type: 'article', content: 'Advanced Topics\n\nLet us master standard libraries and scalability.', xp: 15 },
+              { id: `coding-${course._id}-8`, title: 'Final project execution', type: 'coding', content: '// Build your final solution', xp: 50 },
+            ],
+          },
+        ],
+      };
+    });
 
     await CourseContent.create(courseContentData);
     console.log(`Created ${courses.length} course content documents`);
 
     // === CREATE ASSESSMENTS ===
     console.log('Creating assessments...');
-    
+
     const assessmentData = [];
     courses.forEach((course) => {
       // 1. Pre-Assessment
@@ -747,10 +823,12 @@ async function seed() {
             name: 'Intermediate Concepts',
             questions: [
               { type: 'mcq', question: 'Which methodology guarantees standard security?', options: ['Authentication token validation', 'Bypassing credentials', 'Storing raw passwords', 'No security needed'], correctAnswer: 0, points: 15 },
-              { type: 'matching', question: 'Match the modules with their respective goals.', pairs: [
-                { left: 'Security', right: 'Hashing', correct: true },
-                { left: 'Storage', right: 'Database', correct: true },
-              ], points: 10 },
+              {
+                type: 'matching', question: 'Match the modules with their respective goals.', pairs: [
+                  { left: 'Security', right: 'Hashing', correct: true },
+                  { left: 'Storage', right: 'Database', correct: true },
+                ], points: 10
+              },
             ],
           },
         ],
@@ -762,7 +840,7 @@ async function seed() {
 
     // === CREATE ML FEATURES ===
     console.log('Creating student ML features...');
-    
+
     const totalLessonsPerCourse = 8; // Match the 8 lessons defined in course contents above
     const now = new Date();
     const windowStart = new Date(now);
@@ -783,12 +861,12 @@ async function seed() {
     for (let i = 0; i < allStudents.length; i++) {
       const s = allStudents[i];
       const studentEnrollments = enrollments.filter(e => e.userId.toString() === s._id.toString());
-      
+
       // Assign performance risk level to students to create dropout risk diversity
       let riskLevel = 'low';
       if (i === 6 || i === 7) riskLevel = 'medium'; // Frank, Grace
       if (i === 4 || i === 5) riskLevel = 'high';   // David, Emma
-      
+
       const pattern = performancePatterns[riskLevel];
 
       for (const enrollment of studentEnrollments) {
@@ -798,7 +876,7 @@ async function seed() {
         const loginCount = randomBetween(pattern.loginRange[0], pattern.loginRange[1]);
         const sessionTimeAvg = randomBetween(pattern.sessionRange[0], pattern.sessionRange[1]);
         const lessonsCompleted = Math.min(totalLessonsPerCourse, Math.round((enrollment.progress / 100) * totalLessonsPerCourse));
-        
+
         // Calculate engagement score
         const lessonScore = (lessonsCompleted / totalLessonsPerCourse) * 30;
         const quizScoreContribution = quizAvgScore * 0.25;
@@ -811,7 +889,7 @@ async function seed() {
         // MLFeature Record
         const totalSessionTime = loginCount * sessionTimeAvg;
         const sessions = Array.from({ length: loginCount }, () => randomBetween(Math.max(5, sessionTimeAvg - 10), sessionTimeAvg + 10));
-        
+
         mlFeaturesData.push({
           studentId: s._id,
           courseId: enrollment.courseId,
@@ -832,9 +910,9 @@ async function seed() {
           _session_durations: sessions,
           _assessment_scores: enrollment.grade > 0 ? [quizAvgScore] : [],
           _active_dates: Array.from({ length: totalDaysActive }, (_, dIdx) => {
-             const d = new Date(now);
-             d.setDate(now.getDate() - dIdx);
-             return d.toISOString().split('T')[0];
+            const d = new Date(now);
+            d.setDate(now.getDate() - dIdx);
+            return d.toISOString().split('T')[0];
           }),
           dropout_risk_score: pattern.risk === 'high' ? randomFloat(0.75, 0.95) : (pattern.risk === 'medium' ? randomFloat(0.35, 0.6) : randomFloat(0.05, 0.2)),
           dropout_prediction: pattern.dropout,
@@ -866,7 +944,7 @@ async function seed() {
     // Close connection
     await mongoose.connection.close();
     console.log('MongoDB connection closed');
-    
+
     process.exit(0);
   } catch (error) {
     console.error('Seed error:', error);

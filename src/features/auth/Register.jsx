@@ -2,26 +2,31 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, UserPlus, ArrowRight, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, UserPlus, ArrowRight, ChevronDown, Users } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 
 const Register = () => {
-    const { register, handleSubmit, formState: { errors }, watch } = useForm();
-    const { createUser } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
+        defaultValues: {
+            role: new URLSearchParams(location.search).get('invite') || 'student'
+        }
+    });
+    const { createUser } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const password = watch("password", "");
+    const selectedRole = watch("role", "student");
 
     const onSubmit = async (data) => {
         setIsLoading(true);
         try {
-            // Determine role from invite parameter
+            // Determine role from invite parameter or form value
             const inviteParam = new URLSearchParams(location.search).get('invite');
-            const role = ['instructor', 'admin'].includes(inviteParam) ? inviteParam : 'student';
+            const role = ['instructor', 'admin'].includes(inviteParam) ? inviteParam : (data.role || 'student');
 
             // Create user with all fields
             await createUser({
@@ -182,6 +187,67 @@ const Register = () => {
                             {errors.confirmPassword && (
                                 <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
                             )}
+                        </div>
+
+
+                        {/* Role selection */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-blue-400" />
+                                Register As
+                            </label>
+                            <input type="hidden" {...register("role")} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setValue("role", "student")}
+                                    className={`relative overflow-hidden p-4 rounded-xl border text-left transition-all duration-300 group flex flex-col justify-between h-24 ${
+                                        selectedRole === 'student'
+                                            ? 'bg-gradient-to-br from-blue-600/20 to-indigo-600/10 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                                            : 'bg-gray-700/40 border-gray-600/80 text-gray-300 hover:border-gray-500 hover:bg-gray-700/60'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-start w-full">
+                                        <span className={`text-xs uppercase font-bold tracking-wider ${selectedRole === 'student' ? 'text-blue-400' : 'text-gray-400'}`}>
+                                            Learn
+                                        </span>
+                                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${selectedRole === 'student' ? 'bg-blue-400 scale-110 shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'bg-transparent border border-gray-500'}`}></div>
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm">Student</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Enroll and take courses</p>
+                                    </div>
+                                    {/* Active background glow */}
+                                    {selectedRole === 'student' && (
+                                        <div className="absolute -right-6 -bottom-6 w-16 h-16 bg-blue-500/10 rounded-full blur-xl pointer-events-none"></div>
+                                    )}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setValue("role", "instructor")}
+                                    className={`relative overflow-hidden p-4 rounded-xl border text-left transition-all duration-300 group flex flex-col justify-between h-24 ${
+                                        selectedRole === 'instructor'
+                                            ? 'bg-gradient-to-br from-purple-600/20 to-indigo-600/10 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                                            : 'bg-gray-700/40 border-gray-600/80 text-gray-300 hover:border-gray-500 hover:bg-gray-700/60'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-start w-full">
+                                        <span className={`text-xs uppercase font-bold tracking-wider ${selectedRole === 'instructor' ? 'text-purple-400' : 'text-gray-400'}`}>
+                                            Teach
+                                        </span>
+                                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${selectedRole === 'instructor' ? 'bg-purple-400 scale-110 shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-transparent border border-gray-500'}`}></div>
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm">Instructor</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Create and manage courses</p>
+                                    </div>
+                                    {/* Active background glow */}
+                                    {selectedRole === 'instructor' && (
+                                        <div className="absolute -right-6 -bottom-6 w-16 h-16 bg-purple-500/10 rounded-full blur-xl pointer-events-none"></div>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
 

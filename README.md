@@ -162,14 +162,11 @@ npm install
 cd server
 npm install
 
-# Seed the MongoDB database with initial sample data (Users, Courses, Enrollments)
+# Seed the MongoDB database with initial sample data (Users, Courses, Enrollments, and Python coding exercises/test cases)
 npm run seed
 
 # Seed baseline assessments for all courses
 node seedAssessmentsOnly.js
-
-# Seed Python coding problems and test cases
-node seedCodingExercises.js
 ```
 
 ### 3. Spin up Python ML Microservices

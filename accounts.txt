@@ -3,6 +3,11 @@
 ============================================================
 NOTE: All seeded test accounts share the same password:
 Common Password: 123456
+
+Database Seeding:
+Running `npm run seed` in the `server` directory will reset
+the database, seed these accounts (properly hashed once), and
+automatically configure the coding exercises and test cases.
 ============================================================
 
 1. ADMINISTRATOR

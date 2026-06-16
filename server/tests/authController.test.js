@@ -27,7 +27,7 @@ test('authController - registration and login unit tests', async (t) => {
         _id: 'mock_user_id',
         name: userData.name,
         email: userData.email,
-        role: 'student',
+        role: userData.role || 'student',
         toObject: function() {
           return {
             _id: this._id,
@@ -43,7 +43,8 @@ test('authController - registration and login unit tests', async (t) => {
       body: {
         name: 'John Doe',
         email: 'john@example.com',
-        password: 'password123'
+        password: 'password123',
+        role: 'instructor'
       }
     };
 
@@ -64,7 +65,7 @@ test('authController - registration and login unit tests', async (t) => {
 
     assert.strictEqual(statusCode, 201);
     assert.strictEqual(responseData.user.name, 'John Doe');
-    assert.strictEqual(responseData.user.role, 'student');
+    assert.strictEqual(responseData.user.role, 'instructor');
     assert.ok(responseData.token);
   });
 

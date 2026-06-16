@@ -98,11 +98,11 @@ How can we design and implement a unified, interactive course management platfor
 ### 5.1 System Architecture
 
 **Architecture Overview:**
-- **Frontend**: React 18 SPA with Vite bundler, Tailwind CSS + Daisy UI for styling
+- **Frontend**: React 18 with Vite bundler, Tailwind CSS + Daisy UI for styling
 - **Backend**: REST API (Node.js/Express)
 - **Authentication**: Custom Auth (bcrypt) + JWT tokens
 - **Database**: MongoDB (document-oriented database storing courses, content, users, enrollments, assessments, and metrics)
-- **External Services**: Judge0 API (sandboxed code execution / automated grading with local Python subprocess fallback), YouTube (video content)
+- **External Services**: Vercel Sandbox API (sandboxed code execution / automated grading with local Python subprocess fallback), YouTube (video content)
 
 **Key Architectural Layers:**
 1. **Presentation Layer**: React components organized by features (auth, courses, dashboard, users, assessment)
@@ -145,7 +145,7 @@ How can we design and implement a unified, interactive course management platfor
 | FR-2.3.1 | The Quiz Player must support multiple question types (MCQ, fill-in-the-blank, matching). | Student |
 | FR-2.3.2 | The Quiz Player must provide instant feedback upon submission (correct/incorrect). | Student |
 | FR-2.3.3 | The Coding Playground must provide a web-based IDE for users to write and execute code. | Student |
-| FR-2.3.4 | The Coding Playground must integrate with an external API (e.g., Judge0) to run code against defined test cases and return real-time feedback. | System |
+| FR-2.3.4 | The Coding Playground must integrate with an external sandboxed execution API to run code against defined test cases and return real-time feedback. | System |
 
 #### FR 2.4. Gamification Engine
 
@@ -172,7 +172,7 @@ How can we design and implement a unified, interactive course management platfor
 | ID | Requirement Description | Priority |
 |----|------------------------|----------|
 | NFR-3.1.1 | The system must load all key dashboard and course pages in acceptable time | High |
-| NFR-3.1.2 | The real-time code execution and feedback (via Judge0) must return results | High |
+| NFR-3.1.2 | The real-time code execution and feedback (via sandboxed execution environment) must return results | High |
 | NFR-3.1.3 | The Hybrid Recommendation Engine must generate personalized course suggestions within acceptable time limits | High |
 
 #### NFR 3.2. Security
@@ -219,52 +219,6 @@ How can we design and implement a unified, interactive course management platfor
 ### 5.9 Entity Relationship Diagram (ERD)
 
 *(Diagram placeholder)*
-
-### 5.10 Security Implementation
-
-Stride implements a multi-layered security strategy to protect user data, secure session states, control role-based permissions, and sandbox user code execution:
-
-1. **Authentication & Session Management**:
-   - **Custom Credentials Authentication**: User credentials and registrations are processed directly by the backend REST API. Passwords are securely hashed using bcrypt prior to database storage, ensuring sensitive data is protected.
-   - **JWT Tokens (JSON Web Tokens)**: Upon successful authentication, the Express backend issues a cryptographically signed JSON Web Token (JWT) using `jsonwebtoken` that contains the user's ID, email, and role.
-   - **Transmission Security**: The token is passed via HTTP headers (`Authorization: Bearer <token>`) for all subsequent requests to the Express gateway and is encrypted in transit using HTTPS/TLS.
-
-2. **Role-Based Access Control (RBAC)**:
-   - Three specific roles are defined: `Student`, `Instructor`, and `Admin`.
-   - **Backend Authorization Middleware**: The backend enforces access control using an Express middleware pipeline. The `verifyToken` middleware decodes and validates the JWT, and the `requireRole` middleware checks if the decoded user role matches the authorized roles (e.g. `requireRole('admin')`, `requireRole('instructor')`).
-   - **Frontend Adaptations**: The React router and dashboard navigation dynamically adjust views based on the active role, but all key mutation operations are blocked by API-level guards.
-
-3. **Coding Sandbox Isolation & Safe Execution**:
-   - Running arbitrary user code presents a security hazard (file access, infinite loops, memory leaks). Stride employs a dual execution model to mitigate this:
-     - **Primary Sandbox (Judge0 CE)**: User-submitted code is sent to the Judge0 CE API. Judge0 runs the untrusted script within a strictly isolated, containerized sandbox with resource limitations on execution time (e.g., 5 seconds), CPU usage, and RAM.
-     - **Fallback Local Execution**: When Judge0 is unavailable, Stride spawns a local subprocess (`child_process.spawn`) configured with input/output piping (stdin/stdout). Code is checked against precise test assertions and wrapped within isolated wrappers.
-
-4. **Input Sanitization & Data Safety (SQL/NoSQL Injection)**:
-   - **SQL Injection Immunity**: Because Stride utilizes a NoSQL document database (MongoDB via Mongoose), it does not compile SQL queries or concatenate database strings, making it structurally immune to traditional SQL injection attacks.
-   - **NoSQL Injection & Casting**: Mongoose schemas enforce strict type validation. Request parameters are cast automatically (e.g., validating ObjectIds); query parameters containing unpermitted objects (like query operators `{"$ne": null}`) are either cast to strings or stripped, preventing NoSQL injection.
-   - **Validation Middleware**: All inputs are checked using `express-validator` middleware to block improperly formed payloads before they can reach the database or backend logic.
-   - **CORS Configuration**: Cross-Origin Resource Sharing (CORS) is restricted to allowed origins (local development and registered Vercel domains), protecting routes from cross-site scripts.
-
-5. **DDoS & Infrastructure Protection**:
-   - **Edge Network Mitigations**: Stride is designed to be deployed behind CDNs and hosting edges (like Cloudflare or Vercel). These platforms automatically intercept and filter volumetric DDoS traffic at the DNS and reverse proxy level.
-   - **Request Sizing & Resource Limits**: Payload size limits on HTTP requests (e.g., Express JSON bodies capped at 50MB) and strict sandbox resource constraints (5-second timeout on Judge0 execution) prevent resource starvation and buffer overflow Denial of Service (DoS) attempts.
-
-### 5.11 Production Hardening & Security Risk Disclaimers
-
-While Stride implements standard web security models, several vulnerabilities exist in development configurations that must be hardened prior to production deployment:
-
-1. **Local Subprocess Code Execution Fallback**:
-   - **Risk**: If the Judge0 API key is not configured, Stride falls back to executing user-submitted Python code using the host machine's Python compiler via `child_process.spawn`. In a production environment, this allows malicious users to execute arbitrary code (e.g., read files, delete data, consume unlimited CPU/RAM resources, or spawn reverse shells) directly on the host machine.
-   - **Hardening Recommendation**: Disable the local subprocess fallback in production. The system should throw an error and halt execution if the Judge0 API configuration is missing or invalid.
-
-2. **Weak JWT Secret Fallback**:
-   - **Risk**: In `auth.js` and `index.js`, the JWT token secret defaults to a hardcoded string `'secret'` if the `ACCESS_TOKEN_SECRET` environment variable is not defined. Attackers can forge administrative tokens using this default key to compromise any user account on the platform.
-   - **Hardening Recommendation**: Enforce application failure at start-up if `ACCESS_TOKEN_SECRET` is missing, weak, or set to the default value in a production environment.
-
-3. **Mock Stripe Payment Handling**:
-   - **Risk**: In `index.js`, Stride automatically falls back to generating mock Stripe client secrets and successful mock checkouts if `STRIPE_SECRET_KEY` is not set. 
-   - **Hardening Recommendation**: Force Stripe connection checks and fail API start-up if the key is missing in production to prevent bypasses or billing oversights.
-
 
 ## 6. AI PLAN
 
@@ -326,28 +280,188 @@ The student retention ML model utilizes **12 raw behavioral features** aggregate
 11. **`num_repeated_attempts`**: Count of assessment retries.
 12. **`no_improvement_attempts`**: Count of retries showing no score gain.
 
-### 6.3 SYSTEM VERIFICATION & TESTING SUITE
+### 6.3 STUDENT DROPOUT MODEL EVALUATION RESULTS
 
-To verify the correct operational logic of all Stride services, a comprehensive testing suite was built covering Express API handlers, the recommender system, and the dropout prediction microservice.
+To identify the most reliable estimator for predicting student dropout risk over the next 7 days, five machine learning models were optimized using 5-fold cross-validated grid search (`GridSearchCV`) and evaluated on a held-out test set ($20\%$ of the data).
 
-#### 6.3.1 Testing Scope & Frameworks
-1. **Node.js Express Backend**: Evaluated using the Node.js v24 native Test Runner (`node:test`) and assertion library (`node:assert`). Mongoose collection methods are stubbed in-memory to execute tests without requiring active database connections. Covered controllers:
-   - `authController`: Registers users, generates JWT tokens, and handles validation rules.
-   - `courseController`: Queries active courses, parses route IDs, and enforces ownership authorization.
-   - `assessmentController`: Sanitizes assessments, auto-grades MCQ/matching answers, and awards progress XP.
-   - `codeEvaluationController`: Wraps Python coding exercises and mocks sandboxed Judge0 batch execution.
-2. **Python Recommender Service**: Evaluated using standard Python `unittest`. Covers TF-IDF content calculations, collaborative filtering Jaccard overlaps, case-insensitive prerequisite checks, and deadlock-free difficulty progression.
-3. **Python Dropout Prediction Service**: Evaluated using standard Python `unittest`. Validates the metric normalization pipeline and risk level classification thresholds.
+#### 6.3.1 Model Performance Summary
 
-#### 6.3.2 Execution Results
-All test cases run and pass successfully:
-- **Express Backend API**: 15 / 15 tests passed.
-- **Python Recommender**: 6 / 6 tests passed.
-- **Python Dropout Predictor**: 1 / 1 test passed.
+| Model Name | Accuracy | Precision | Recall | F1 Score | AUC-ROC |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Random Forest** | **97.17%** | **96.30%** | **84.78%** | **90.17%** | **99.17%** |
+| Gradient Boosting | 79.33% | 45.16% | 23.73% | 31.11% | 60.50% |
+| K-Nearest Neighbors (KNN) | 76.17% | 35.63% | 26.27% | 30.24% | 58.03% |
+| Logistic Regression | 80.00% | 45.45% | 8.47% | 14.29% | 67.51% |
+| SVC | 79.33% | 12.50% | 0.85% | 1.59% | 54.95% |
 
-## 7. WORK PLAN
+#### 6.3.2 Algorithmic Performance Analysis
 
-### 7.1 Project Timeline & Task Breakdown
+The results demonstrate a massive performance gap between the **Random Forest** classifier ($90.17\%$ F1-Score) and the other models ($1.59\% - 31.11\%$ F1-Score) due to the structural design and mathematical assumptions of each estimator:
+
+1. **Random Forest (F1-Score: 90.17%) — *The Dominant Model***:
+   * **Bagging and Variance Reduction**: Constructs a forest of uncorrelated decision trees. By averaging their predictions, it effectively reduces model variance and ignores local noise in noisy, conflicting data points.
+   * **Non-Linear Decision Boundaries**: Student behavioral metrics (such as completing lessons or quiz failures) exhibit step-function thresholds (e.g., "lessons completed $\le 3$ AND assessments attempted $= 0$"). Decision trees naturally model these orthogonal, recursive partitions far better than distance-based hyperplanes.
+   * **Inherent Feature Interaction Handling**: Random Forest automatically captures multi-way feature interactions (e.g., combining `login_count` with `avg_session_time_minutes`) without requiring explicitly mapped polynomial terms.
+
+2. **Gradient Boosting Classifier (F1-Score: 31.11%)**:
+   * **Sensitivity to Overlapping Boundaries**: Unlike Random Forest, Gradient Boosting builds trees sequentially to minimize the residuals (errors) of prior trees. In complex, overlapping feature distributions, boosting has a high tendency to overfit the training set's local noise, resulting in poor generalization on unseen test data.
+   * **Lack of Variance Control**: Focuses on bias reduction rather than variance reduction, struggling to ignore high-frequency noise and yielding a weak recall ($23.73\%$).
+
+3. **K-Nearest Neighbors (KNN) (F1-Score: 30.24%)**:
+   * **Local Density Distortion**: KNN makes predictions based on local spatial distance (Euclidean/Manhattan metric). In this dataset, overlapping feature spaces confuse distance metrics; if a disengaged student clusters near a active one due to minor metric similarities, KNN misclassifies the neighborhood.
+   * **Sensitivity to Feature Correlation**: Distance-based voting is heavily distorted by multi-collinear features (e.g., `lessons_started` vs. `lessons_completed`), reducing KNN's classification accuracy.
+
+4. **Logistic Regression (F1-Score: 14.29%)**:
+   * **Strict Linear Assumption**: Logistic Regression assumes that a linear combination of features can cleanly separate the two classes via a logistic hyperplane. Because the decision boundary of student dropouts is highly non-linear, a single linear boundary underfits the data.
+   * **Zero-Coefficient Collapse**: In an attempt to handle overlapping and noisy data distributions, the $L_2$ regularization penalty forces coefficients towards zero, causing the model to miss subtle linear trends and yield a very low recall ($8.47\%$).
+
+5. **Support Vector Classifier (SVC) (F1-Score: 1.59%)**:
+   * **Margin Maximization Failure**: SVC attempts to find an optimal separating hyperplane that maximizes the margin between classes. RBF SVMs are highly sensitive to overlapping class distributions where clear separation is impossible.
+   * **Majority-Class Collapse**: When margins are heavily overlapping, the optimization objective of SVC collapses to predicting the majority class (`0` - No Dropout) to maximize accuracy. This explains why SVC achieved an $80\%$ accuracy but a near-zero Recall ($0.85\%$) and a degenerate F1-Score ($1.59\%$).
+
+---
+
+## 7. SECURITY
+
+Stride implements a multi-layered security strategy to protect user data, secure session states, control role-based permissions, and sandbox user code execution.
+
+### 7.1 Authentication & Session Management
+- **Custom Credentials Authentication**: User credentials and registrations are processed directly by the backend REST API. Passwords are securely hashed using bcrypt prior to database storage.
+- **JWT Tokens (JSON Web Tokens)**: Upon successful authentication, the Express backend issues a cryptographically signed JWT using `jsonwebtoken` that contains the user's ID, email, and role.
+- **Transmission Security**: The token is passed via HTTP headers (`Authorization: Bearer <token>`) for all subsequent requests to the Express gateway and is encrypted in transit using HTTPS/TLS.
+
+### 7.2 Role-Based Access Control (RBAC)
+- Three specific roles are defined: `Student`, `Instructor`, and `Admin`.
+- **Backend Authorization Middleware**: The backend enforces access control using an Express middleware pipeline:
+  - `verifyToken`: Decodes and validates the JWT.
+  - `requireRole`: Checks if the decoded user role matches the authorized roles (e.g. `requireRole('admin')`, `requireRole('instructor')`).
+- **Frontend Adaptations**: The React Router and dashboard navigation dynamically adjust views based on the active role, but all key mutation operations are blocked by API-level guards.
+
+### 7.3 Coding Sandbox Isolation & Safe Execution
+Running arbitrary user code presents a security hazard (file access, infinite loops, memory leaks). Stride employs a dual execution model to mitigate this:
+- **Primary Sandbox (Vercel Sandbox)**: User-submitted code is sent to the Vercel Sandbox. It runs the untrusted script within a strictly isolated, containerized sandbox with resource limitations on execution time (e.g., 5 seconds), CPU usage, and RAM.
+- **Fallback Local Execution**: When the sandboxed environment is unavailable, Stride spawns a local subprocess (`child_process.spawn`) configured with input/output piping (stdin/stdout). Code is checked against precise test assertions and wrapped within isolated wrappers.
+
+### 7.4 Input Sanitization & Data Safety (SQL/NoSQL Injection)
+- **SQL Injection Immunity**: Because Stride utilizes a NoSQL document database (MongoDB via Mongoose), it does not compile SQL queries or concatenate database strings, making it structurally immune to traditional SQL injection attacks.
+- **NoSQL Injection & Casting**: Mongoose schemas enforce strict type validation. Request parameters are cast automatically (e.g., validating ObjectIds); query parameters containing unpermitted objects (like query operators `{"$ne": null}`) are either cast to strings or stripped, preventing NoSQL injection.
+- **Validation Middleware**: All inputs are checked using `express-validator` middleware to block improperly formed payloads before they can reach the database or backend logic.
+- **CORS Configuration**: Cross-Origin Resource Sharing (CORS) is restricted to allowed origins (local development and registered Vercel domains), protecting routes from cross-site scripts.
+
+### 7.5 DDoS & Infrastructure Protection
+- **Edge Network Mitigations**: Stride is designed to be deployed behind CDNs and hosting edges (like Cloudflare or Vercel). These platforms automatically intercept and filter volumetric DDoS traffic at the DNS and reverse proxy level.
+- **Request Sizing & Resource Limits**: Payload size limits on HTTP requests (e.g., Express JSON bodies capped at 50MB) and strict sandbox resource constraints (5-second timeout on code execution) prevent resource starvation and buffer overflow Denial of Service (DoS) attempts.
+
+### 7.6 Production Hardening & Security Risk Disclaimers
+While Stride implements standard web security models, several vulnerabilities exist in development configurations that must be hardened prior to production deployment:
+1. **Local Subprocess Code Execution Fallback**:
+   - *Risk*: If the sandboxing environment is not configured, Stride falls back to executing user-submitted Python code using the host machine's Python compiler via `child_process.spawn`. In a production environment, this allows malicious users to execute arbitrary code (e.g., read files, delete data, consume unlimited CPU/RAM resources, or spawn reverse shells) directly on the host machine.
+   - *Hardening Recommendation*: Disable the local subprocess fallback in production. The system should throw an error and halt execution if the sandboxing configuration is missing or invalid.
+2. **Weak JWT Secret Fallback**:
+   - *Risk*: In `auth.js` and `index.js`, the JWT token secret defaults to a hardcoded string `'secret'` if the `ACCESS_TOKEN_SECRET` environment variable is not defined. Attackers can forge administrative tokens using this default key to compromise any user account on the platform.
+   - *Hardening Recommendation*: Enforce application failure at start-up if `ACCESS_TOKEN_SECRET` is missing, weak, or set to the default value in a production environment.
+3. **Mock Stripe Payment Handling**:
+   - *Risk*: In `index.js`, Stride automatically falls back to generating mock Stripe client secrets and successful mock checkouts if `STRIPE_SECRET_KEY` is not set. 
+   - *Hardening Recommendation*: Force Stripe connection checks and fail API start-up if the key is missing in production to prevent bypasses or billing oversights.
+
+---
+
+## 8. TESTING
+
+Stride features a comprehensive automated testing suite covering Express API handlers, the recommender system, and the dropout prediction microservice to ensure operational logic and correctness.
+
+### 8.1 Testing Scope & Frameworks
+The project maintains a 100% pass rate across all test suites:
+1. **Node.js Express Backend (11 Tests)**: Evaluated using the Node.js v24 native Test Runner (`node:test`) and assertion library (`node:assert`). Mongoose collection methods are stubbed in-memory to execute tests without requiring active database connections.
+2. **Python Recommender Service (6 Tests)**: Evaluated using standard Python `unittest`. Covers TF-IDF content calculations, collaborative filtering Jaccard overlaps, case-insensitive prerequisite checks, and deadlock-free difficulty progression.
+3. **Python Dropout Prediction Service (1 Test)**: Evaluated using standard Python `unittest`. Validates the metric normalization pipeline and risk level classification thresholds.
+
+### 8.2 Inventory of All Automated Test Cases
+
+#### Node.js Express Backend Unit Tests
+
+##### 1. `authController.test.js`
+*   **`register should create a user and return JWT token`**: Verifies that new users are successfully registered with hashed passwords and a valid JWT token is returned.
+*   **`register should fail if user already exists`**: Enforces user uniqueness by rejecting registrations containing emails already stored in the database.
+*   **`login should log in existing user with correct credentials`**: Validates credentials via bcrypt compare and issues a JWT token to establish the user session.
+
+##### 2. `courseController.test.js`
+*   **`getAllCourses should return all active courses`**: Verifies that the catalog retrieval API returns all courses flagged as `active` or `published`.
+*   **`getCourseById should return 400 for invalid ObjectId format`**: Enforces strict MongoDB ID formatting, blocking malformed string parameters.
+*   **`getCourseById should return 404 if course not found`**: Returns a proper `Not Found` status when a valid but non-existent course ID is requested.
+*   **`updateCourse should return 403 if instructor is not the owner`**: Enforces CMS ownership rules, blocking unauthorized modification of other instructors' courses.
+
+##### 3. `assessmentController.test.js`
+*   **`getAssessment should strip correct answers for MCQ and matching questions`**: Asserts student exam integrity by wiping correct answers from assessment payloads before sending them over the wire.
+*   **`submitAssessment should calculate correct score and award XP`**: Validates the auto-grading math (MCQ/True-False/Matching) and awards learning progression XP corresponding to the achieved score.
+
+##### 4. `codeEvaluationController.test.js`
+*   **`evaluateCodeSubmission should fail if language is not Python`**: Enforces runtime restrictions by rejecting unsupported coding languages.
+*   **`evaluateCodeSubmission should execute code using mocked sandboxed execution API`**: Verifies the batch execution orchestration and grade results returns via mock sandbox endpoints.
+
+---
+
+#### Python Recommender Service Unit Tests (`test_recommender_logic.py`)
+*   **`test_layer1_content_based`**: Validates TF-IDF content similarity scores on course descriptions and filters out courses the student has already enrolled in.
+*   **`test_layer2_collaborative`**: Validates user-to-peer neighborhood overlap scores using Jaccard index similarity matrices on enrollment history.
+*   **`test_layer3_rule_based_prerequisites_met`**: Enforces progression path checks to ensure that course prerequisite requirements have been met.
+*   **`test_layer3_rule_based_case_insensitive_prerequisites`**: Validates case-insensitivity and whitespace trim safety within the prerequisite comparison logic.
+*   **`test_layer3_rule_based_deadlock_prevention`**: Resolves "cold start" progression locks by recommending advanced courses if no lower-level courses exist in the category.
+*   **`test_layer4_ranking_reasons`**: Verifies weighted hybrid ranking scoring and dynamic XAI reason string generation (*"Similar to..."*, *"Building on..."*).
+
+---
+
+#### Python Dropout Prediction Service Unit Tests (`test_dropout_service.py`)
+*   **`test_dropout_predictor_logic`**: Validates that 12 raw behavioral metric vectors are properly scaled and predicted as low or high risk by the Random Forest pipeline.
+
+### 8.3 Execution Commands
+To run the full test suite locally on your system:
+```bash
+# Backend Express API Controllers
+node --test server/tests/authController.test.js server/tests/courseController.test.js server/tests/assessmentController.test.js server/tests/codeEvaluationController.test.js
+
+# Python Course Recommender Logic
+server/recommender_service/venv/Scripts/python -m unittest server/recommender_service/tests/test_recommender_logic.py
+
+# Python Student Dropout Logic
+server/recommender_service/venv/Scripts/python -m unittest server/dropout_service/tests/test_dropout_service.py
+```
+
+---
+
+## 9. DEPLOYMENT
+
+### 9.1 Production Cloud Architecture
+Stride uses a modular cloud architecture to deploy the platform efficiently and separate frontend, backend, database, and AI microservice workloads:
+- **Frontend (Vercel)**: Deployed to Vercel's global CDN. Client-side navigation routes and asset caching are handled directly via a `vercel.json` configuration file.
+- **Backend REST API (Vercel Serverless)**: Deployed to Vercel Serverless Functions, scaling automatically with student traffic.
+- **Database (MongoDB Atlas)**: Hosted on a managed cloud database cluster with automatic scaling, replication redundancy, and daily backups.
+- **AI Microservices (FastAPI)**: Packaged and hosted on containerized PaaS platforms (e.g., Render, Railway, or virtual private servers) behind a high-performance Uvicorn ASGI server.
+
+### 9.2 Code Sandbox execution & Failover Pipeline
+To guarantee consistent code execution feedback for students even during external sandbox outages or API rate limit caps, Stride implements a three-tier failover pipeline:
+
+```mermaid
+graph TD
+    A[Student Code Submission] --> B{1. Vercel Sandbox}
+    B -- Success --> C[Return Code Output & Test Results]
+    B -- Failure / Rate Limit --> D{2. Piston API Public Fallback}
+    D -- Success --> C
+    D -- Failure --> E{3. Local Subprocess Exec Dev Only}
+    E -- Success --> C
+    E -- Blocked in Prod --> F[Error: Execution Sandbox Offline]
+```
+
+#### Pipeline Tiers:
+1. **Primary Sandbox (Vercel Sandbox)**: Runs untrusted user code in strictly isolated, containerized Firecracker microVMs with resource limitations (CPU, RAM, 5s timeout).
+2. **Secondary Fallback (Piston API)**: A high-performance public multi-language execution engine that acts as a failover when primary VM limits are reached.
+3. **Tertiary Local Fallback (Local Subprocess)**: Spawns a piped shell process on the server machine. Restricted to **Local Development Only** and disabled in production environments for safety.
+
+---
+
+## 10. WORK PLAN
+
+### 10.1 Project Timeline & Task Breakdown
 
 | Task # | Task Title | Description | Status | Timeline |
 |--------|------------|-------------|--------|----------|
@@ -384,7 +498,7 @@ All test cases run and pass successfully:
 | 31 | Documentation | Setup guides, architecture docs | Completed | Week 28 |
 | 32 | Final Project Report | Comprehensive project documentation | Completed | Week 28 |
 
-### 7.2 Technologies Learned/To Learn
+### 10.2 Technologies Learned/To Learn
 
 | Technology | Purpose | Status | Timeline |
 |------------|---------|--------|----------|
