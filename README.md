@@ -246,6 +246,3 @@ Stride implements multiple layers of security to guarantee data privacy, safe re
 3. **Execution Sandbox**: Student code submissions are executed within isolated, resource-constrained container environments (using Judge0 CE API) or structured fallback subprocess pipes to prevent arbitrary shell command injections or execution exploits on server hosts.
 4. **NoSQL Injection & Sanitization**: Using MongoDB with Mongoose natively prevents traditional SQL injections. Mongoose enforces strict schema matching and automatically sanitizes/casts query fields, while `express-validator` middleware filters out illegal parameters before processing.
 5. **DDoS Mitigation**: Production deployment is optimized for cloud platforms (e.g. Vercel/Cloudflare Edge networks) that mitigate volumetric DDoS attacks. Application-level limits on body parser payloads (50MB) and Monaco sandbox runtime timeouts (5s) prevent resource exhaustion attacks.
-
-> [!WARNING]
-> **Production Hardening**: For production deployment, you must: (1) disable the local subprocess python execution fallback (which executes code directly on the host machine if the Judge0 key is missing), (2) enforce a strong `ACCESS_TOKEN_SECRET` key and disable default `'secret'` fallbacks, and (3) disable mock billing fallouts on Stripe endpoints.
