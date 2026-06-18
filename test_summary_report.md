@@ -15,7 +15,7 @@ All backend controller and middleware tests run in isolation using mocked mongoo
 | **`authController`** | - User registration: checks payload validation & password hashing triggers.<br>- User login: checks password hashing verification and JWT generation.<br>- Duplicity control: rejects existing email addresses. | **Passed** |
 | **`courseController`** | - Course retrieval: fetches active/published listings.<br>- Query validation: returns 400 for bad course ObjectIds.<br>- CMS Ownership Enforcement: blocks instructors from editing courses they do not own. | **Passed** |
 | **`assessmentController`** | - Sanitize Quiz: strips correct answers before sending to clients.<br>- Auto-grader: checks MCQ, True/False, and Concept-matching grading math.<br>- XP Progression: awards XP corresponding to the achieved grade. | **Passed** |
-| **`codeEvaluationController`** | - Payload integrity: checks language limits (Python only).<br>- Judge0 Batch flow: mocks RapidAPI network requests.<br>- Fallback Sandbox: verifies code compiles and runs locally in a python subprocess. | **Passed** |
+| **`codeEvaluationController`** | - Payload integrity: checks language limits (Python only).<br>- Sandbox flow: executes code in Vercel Sandbox.<br>- Fallback Sandbox: verifies code compiles and runs locally in a python subprocess. | **Passed** |
 
 ---
 

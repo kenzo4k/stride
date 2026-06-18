@@ -6,7 +6,7 @@
 
 **Stride** is a modern, full-stack course management and gamified learning platform designed to bridge the gap between instructors and students in digital education. The platform addresses the lack of unified, interactive learning experiences by providing a comprehensive ecosystem where students can discover, enroll in, and complete courses while instructors can build and manage course content efficiently. 
 
-Leveraging a modern technology stack including React 18 for responsive client interfaces, a Node.js/Express backend API gateway with custom credentials authentication, and MongoDB for document-oriented data storage, Stride integrates real-time sandboxed code execution (using Judge0 API and local fallbacks), gamified learning loops (XP, levels, and public leaderboards), and Python-based machine learning microservices (recommender system and weekly student dropout risk prediction). This report outlines the system design, UML architecture, AI implementations, verification test suites, and final project outcomes.
+Leveraging a modern technology stack including React 18 for responsive client interfaces, a Node.js/Express backend API gateway with custom credentials authentication, and MongoDB for document-oriented data storage, Stride integrates real-time sandboxed code execution (using Vercel Sandbox and local fallbacks), gamified learning loops (XP, levels, and public leaderboards), and Python-based machine learning microservices (recommender system and weekly student dropout risk prediction). This report outlines the system design, UML architecture, AI implementations, verification test suites, and final project outcomes.
 
 ---
 
@@ -155,7 +155,7 @@ sequenceDiagram
     actor Student as Student Client
     participant API as Express API Server
     participant DB as MongoDB Document Store
-    participant Sandbox as Judge0 Execution Engine
+    participant Sandbox as Vercel Sandbox
 
     Student->>API: POST /api/submissions (courseId, lessonId, code, language)
     Note over Student, API: Submits code written in Monaco Sandbox
@@ -163,10 +163,10 @@ sequenceDiagram
     DB-->>API: Return lesson test cases & expected outputs
     API->>API: Inject student code into Python test wrapper
     
-    alt RapidAPI Judge0 Configured
+    alt Vercel Sandbox Configured
         API->>Sandbox: POST /submissions/batch (base64 payload)
         Sandbox-->>API: Return stdout, stderr, & execution status codes
-    else Judge0 Offline / Subprocess Fallback
+    else Sandbox Offline / Subprocess Fallback
         API->>API: Spawn local Python subprocess & pipe input/output
     end
 
@@ -196,8 +196,8 @@ Stride adopts a defense-in-depth approach to platform security, addressing user 
 
 3. **Coding Sandbox Isolation**:
    - Stride executes code written in the Monaco editor in a multi-tiered environment:
-     - **Containerized Judge0 API (Primary)**: Code is evaluated inside isolated sandboxes with strict execution timeouts (5s limits) and restricted memory allocations to prevent CPU/memory exploitation.
-     - **Piped Subprocess Runner (Fallback)**: When Judge0 is offline, local execution routes inputs and outputs purely via piped stdin/stdout, isolating code logic inside specific Python wrapper functions rather than shell commands.
+     - **Vercel Sandbox (Primary)**: Code is evaluated inside isolated sandboxes with strict execution timeouts (5s limits) and restricted memory allocations to prevent CPU/memory exploitation.
+     - **Piped Subprocess Runner (Fallback)**: When the Sandbox is offline, local execution routes inputs and outputs purely via piped stdin/stdout, isolating code logic inside specific Python wrapper functions rather than shell commands.
 
 4. **Input Sanitization & DDoS Protection**:
    - **SQL Injection Prevention**: Using MongoDB (NoSQL) with Mongoose prevents SQL compilation attacks. Mongoose enforces strict schema matching and automatically sanitizes/casts parameters, blocking NoSQL parameter manipulation (e.g. stripping unexpected queries like `$ne`).
@@ -206,7 +206,7 @@ Stride adopts a defense-in-depth approach to platform security, addressing user 
 ### 3.6 Production Hardening & Risks
 
 Before deploying Stride to a production setting, the following development-time risks must be hardened:
-1. **Arbitrary Code Execution in Fallback Runner**: The local Python subprocess fallback (`child_process.spawn`) must be disabled in production. Otherwise, a lack of connection to Judge0 will cause untrusted code to run directly on the host server without container sandboxing.
+1. **Arbitrary Code Execution in Fallback Runner**: The local Python subprocess fallback (`child_process.spawn`) must be disabled in production. Otherwise, a lack of connection to the sandbox will cause untrusted code to run directly on the host server without container sandboxing.
 2. **Default JWT Secrets**: The fallback token secret (`'secret'`) must be disabled, and the server must crash at startup if `ACCESS_TOKEN_SECRET` is not set to a secure, long string.
 3. **Mock Billing**: Disable mock Stripe payments in production to prevent fake checkout bypasses.
 

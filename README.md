@@ -17,7 +17,7 @@ graph TD
     ExpressAPI -- Read/Write --> MongoDB[("MongoDB Database <br/> Port 27017")]
     ExpressAPI -- GET /api/recommendations/:userId --> RecService["FastAPI Recommender Service <br/> Port 8000"]
     ExpressAPI -- POST /api/predict-all --> DropoutService["FastAPI Dropout Prediction Service <br/> Port 8001"]
-    ExpressAPI -- Code Evaluation --> Judge0["Judge0 API / Local Subprocess"]
+    ExpressAPI -- Code Evaluation --> Sandbox["Vercel Sandbox / Local Subprocess"]
 
     RecService -- Read Metrics --> MongoDB
     DropoutService -- Read/Write Predictions --> MongoDB
@@ -33,7 +33,7 @@ graph TD
 ### For Students
 *   **Dual Assessment Engine**: Each course features both a baseline Pre-Assessment and a Final Exam, accessible directly from the sidebar footer of the course content player.
 *   **Interactive Content Players**: Stream video lessons, view PDF notes, answer quizzes, and solve coding challenges.
-*   **Monaco Coding Sandbox & Grader**: Write and execute code in real-time. Students submit solutions to Python function-level challenges which are graded against hidden and public test cases via a Judge0 integration.
+*   **Monaco Coding Sandbox & Grader**: Write and execute code in real-time. Students submit solutions to Python function-level challenges which are graded against hidden and public test cases via a Vercel Sandbox integration.
 *   **Gamified Learning Loop**: Earn XP and level up by completing lessons, passing quizzes, finishing coding labs, and submitting assessments.
 *   **Social Engagement**: Track progress streaks, unlock achievements, view earned badges, and view global rankings on the leaderboard.
 *   **Privacy Controls**: Toggle profile visibility to control leaderboard participation.
@@ -76,7 +76,7 @@ Stride features an advanced, multi-layer hybrid recommendation pipeline running 
 | **Backend API Gateway** | Node.js, Express 5, Mongoose 9, jsonwebtoken (JWT), bcryptjs, Stripe API, Axios, express-validator |
 | **Database** | MongoDB (Self-hosted or Atlas) |
 | **ML Microservices** | FastAPI, Uvicorn, Pandas, Scikit-Learn, PyMongo, Joblib, NumPy, Pydantic |
-| **Execution Engine** | Judge0 CE (RapidAPI) with local Python subprocess fallback execution |
+| **Execution Engine** | Vercel Sandbox with local Python subprocess fallback execution |
 
 ---
 
@@ -140,10 +140,8 @@ ACCESS_TOKEN_SECRET=your_jwt_secret_key_change_me_in_production
 STRIPE_SECRET_KEY=sk_test_... # Optional: Fallback to mock responses if left blank
 DROPOUT_SERVICE_URL=http://localhost:8001
 
-# Judge0 API Settings
-JUDGE0_API_URL=https://judge0-ce.p.rapidapi.com
-JUDGE0_API_KEY=YOUR_RAPIDAPI_KEY # If left blank, server falls back to local Python subprocess execution
-JUDGE0_API_HOST=judge0-ce.p.rapidapi.com
+# Vercel Sandbox Settings
+VERCEL_API_TOKEN=your_vercel_api_token # Required for deploying and executing code in production Vercel Sandbox
 ```
 
 ---
@@ -243,6 +241,6 @@ Stride implements multiple layers of security to guarantee data privacy, safe re
 
 1. **Secure Session States**: User credentials (email/password) are submitted securely to custom authentication backend endpoints, where registration and logins are validated using bcrypt password hashing. Successful logins generate cryptographically signed JWT tokens passed via HTTP headers and encrypted in transit by HTTPS/TLS.
 2. **Backend Route Guards (RBAC)**: All API routes (such as dropout predictions or course modifications) are protected by a chain of Express authentication and authorization middlewares (`verifyToken`, `requireRole`) verifying roles (`Student`, `Instructor`, `Admin`).
-3. **Execution Sandbox**: Student code submissions are executed within isolated, resource-constrained container environments (using Judge0 CE API) or structured fallback subprocess pipes to prevent arbitrary shell command injections or execution exploits on server hosts.
+3. **Execution Sandbox**: Student code submissions are executed within isolated, resource-constrained container environments (using Vercel Sandbox) or structured fallback subprocess pipes to prevent arbitrary shell command injections or execution exploits on server hosts.
 4. **NoSQL Injection & Sanitization**: Using MongoDB with Mongoose natively prevents traditional SQL injections. Mongoose enforces strict schema matching and automatically sanitizes/casts query fields, while `express-validator` middleware filters out illegal parameters before processing.
 5. **DDoS Mitigation**: Production deployment is optimized for cloud platforms (e.g. Vercel/Cloudflare Edge networks) that mitigate volumetric DDoS attacks. Application-level limits on body parser payloads (50MB) and Monaco sandbox runtime timeouts (5s) prevent resource exhaustion attacks.
