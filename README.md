@@ -27,6 +27,9 @@ graph TD
 
 ## Key Features
 
+### Onboarding & Authentication
+*   **Dynamic Role Selection**: Polished, user-centric onboarding UI allowing new registrants to choose their platform role (Student or Instructor) during sign-up, instantly configuring downstream access control profiles.
+
 ### For Students
 *   **Dual Assessment Engine**: Each course features both a baseline Pre-Assessment and a Final Exam, accessible directly from the sidebar footer of the course content player.
 *   **Interactive Content Players**: Stream video lessons, view PDF notes, answer quizzes, and solve coding challenges.
@@ -225,7 +228,7 @@ Open your browser and navigate to `http://localhost:5173`.
 
 Stride defines Mongoose collections inside `server/models/`:
 
-1.  **User**: Stores credential hashes, profile details, active roles (`student`, `instructor`, `admin`), streak data, current level, and accumulated XP.
+1.  **User**: Stores credential hashes, profile details, active roles (`student`, `instructor`, `admin`), streak data, current level, and accumulated XP. Roles (`student`/`instructor`) are configured at registration through the onboarding selection form.
 2.  **Course**: Contains information on pricing, categorizations, instructor IDs, and overall student registration counts.
 3.  **Enrollment**: Maps student IDs to course IDs, tracking progress percentage, active module history, and grading averages.
 4.  **CourseContent**: Holds structured curriculum sections, mapping lessons (video, article, quiz, and coding exercise metadata with test cases).

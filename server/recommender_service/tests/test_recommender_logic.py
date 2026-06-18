@@ -186,5 +186,131 @@ class TestRecommenderLogic(unittest.TestCase):
         rec_course3 = next(c for c in ranked_prereq if c["_id"] == "course3")
         self.assertEqual(rec_course3["reason"], "Building on your study of Modern JavaScript & DOM")
 
+    def test_layer3_rule_based_category_path_exclusion(self):
+        # Course set including Front End and AI & ML courses
+        custom_courses = [
+            {
+                "_id": "fe_course",
+                "title": "HTML & CSS Foundations",
+                "category": "Front End",
+                "level": "Beginner",
+                "prerequisites": ["None"]
+            },
+            {
+                "_id": "ai_course",
+                "title": "Python Basics for Data Science",
+                "category": "AI & Machine Learning",
+                "level": "Beginner",
+                "prerequisites": ["None"]
+            }
+        ]
+        
+        # User is enrolled in an AI & Machine Learning course
+        user_courses_ids = {"ai_course"}
+        category_levels = {"AI & Machine Learning": {"Beginner"}}
+        user_categories = {"AI & Machine Learning"}
+        
+        valid = self.recommender.layer3_rule_based(custom_courses, user_courses_ids, category_levels, user_categories)
+        valid_ids = [c["_id"] for c in valid]
+        
+        # Front End course should NOT be excluded because we relaxed category path exclusion to allow discovery
+        self.assertIn("fe_course", valid_ids)
+
+    def test_layer4_ranking_progression_matching(self):
+        custom_courses = [
+            {
+                "_id": "c_prog",
+                "title": "React.js Intermediate",
+                "category": "Front End",
+                "level": "Intermediate",
+                "prerequisites": ["None"]
+            },
+            {
+                "_id": "c_non_prog",
+                "title": "Python Basics",
+                "category": "AI & Machine Learning",
+                "level": "Beginner",
+                "prerequisites": ["None"]
+            }
+        ]
+        user_courses_ids = set()
+        category_levels = {"Front End": {"Beginner"}}
+        
+        ranked = self.recommender.layer4_ranking(
+            custom_courses,
+            {},
+            {},
+            {},
+            custom_courses,
+            user_courses_ids,
+            category_levels
+        )
+        
+        # c_prog should be marked with the progression reason
+        prog_course = next(c for c in ranked if c["_id"] == "c_prog")
+        self.assertEqual(prog_course["reason"], "Next level in your Front End learning path")
+        
+        # c_non_prog should not have the progression reason since category is not in category_levels
+        non_prog_course = next(c for c in ranked if c["_id"] == "c_non_prog")
+        self.assertNotEqual(non_prog_course["reason"], "Next level in your AI & Machine Learning learning path")
+
+    def test_layer4_ranking_diversification(self):
+        custom_courses = [
+            {
+                "_id": "c_prog",
+                "title": "React.js Intermediate",
+                "category": "Front End",
+                "level": "Intermediate",
+                "prerequisites": ["None"]
+            },
+            {
+                "_id": "c_collab",
+                "title": "Modern Javascript Layouts",
+                "category": "Front End",
+                "level": "Beginner",
+                "prerequisites": ["None"]
+            },
+            {
+                "_id": "c_hot",
+                "title": "Popular Next.js",
+                "category": "Front End",
+                "level": "Beginner",
+                "prerequisites": ["None"],
+                "enrollmentCount": 500,
+                "rating": 4.9
+            },
+            {
+                "_id": "c_content",
+                "title": "HTML Advanced layout",
+                "category": "Front End",
+                "level": "Beginner",
+                "prerequisites": ["None"]
+            }
+        ]
+        
+        user_courses_ids = {"completed_course"}
+        similar_to = {"c_content": "completed_course"}
+        l1_scores = {"c_content": 0.8, "c_prog": 0.0, "c_collab": 0.0, "c_hot": 0.0}
+        l2_scores = {"c_collab": 0.9, "c_prog": 0.0, "c_hot": 0.0, "c_content": 0.0}
+        category_levels = {"Front End": {"Beginner"}}
+        
+        ranked = self.recommender.layer4_ranking(
+            custom_courses,
+            l1_scores,
+            l2_scores,
+            similar_to,
+            custom_courses,
+            user_courses_ids,
+            category_levels
+        )
+        
+        ranked_ids = [c["_id"] for c in ranked]
+        
+        # Verify round-robin interleaving order
+        self.assertEqual(ranked_ids[0], "c_prog")
+        self.assertEqual(ranked_ids[1], "c_collab")
+        self.assertEqual(ranked_ids[2], "c_hot")
+        self.assertEqual(ranked_ids[3], "c_content")
+
 if __name__ == '__main__':
     unittest.main()

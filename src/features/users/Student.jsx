@@ -16,7 +16,7 @@ import {
   Flame
 } from 'lucide-react';
 
-import { StatsGrid, ProgressBar, Leaderboard, Badges } from '../../components/common';
+import { StatsGrid, ProgressBar, Leaderboard, Badges, RecommendedCourses } from '../../components/common';
 import ProgressCard from '../../components/common/ProgressCard';
 import MyEnrolledCourses from '../courses/MyEnrolledCourses';
 
@@ -440,6 +440,15 @@ const Student = () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Personalized Course Recommendations */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+              <RecommendedCourses 
+                title="Personalized Recommendations" 
+                description="Based on your learning history and interests" 
+                compact={true} 
+              />
             </div>
 
             {/* Recent Activity */}

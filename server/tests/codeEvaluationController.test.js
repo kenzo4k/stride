@@ -5,21 +5,15 @@ import { evaluateCodeSubmission } from '../controllers/codeEvaluationController.
 import CourseContent from '../models/CourseContent.js';
 import Enrollment from '../models/Enrollment.js';
 import User from '../models/User.js';
-import axios from 'axios';
-
 test('codeEvaluationController - unit tests', async (t) => {
   const originalFindOneContent = CourseContent.findOne;
   const originalFindOneEnrollment = Enrollment.findOne;
   const originalFindByIdUser = User.findById;
-  const originalAxiosPost = axios.post;
-  const originalApiKey = process.env.JUDGE0_API_KEY;
 
   t.after(() => {
     CourseContent.findOne = originalFindOneContent;
     Enrollment.findOne = originalFindOneEnrollment;
     User.findById = originalFindByIdUser;
-    axios.post = originalAxiosPost;
-    process.env.JUDGE0_API_KEY = originalApiKey;
   });
 
   await t.test('evaluateCodeSubmission should fail if language is not Python', async () => {
@@ -51,12 +45,9 @@ test('codeEvaluationController - unit tests', async (t) => {
     assert.strictEqual(responseData.message, 'Only Python test case evaluation is supported at this time');
   });
 
-  await t.test('evaluateCodeSubmission should execute code using mocked Judge0 API', async () => {
+  await t.test('evaluateCodeSubmission should execute code and grade submissions', async () => {
     const courseId = new mongoose.Types.ObjectId().toString();
     const userId = new mongoose.Types.ObjectId().toString();
-
-    // Force Judge0 flow by setting mock api key
-    process.env.JUDGE0_API_KEY = 'mock-key';
 
     // Mock models
     CourseContent.findOne = async () => ({
@@ -94,22 +85,6 @@ test('codeEvaluationController - unit tests', async (t) => {
       level: 1,
       save: async () => {}
     });
-
-    // Mock axios post response representing Judge0 batch results
-    axios.post = async () => {
-      return {
-        data: {
-          submissions: [
-            {
-              status: { id: 3, description: 'Accepted' }, // status 3 is Accepted
-              stdout: Buffer.from('4\n').toString('base64'),
-              stderr: '',
-              compile_output: ''
-            }
-          ]
-        }
-      };
-    };
 
     const req = {
       body: {

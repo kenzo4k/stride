@@ -261,7 +261,7 @@ app.post("/api/execute", verifyToken, codeExecutionLimiter, async (req, res) => 
   }
 });
 
-// === JUDGE0: Code Evaluation against Test Cases ===
+// === Code Evaluation against Test Cases ===
 app.post("/api/execute-tests", verifyToken, codeExecutionLimiter, evaluateCodeSubmission);
 
 // === STRIPE: Create Payment Intent ===

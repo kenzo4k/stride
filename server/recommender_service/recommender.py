@@ -113,7 +113,9 @@ class RecommenderSystem:
                 
         return scores
 
-    def layer3_rule_based(self, courses, user_courses_ids, category_levels):
+    def layer3_rule_based(self, courses, user_courses_ids, category_levels, user_categories=None):
+        if user_categories is None:
+            user_categories = set()
         # Filter out courses where prerequisites are not met
         valid_courses = []
         for c in courses:
@@ -139,6 +141,8 @@ class RecommenderSystem:
             # Check difficulty progression
             level = c.get("level", "Beginner")
             category = c.get("category", "")
+
+            # (Relaxed category restriction to allow cross-category discovery in collaborative & popularity pools)
             
             # Check if there are any beginner/intermediate courses in this category in the database
             db_has_beginner = any(
@@ -169,13 +173,35 @@ class RecommenderSystem:
             
         return valid_courses
 
-    def layer4_ranking(self, valid_courses, l1_scores, l2_scores, similar_to, courses, user_courses_ids):
+    def layer4_ranking(self, valid_courses, l1_scores, l2_scores, similar_to, courses, user_courses_ids, category_levels=None):
+        if category_levels is None:
+            category_levels = {}
         ranked = []
         now = datetime.now(timezone.utc)
         
         # Build a lookup for course titles by id
         course_title_by_id = {str(c["_id"]): c.get("title", "") for c in courses}
         
+        def get_pop_score(c):
+            enrollment_count = c.get("enrollmentCount", 0)
+            rating = c.get("rating", 0)
+            return (min(enrollment_count, 1000) / 1000) * 0.5 + (rating / 5.0) * 0.5
+
+        def is_progression(c):
+            cat = c.get("category", "")
+            if not cat or cat not in category_levels or not category_levels[cat]:
+                return False
+            lvl = c.get("level", "Beginner")
+            completed_levels = category_levels.get(cat, set())
+            
+            if "Beginner" not in completed_levels:
+                return lvl == "Beginner"
+            elif "Intermediate" not in completed_levels:
+                return lvl == "Intermediate"
+            elif "Advanced" not in completed_levels:
+                return lvl == "Advanced"
+            return False
+
         for c in valid_courses:
             cid = str(c["_id"])
             
@@ -183,10 +209,9 @@ class RecommenderSystem:
             content_score = l1_scores.get(cid, 0.0)
             collab_score = l2_scores.get(cid, 0.0)
             
-            # Popularity (0 to 1 scaling roughly)
-            enrollment_count = c.get("enrollmentCount", 0)
             rating = c.get("rating", 0)
-            pop_score = (min(enrollment_count, 1000) / 1000) * 0.5 + (rating / 5.0) * 0.5
+            enrollment_count = c.get("enrollmentCount", 0)
+            pop_score = get_pop_score(c)
             
             # Freshness
             created_at = c.get("createdAt", datetime.now())
@@ -214,7 +239,10 @@ class RecommenderSystem:
             
             if completed_prereqs:
                 reason = f"Building on your study of {completed_prereqs[0]}"
-            # 2. Content similarity reason
+            # 2. Progression in the category path
+            elif is_progression(c):
+                reason = f"Next level in your {c.get('category')} learning path"
+            # 3. Content similarity reason
             elif cid in similar_to and content_score > 0.1:
                 prev_course_id = similar_to[cid]
                 prev_title = course_title_by_id.get(prev_course_id, "")
@@ -222,10 +250,10 @@ class RecommenderSystem:
                     reason = f"Similar to {prev_title}"
                 else:
                     reason = f"Based on your interest in {c.get('category')}"
-            # 3. Collaborative filtering reason
+            # 4. Collaborative filtering reason
             elif collab_score > 0.3:
                 reason = "Highly rated by students with similar profiles"
-            # 4. Fallback based on category / popularity
+            # 5. Fallback based on category / popularity
             else:
                 if rating >= 4.5:
                     reason = f"Top-rated {c.get('level')} course in {c.get('category')}"
@@ -239,9 +267,47 @@ class RecommenderSystem:
             c_copy["reason"] = reason
             ranked.append(c_copy)
             
-        # Sort descending
-        ranked.sort(key=lambda x: x["recommendation_score"], reverse=True)
-        return ranked
+        # Segregate into pools for diversification
+        progression_pool = sorted([c for c in ranked if is_progression(c)], key=lambda x: x["recommendation_score"], reverse=True)
+        collab_pool = sorted([c for c in ranked if l2_scores.get(str(c["_id"]), 0.0) > 0.1], key=lambda x: x["recommendation_score"], reverse=True)
+        hot_pool = sorted([c for c in ranked if get_pop_score(c) > 0.4], key=lambda x: x["recommendation_score"], reverse=True)
+        content_pool = sorted([c for c in ranked if l1_scores.get(str(c["_id"]), 0.0) > 0.1], key=lambda x: x["recommendation_score"], reverse=True)
+        
+        all_pool = sorted(ranked, key=lambda x: x["recommendation_score"], reverse=True)
+        
+        # Interleave selections
+        selected = []
+        selected_ids = set()
+        
+        def add_course(c):
+            cid = str(c["_id"])
+            if cid not in selected_ids:
+                selected.append(c)
+                selected_ids.add(cid)
+                return True
+            return False
+            
+        pools = [progression_pool, collab_pool, hot_pool, content_pool]
+        pool_indices = [0, 0, 0, 0]
+        max_possible = len(ranked)
+        
+        while len(selected) < max_possible:
+            added_any = False
+            for p_idx, pool in enumerate(pools):
+                idx = pool_indices[p_idx]
+                while idx < len(pool):
+                    candidate = pool[idx]
+                    pool_indices[p_idx] += 1
+                    idx += 1
+                    if add_course(candidate):
+                        added_any = True
+                        break
+            if not added_any:
+                for candidate in all_pool:
+                    add_course(candidate)
+                break
+                
+        return selected
 
     def get_recommendations(self, user_id: str, limit: int = 10):
         courses, enrollments = self.get_data()
@@ -249,6 +315,7 @@ class RecommenderSystem:
         # Get user context
         user_courses_ids = set()
         category_levels = {} # category -> set of levels completed
+        user_categories = set()
         for e in enrollments:
             if str(e["userId"]) == user_id:
                 cid = str(e["courseId"])
@@ -262,6 +329,8 @@ class RecommenderSystem:
                         if cat not in category_levels:
                             category_levels[cat] = set()
                         category_levels[cat].add(lvl)
+                        if cat:
+                            user_categories.add(cat)
                         break
                         
         # Layer 1
@@ -271,9 +340,9 @@ class RecommenderSystem:
         l2_scores = self.layer2_collaborative(courses, enrollments, user_id)
         
         # Layer 3
-        valid_courses = self.layer3_rule_based(courses, user_courses_ids, category_levels)
+        valid_courses = self.layer3_rule_based(courses, user_courses_ids, category_levels, user_categories)
         
         # Layer 4
-        ranked = self.layer4_ranking(valid_courses, l1_scores, l2_scores, similar_to, courses, user_courses_ids)
+        ranked = self.layer4_ranking(valid_courses, l1_scores, l2_scores, similar_to, courses, user_courses_ids, category_levels)
         
         return ranked[:limit]

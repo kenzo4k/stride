@@ -1,4 +1,3 @@
-import axios from 'axios';
 import CourseContent from '../models/CourseContent.js';
 import Enrollment from '../models/Enrollment.js';
 import User from '../models/User.js';

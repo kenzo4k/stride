@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import pymongo
 from bson import ObjectId
+from dotenv import load_dotenv
+
+# Load env variables from the server/.env file
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 from recommender import RecommenderSystem
 
@@ -28,6 +32,13 @@ db = client.get_database()
 recommender = RecommenderSystem(db)
 
 # Pydantic validation models
+class InstructorModel(BaseModel):
+    name: str
+    email: str
+    bio: Optional[str] = None
+    qualification: Optional[str] = None
+    photoURL: Optional[str] = None
+
 class CourseRecommendation(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -37,7 +48,7 @@ class CourseRecommendation(BaseModel):
     detailed_description: Optional[str] = None
     price: float
     discount_price: Optional[float] = None
-    instructor: Optional[str] = None
+    instructor: Optional[InstructorModel] = None
     category: str
     image: Optional[str] = None
     enrollmentCount: Optional[int] = 0
@@ -73,8 +84,6 @@ async def get_recommendations(user_id: str):
         for rec in recommendations:
             if "_id" in rec:
                 rec["_id"] = str(rec["_id"])
-            if "instructor" in rec:
-                rec["instructor"] = str(rec["instructor"])
             if "prerequisites" in rec:
                 rec["prerequisites"] = [str(p) for p in rec["prerequisites"]]
         return {"recommendations": recommendations}
