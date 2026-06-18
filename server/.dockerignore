@@ -1,0 +1,10 @@
+node_modules
+temp_runs
+.vercel
+recommender_service/venv
+recommender_service/__pycache__
+dropout_service/venv
+dropout_service/__pycache__
+*.md
+Dockerfile*
+*.txt

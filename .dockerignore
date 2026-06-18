@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.vercel
+venv
+.env*.local
+*.md
+Dockerfile*
+docker-compose*
+*.docx
+*.csv
+*.txt

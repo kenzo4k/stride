@@ -14,7 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@vercel/sandbox": "^2.2.0",
-    "axios": "^1.15.1",
+    "axios": "^1.18.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.5",
@@ -22,8 +22,8 @@
     "express": "^5.1.0",
     "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.0",
-    "multer": "^2.1.1",
+    "mongoose": "^9.7.1",
+    "multer": "^2.2.0",
     "stripe": "^20.1.0"
   },
   "description": ""
